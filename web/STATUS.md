@@ -10,7 +10,7 @@
 | 02 | Review page | NOT STARTED | | |
 | 03 | Demo monitor | NOT STARTED | | |
 | 04 | User evidence and pitch pack | NOT STARTED | | |
-| 05 | Demo ops and submission | NOT STARTED | | |
+| 05 | Demo ops and submission | PARTIAL | 2026-11-14 | 05.4 run sheet drafted (`pitch/run-sheet.md`, unknowns marked ⟨fill⟩, not yet used by a teammate). 05.6 secret scan and image check done (below); README and LICENSE not touched (need owners' agreement and Q-08d). Submission text drafted in `pitch/submission-draft.md`. 05.1, 05.2, 05.3, 05.5, 05.7, 05.8 need a human. |
 
 Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (defined in docs/PLAN.md §8).
 
@@ -42,7 +42,7 @@ Not verified: webcam capture with a real camera and a person; speech output by e
 
 | Item | State | When / by whom | Link or note |
 |---|---|---|---|
-| Preliminary submission (Fri night) | NOT DONE | | |
+| Preliminary submission (Fri night) | NOT DONE | Deadline passed (Fri 23:55) before anyone recorded it | Check whether a teammate submitted; if not, ask an organizer about a late entry. Text ready in `pitch/submission-draft.md` |
 | Challenges selected on the platform: Meta main + Gemini technology | NOT DONE | | |
 | Final submission | NOT DONE | | |
 | Confirmation saved | NOT DONE | | |
@@ -95,6 +95,11 @@ Backup recording: none yet.
 | Claim in the deck | Source file and value | OK? |
 |---|---|---|
 | — | — | — |
+
+## Repository checks (WEB-05.6, 2026-11-14 01:20)
+
+- Secret scan: `git log --all -p | grep -n -i -E "service_role|api[_-]?key\s*=|AIza|secret"` over all branches. Every hit is code that reads a key, an empty `.example` value, or a test placeholder (`dev-key`, `replace-me`, `secret-demo`). No real key, no `AIza`, no `service_role` value. **Clean.** Re-run before the final submission.
+- Committed images: only the 12 generated step placeholders (`ai/fixtures/images/`, `ios/GhostChef/Resources/Fixtures/images/`, made by `ai/scripts/make_placeholders.py`). No faces or bystanders. `ai/eval/frames/` and `web/pitch/` hold no images yet.
 
 ## Needs from other tracks
 
