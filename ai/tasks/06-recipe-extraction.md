@@ -38,12 +38,13 @@ One function that takes the chef's MP4 and returns a `RecipeDraft`: ordered step
 - **`timer_s`:** only if the chef states a waiting time.
 - **`transcript`:** the complete narration, verbatim, in order.
 - **`title`** of the recipe: from the narration, else from the hint.
+- **Step marks:** when the call passes `step_marks_s`, the prompt lists them as "the chef pinched to mark a new step at these seconds". Treat them as strong hints for step boundaries, not hard cuts: merge two marks that fall inside one action, split where the rules above demand it, and ignore a mark with nothing visible around it. Without marks, segment from the video alone.
 
 **Acceptance:** the prompt file is recipe-agnostic (no mention of sushi).
 
 ### AI-06.2 Implementation
 
-**Do** — `src/ghostchef_ai/ingest.py::extract_recipe(video_path, *, title_hint=None)`:
+**Do** — `src/ghostchef_ai/ingest.py::extract_recipe(video_path, *, title_hint=None, step_marks_s=None)` (signature from API-CONTRACT §7, v2.0):
 1. Upload the file through the Files API; poll until it is ready to use; raise `AIUnavailable` with a clear message if processing fails or exceeds 5 minutes.
 2. One generate call with the video model, the prompt, structured output using a schema equivalent to `RecipeDraft`. Use a longer timeout here (default 180 s; this runs in a background job).
 3. **Repair before validating**, because one slightly long title should not fail a 3-minute job:
@@ -57,7 +58,7 @@ One function that takes the chef's MP4 and returns a `RecipeDraft`: ordered step
 6. Timestamps may exceed the real video length; the backend clamps them (it has ffprobe). Do not add ffmpeg here.
 
 **Acceptance**
-- Unit tests with a stubbed client cover every repair rule and the retry.
+- Unit tests with a stubbed client cover every repair rule and the retry, and assert that `step_marks_s` reaches the prompt text when given and is absent when `None` or empty.
 - Fake mode unchanged and still passing.
 
 ### AI-06.3 Run on the real chef video *(human reviews)*

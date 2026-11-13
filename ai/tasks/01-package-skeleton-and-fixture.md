@@ -63,7 +63,7 @@ An installable Python package `ghostchef_ai` whose public surface matches [API-C
 
 | Function | Fake behaviour |
 |---|---|
-| `extract_recipe` | Sleeps the fake delay ×4, then returns the `RecipeDraft` loaded from `fixture_dir()/sushi_recipe.json`. If `title_hint` is given it replaces the title. |
+| `extract_recipe` | Sleeps the fake delay ×4, then returns the `RecipeDraft` loaded from `fixture_dir()/sushi_recipe.json`. If `title_hint` is given it replaces the title. Accepts and ignores `step_marks_s` (contract v2.0 signature). |
 | `check_frame` | If `len(frame_jpeg) < 5000` → `unsure` (headline `"Can't tell"`, fix `"Look straight down at mat"`, confidence 0.3). Otherwise a per-step call counter: 1st, 3rd, 5th… call for a step that has `watch_fors` → `fix` using the step's **first** watch-for (its `id`, `headline`, `fix`, `spoken`; confidence 0.9); 2nd, 4th… call → `pass` (headline `"Looks right"`, fix `""`, spoken `"That looks right."`, confidence 0.9). Steps without `watch_fors` always pass. |
 | `watch_frame` | Per-step call counter: calls 1–3 → `ok`; calls 4–6 → `warn` with the step's first watch-for (confidence 0.9); then the cycle repeats. Steps without `watch_fors` always `ok`. |
 | `build_live_config` | Not faked: this is a pure function. Implement a simple first version here or in `live.py`: model from `model_ids()["live"]`, a short system instruction that includes the recipe title, every step's `idx`, `title`, `instruction`, and the transcript; `response_modalities=["AUDIO"]`; `voice=None`; `tools` containing the five function declarations from API-CONTRACT §5.2; `session_resumption=True`. AI-05 refines it. |

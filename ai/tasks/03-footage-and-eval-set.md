@@ -38,7 +38,7 @@ One continuous take, 3–6 minutes, of someone who can roll maki competently:
 - At the end of each step, **hold still for two seconds looking straight down at the finished state**, hands out of the way. These moments become the reference stills.
 - Say explicitly what good looks like and what the common mistake is ("you should still see nori through the rice; most people use far too much").
 
-Save as `ai/footage/chef-take-1.mp4` (this folder is gitignored). Upload it to the team's shared drive and write the link and the device in `STATUS.md`.
+If the iOS app's **Chef mode** (IOS-08) already records through the glasses, record this take with it and pinch at the start of each step: that is the product's real path, and the step marks reach ingestion. Otherwise use the camera above and record it again in Chef mode later (IOS-08.5). Save as `ai/footage/chef-take-1.mp4` (this folder is gitignored). Upload it to the team's shared drive and write the link and the device in `STATUS.md`.
 
 **Acceptance:** the file plays, narration is audible, every step has a two-second hold.
 
