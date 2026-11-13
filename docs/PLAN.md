@@ -20,12 +20,12 @@ Each laptop works in exactly one folder. No two tracks ever edit the same file, 
 
 | Track | Folder | Machine | Size | Owner | What it delivers |
 |---|---|---|---|---|---|
-| **iOS** | [`ios/`](../ios/README.md) | **The Mac** (Xcode) + iPhone | Large — 7 batches | Mac owner — *name to fill in* | The app on the phone and glasses |
-| **Backend** | [`backend/`](../backend/README.md) | Any | **Largest — 7 batches, integration hub** | TECH-SPEC names Stelios | API, storage, ffmpeg, deploy, end-to-end tests |
+| **iOS** | [`ios/`](../ios/README.md) | **The Mac** (Xcode) + iPhone | **Largest and riskiest — 7 batches** | Mac owner, who also has the largest Claude allowance — *name to fill in* | The app on the phone and glasses |
+| **Backend** | [`backend/`](../backend/README.md) | Any | Large — 7 batches, integration hub | TECH-SPEC names Stelios | API, storage, ffmpeg, deploy, end-to-end tests |
 | **AI** | [`ai/`](../ai/README.md) | Any | Medium — 7 smaller batches, one is physical (filming) | *name to fill in* | Every prompt and Gemini call, fixture recipe, evaluation |
 | **Web** | [`web/`](../web/README.md) | Any | Medium-light in code — 5 batches; carries users, pitch, demo, submission | *name to fill in* | Simulator, chef studio, demo monitor, pitch pack, submission |
 
-**Assigning the heavier load.** `ios/` is fixed to the Mac. Of the other three, `backend/` is sized heaviest on purpose: give it to whoever has the most Claude usage. If that person is the Mac owner instead, nothing changes, because `ios/` is the other large track. If it is neither, see the hand-over rule below and move `backend/tasks/06` and `07` to them.
+**The heavier load.** The Mac owner has the largest Claude allowance (team, 2026-11-14), and `ios/` is the largest and riskiest track, so the two line up: no rebalancing is needed. `backend/` is the second-largest. The limit on `ios/` is time at the one Mac, not usage, so a second person pairs there during IOS-06 (risk R-06).
 
 **Hand-over rule.** A batch may be run by someone outside the track only when the track owner hands it over explicitly and stops working in that folder until the batch is pushed. One writer per folder at a time.
 
