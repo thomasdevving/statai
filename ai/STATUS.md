@@ -7,7 +7,7 @@
 | # | Batch | Status | Date / commit | Notes |
 |---|---|---|---|---|
 | 01 | Package skeleton, fake mode, fixture | DONE (fake) | 2026-11-14 · `273fadb` | Fake mode only: no Gemini call exists yet. 38 tests pass, ruff clean, all verification commands run (Windows, Python 3.13). Fixture recipe and the six reference images are **placeholders**, not chef footage. Model IDs in `config.py` are unverified placeholders until AI-02. |
-| 02 | Gemini access and model selection | NOT STARTED | | |
+| 02 | Gemini access and model selection | PARTIAL | 2026-11-14 · not yet committed | **Gemini access pending** (form submitted, no answer yet). Done: client wrapper (error mapping, timeouts, per-process call cap) with 18 network-free tests; smoke script; a **temporary OpenAI stand-in** for check/watch, smoke-tested and pinned (see below). Not done until a Gemini key exists: 02.3–02.6 for Gemini (model listing, image / two-image / video / Live / function-call / ephemeral-token tests, rate limits, data settings, latency baseline, model pinning). The Gemini code path in `client.py` is written but never run. |
 | 03 | Chef footage and evaluation set | NOT STARTED | | |
 | 04 | Check and watch | NOT STARTED | | |
 | 05 | Live voice config and token | NOT STARTED | | |
@@ -20,7 +20,7 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 
 | Fact | Value | How verified |
 |---|---|---|
-| Key source (event credits / own project) | — | |
+| Key source (event credits / own project) | — (requested via the event form 2026-11-14, no answer yet) | |
 | Project tier | — | |
 | Data-use / retention setting of this account | — | |
 | Model for `video` (extract_recipe) | — | |
@@ -32,6 +32,26 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 | Rate limits for the Live model (concurrent sessions) | — | |
 
 Candidates seen on the public models page on 2026-11-13, **not yet tried with our key**: `gemini-4-carbon`, `gemini-4-argon`, `gemini-4-hydrogen`, `gemini-3.8-flash`, `gemini-3.6-flash`, `gemini-3.5-flash-lite`, `gemini-3.8-live`.
+
+## Interim OpenAI stand-in (NOT Gemini — development only)
+
+Used while Gemini access is pending, so check/watch prompts can be developed. **Nothing measured here may be reported as a Gemini result or used in the deck.** Remove once Gemini works.
+
+- Switch: `GHOSTCHEF_PROVIDER=openai` in `ai/.env` (default `gemini`). Needs `OPENAI_API_KEY` and `pip install -e ".[openai]"`. Only `check` and `watch` exist on this path; `video` and `live` report `unsupported-on-openai`.
+- Cost guard: at most 300 paid calls per process on OpenAI (`GHOSTCHEF_MAX_CALLS`; the smoke script uses 40). Low image detail, small outputs. Owner has $21 of credit; a hard spend limit in the OpenAI dashboard is the owner's job.
+- Key: the owner's personal OpenAI key, in the untracked `ai/.env` only. Free listing on 2026-11-14 showed 96 models.
+
+Smoke test, 2026-11-14, owner's laptop on Windows (network not recorded), fixture placeholder image `step-3.jpg` with low image detail. "Correct" = read the heading text; two-image = same / different picture. These are capability checks, **not** cooking-judgement results.
+
+| Model (resolved) | image + JSON | latency p50 / max ms (n=5) | two images | 512 px frame |
+|---|---|---|---|---|
+| `gpt-5.4-nano` (`gpt-5.4-nano-2026-03-17`) | 5/5 | 923 / 4055 | 2/2 | 920 ms, read |
+| `gpt-5.4-mini` (`gpt-5.4-mini-2026-03-17`) | 5/5 | 920 / 1945 | 2/2 | 808 ms, read |
+| `gpt-4.1-mini` (`gpt-4.1-mini-2025-04-14`) | 5/5 | 890 / 1266 | 2/2 | 772 ms, read |
+
+Run cost: 24 calls, 35,189 input tokens, 382 output tokens. The dollar charge was not measured; check the OpenAI usage page.
+
+**Pinned interim models:** `check` = `gpt-5.4-mini` (stronger model for the judgement), `watch` = `gpt-5.4-nano` (cheapest tier; one 4 s outlier in five calls). All three passed, so this is a cost choice, not a quality finding. OpenAI rate limits for these models were **not read**: the owner can check them on the dashboard's Limits page.
 
 ## Latency baseline (measured from a laptop at the venue)
 
@@ -82,6 +102,7 @@ Nothing measured yet.
 - Fake sequences: `check_frame` → frame under 5000 bytes is `unsure`; otherwise odd calls per step are `fix` with the step's first watch-for, even calls `pass`. `watch_frame` → per step, calls 1–3 `ok`, 4–6 `warn`, repeating. Steps without watch-fors always `pass` / `ok`.
 - Fixture: `ai/fixtures/sushi_recipe.json` (6 steps, `RecipeDraft`) and `ai/fixtures/images/step-1.jpg` … `step-6.jpg` (720×1280). The demo mistake is step 3, `rice_too_thick`.
 - Real (non-fake) calls raise `AIUnavailable("… not implemented yet …")` until AI-04/05/06.
+- Backend: keep `GHOSTCHEF_AI_FAKE=1`. The OpenAI stand-in is for `ai/` prompt work only and is not wired into `check_frame` / `watch_frame` yet (that is AI-04).
 
 ## Needs from other tracks
 
