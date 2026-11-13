@@ -6,7 +6,7 @@
 
 | # | Batch | Status | Date / commit | Notes |
 |---|---|---|---|---|
-| 01 | Skeleton and full API on memory + fake AI | NOT STARTED | | |
+| 01 | Skeleton and full API on memory + fake AI | PARTIAL | 2026-11-14 | Tasks 01.1–01.3 done; 01.4–01.8 next (AI-01 now on `main`). See below. |
 | 02 | Supabase schema, storage, seed | NOT STARTED | | |
 | 03 | Check and watch, production-grade | NOT STARTED | | |
 | 04 | Deploy to Railway + emergency mode | NOT STARTED | | |
@@ -30,7 +30,7 @@ The demo key is shared privately, never written here.
 
 | Endpoint group | Implemented | Tested | Notes |
 |---|---|---|---|
-| `/health` | — | — | |
+| `/health` | yes | yes | Returns `ai_mode: "fake"` with AI-01 installed. Without `ghostchef_ai` it would say `unavailable` (not a contract value; broken setup only) |
 | Recipes and steps (§2) | — | — | |
 | `/check`, `/watch` (§3) | — | — | |
 | Sessions, events, monitor (§4) | — | — | |
@@ -60,6 +60,17 @@ The demo key is shared privately, never written here.
 | Non-JPEG frame | `415` | — | — |
 | Wrong demo key | `401` | — | — |
 | Supabase unreachable | `500 internal`, server stays up | — | — |
+
+## BE-01 progress (2026-11-14)
+
+Done and verified (`ruff check .` clean, `pytest -q`: 29 passed, with `ghostchef_ai` from AI-01 `815f2a2` installed):
+
+- 01.1 scaffold: `pyproject.toml`, `.env.example`, `app/config.py`. `pip install -e ".[dev]"` works; `pip install -e ../ai` works since AI-01.
+- 01.2 `create_app()`, CORS, `X-Demo-Key` auth (`hmac.compare_digest`), error envelope for `ApiError` / 404 / 422 / 500, `GET /health`. AI-error → HTTP handlers are registered automatically once `ghostchef_ai` is importable.
+- 01.3 `Store` protocol, `MemoryStore` (rows in dicts, blobs under `DATA_DIR`), `/local-files` and `/local-upload` (memory mode only; path traversal rejected, single-use token, 413 past `MAX_VIDEO_MB`). Startup seed (`app/seed.py`): fixture recipe as `published` with fixed id `00000000-0000-4000-8000-000000000001`, `uuid5` step ids, reference images copied into `media`; its test passes against the AI-01 fixture.
+- `GET /health` with AI-01 installed returned `{"status":"ok","contract_version":"2.0","ai_mode":"fake","storage":"memory"}`.
+
+Not started: 01.4–01.8 (recipes/steps, check/watch, sessions, live token, upload flow, smoke script, `openapi.json`). The LAN URL is not shared yet.
 
 ## Needs from other tracks
 
