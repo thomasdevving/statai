@@ -1,37 +1,37 @@
-# WEB-02 — Chef studio: upload, review, edit, publish
+# WEB-02 — Review page: review, edit, publish (+ dev-fallback MP4 upload)
 
 | | |
 |---|---|
 | **Track** | `web/` |
 | **Gate** | G3 |
-| **Depends on** | WEB-01 (shared modules). BE-01 is enough to build against (its fake ingestion moves a recipe `processing → review`); BE-06 for real video and frame re-picking. |
-| **Unblocks** | The "chef records once" half of the story; a Must in the spec |
+| **Depends on** | WEB-01 (shared modules). BE-01 is enough to build against (its fake ingestion moves a recipe `uploading → processing → review`); BE-06 for real video and frame re-picking. |
+| **Unblocks** | The "chef records once" half of the story: the chef records in the iOS app's Chef mode (IOS-08) and reviews here. A Must in the spec |
 | **Size** | Medium |
 | **Model** | Opus 5.5; Sonnet 5.5 is enough for form styling and copy |
-| **Needs a human for** | Uploading the real chef video and reviewing the result |
+| **Needs a human for** | Reviewing a real ingested recipe (recorded in Chef mode, or uploaded here as the dev fallback) |
 
 ## Goal
 
-One page where a chef (or the team, standing in for one) uploads a recording with explicit consent, watches it turn into steps, corrects the text, re-picks a reference frame from the video, publishes, and can delete everything again.
+One page where a chef (or a teammate, on a laptop) opens a recipe the iOS app recorded and uploaded, watches it turn into steps, corrects the text, re-picks a reference frame from the video, publishes, and can delete everything again. **Recording happens on the glasses (IOS-08), not here.** The page also keeps a small MP4 upload as a **dev fallback**, so the pipeline can be built and tested before the glasses arrive.
 
 ## Read first
 
 - [../../docs/API-CONTRACT.md §2](../../docs/API-CONTRACT.md#2-recipes-and-steps) — every endpoint used here, the word limits, the status values
-- [../../docs/TECH-SPEC.md](../../docs/TECH-SPEC.md) "Chef recording → recipe"
+- [../../docs/TECH-SPEC.md](../../docs/TECH-SPEC.md) "Chef recording → recipe" (Record / Upload / Process / Review)
 - [../../docs/PRODUCT.md §8](../../docs/PRODUCT.md#8-trust-consent-accessibility) — consent and deletion
 
 ## Tasks
 
-### WEB-02.1 Recipe list and upload
+### WEB-02.1 Recipe list, status polling, dev-fallback upload
 
-**Do** — `studio/index.html`, `studio/studio.js`; add to `shared/api.js`: `uploadRecipe(formData)`, `patchRecipe`, `publishRecipe`, `deleteRecipe`, `patchStep`.
-- List all recipes with a status chip (`processing`, `review`, `published`, `failed`), step count, created time. `failed` shows the `error` text.
-- Upload form: MP4 file, title (required, ≤ 80 characters), chef name (optional), and a **consent checkbox that must be ticked**: "The person in this recording agreed to it being processed by Google Gemini and shown in the Ghost Chef demo." The submit button stays disabled without it. Send `consent=true`.
+**Do** — `review/index.html`, `review/review.js`; add to `shared/api.js`: `createRecipe({title, chef_name, step_marks_s, consent})`, `putVideo(uploadUrl, file, onProgress)`, `processRecipe(id)`, `patchRecipe`, `publishRecipe`, `deleteRecipe`, `patchStep`.
+- List all recipes with a status chip (`uploading`, `processing`, `review`, `published`, `failed`), step count, created time. `failed` shows the `error` text. Recipes uploaded from the iOS app appear here on their own.
+- Opening a recipe that is `uploading` or `processing` polls `GET /recipes/{id}` every 3 s until the status changes; show elapsed time. Polling stops when the tab is hidden and resumes when visible.
+- **Dev-fallback upload**, in a collapsed section labelled "Dev fallback: upload an MP4 (the real path is Chef mode on the glasses)": MP4 file, title (required, ≤ 80 characters), chef name (optional), and a **consent checkbox that must be ticked**: "The person in this recording agreed to it being processed by Google Gemini and shown in the Ghost Chef demo." The submit button stays disabled without it.
+- The upload follows contract v2.0: `POST /recipes` with `consent: true` and `step_marks_s: []` → `PUT upload_url` with the raw file and `Content-Type: video/mp4`, **without** `X-Demo-Key` (use `XMLHttpRequest` for progress) → `POST /recipes/{id}/process` → poll as above. If the `PUT` fails, show the error and offer "Retry upload" (same `upload_url` while it is valid), then `/process`.
 - Client-side checks before sending: file type is MP4, size ≤ 500 MB (show the size).
-- Upload progress (use `XMLHttpRequest` for progress events, or show an indeterminate state with `fetch`).
-- After `202`, poll `GET /recipes/{id}` every 3 s until the status leaves `processing`; show elapsed time. Polling stops when the tab is hidden and resumes when visible.
 
-**Acceptance:** against the fake backend, an upload of any small MP4 appears as `processing` and becomes `review` without a page reload; a missing consent tick cannot be submitted; a non-MP4 is rejected before upload.
+**Acceptance:** against the fake backend, a dev-fallback upload of any small MP4 goes `uploading → processing → review` without a page reload; a missing consent tick cannot be submitted; a non-MP4 is rejected before upload; a recipe created by another client (e.g. `curl` following API-CONTRACT §2) shows up in the list.
 
 ### WEB-02.2 Review screen
 
@@ -67,22 +67,22 @@ This is item 6 in the cut order: if time is short, ship the numeric field only.
 
 ### WEB-02.5 Real video *(human, needs BE-06 and AI-06)*
 
-Upload the real chef take. Review every step against the video: is the still the finished state, are the criteria visible things, is the scripted mistake present? Fix what is wrong using the studio itself and note what you had to change.
+Open the real chef take (recorded in Chef mode, or uploaded through the dev fallback; say which). Review every step against the video: is the still the finished state, are the criteria visible things, is the scripted mistake present, did the chef's pinch marks land on sensible step boundaries? Fix what is wrong using the review page itself and note what you had to change.
 
 **Acceptance:** `STATUS.md` records: processing time, number of steps, number of fields edited by hand, number of frames re-picked. These numbers are honest material for the pitch ("the chef spent N minutes reviewing").
 
 ## Verification
 
 ```bash
-python -m http.server 5173 --directory web      # then open http://localhost:5173/studio/
+python -m http.server 5173 --directory web      # then open http://localhost:5173/review/
 ```
 
 Manual walk-through of each acceptance against the fake backend, then against the real one.
 
 ## Out of scope
 
-Recording video in the browser. Authentication beyond the demo key. Editing step order or adding steps (not in the contract).
+Recording video in the browser (Chef mode in the iOS app does that). Resumable upload in the browser (a simple `PUT` is enough for the dev fallback). Authentication beyond the demo key. Editing step order or adding steps (not in the contract).
 
 ## When done
 
-Update `STATUS.md`, commit `[web] WEB-02 chef studio`, push.
+Update `STATUS.md`, commit `[web] WEB-02 review page`, push.

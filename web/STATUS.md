@@ -7,7 +7,7 @@
 | # | Batch | Status | Date / commit | Notes |
 |---|---|---|---|---|
 | 01 | Foundation and simulator | NOT STARTED | | |
-| 02 | Chef studio | NOT STARTED | | |
+| 02 | Review page | NOT STARTED | | |
 | 03 | Demo monitor | NOT STARTED | | |
 | 04 | User evidence and pitch pack | NOT STARTED | | |
 | 05 | Demo ops and submission | NOT STARTED | | |

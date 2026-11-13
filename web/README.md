@@ -1,4 +1,4 @@
-# Track: `web/` — simulator, chef studio, demo monitor, pitch and submission
+# Track: `web/` — simulator, review page, demo monitor, pitch and submission
 
 **Owner: Türker**
 
@@ -11,7 +11,7 @@ New here? Read [../README.md](../README.md), [../docs/PRODUCT.md](../docs/PRODUC
 | Deliverable | Why it exists |
 |---|---|
 | **Simulator** (`sim/`) — the cook-along loop in a browser with a webcam or uploaded photos | Lets `backend/` and `ai/` be tested end to end without the Mac or the glasses; last-resort demo fallback |
-| **Chef studio** (`studio/`) — upload, review, edit, publish | A Must in the spec; shows the ingestion story |
+| **Review page** (`review/`) — review, edit, publish recipes the iOS app recorded; plus an MP4 upload as a **dev fallback** | A Must in the spec; the chef records in the app's Chef mode (`ios/`), and reviews here on a laptop |
 | **Demo monitor** (`monitor/`) — live view of a running session | The audience cannot see inside a lens |
 | **Pitch pack** (`pitch/`) — one-liners, deck, evidence, Q&A, user notes | Judging |
 | Demo kit, run sheet, backup recording, **submission** | Deadlines |
@@ -39,15 +39,15 @@ Optional: Node 18+ only to run the one unit-test file (`node --test web/tests/`)
 
 ```
 web/
-  index.html              landing page: Simulator · Studio · Monitor · Settings
+  index.html              landing page: Simulator · Review · Monitor · Settings
   shared/
     config.js             API base + demo key (localStorage; defaults to same origin under /app/)
-    api.js                fetch wrapper: X-Demo-Key, error envelope → ApiError, multipart helpers
+    api.js                fetch wrapper: X-Demo-Key, error envelope → ApiError, multipart helpers, signed-URL video PUT
     lens.js  lens.css     renderLens(element, lensScreen) — the lens card, shared by sim and monitor
     debounce.js           watcher debounce (same rules as the iOS app) — pure, unit-tested
     ui.css                shared page styling
   sim/       index.html  sim.js
-  studio/    index.html  studio.js
+  review/    index.html  review.js
   monitor/   index.html  monitor.js
   tests/     debounce.test.mjs
   pitch/     one-liners.md  deck-outline.md  evidence.md  qa.md  user-notes.md  run-sheet.md  architecture.svg  deck.pdf
@@ -70,12 +70,12 @@ One Claude session per batch. Kickoff prompt: [../docs/PLAN.md §7](../docs/PLAN
 | # | Batch | Gate | Needs | A human must |
 |---|---|---|---|---|
 | 01 | [Foundation and simulator](tasks/01-foundation-and-simulator.md) | G0→G1 | BE-01 reachable | Point a webcam at things |
-| 02 | [Chef studio](tasks/02-chef-studio.md) | G3 | BE-01 (fake ingestion) to build; BE-06 for real | Review a real ingested recipe |
+| 02 | [Review page](tasks/02-review-page.md) | G3 | BE-01 (fake ingestion) to build; BE-06 for real | Review a real ingested recipe |
 | 03 | [Demo monitor](tasks/03-demo-monitor.md) | G2 | BE-01 to build; BE-03.5 + BE-05 for the full feed | Check it from across a table |
 | 04 | [User evidence and pitch pack](tasks/04-user-evidence-and-pitch-pack.md) | G3→G4 | A working loop to show people; AI-07 numbers; IOS-06 device facts | Talk to people; build the deck |
 | 05 | [Demo ops and submission](tasks/05-demo-ops-and-submission.md) | **Starts tonight** (preliminary submission), ends G5 | — | Shop, rehearse, submit |
 
-**Do WEB-05 task 1 (preliminary submission) immediately**, before any code. Then 01. Build 03 before 02: the monitor is needed for G2, the studio for G3.
+**Do WEB-05 task 1 (preliminary submission) immediately**, before any code. Then 01. Build 03 before 02: the monitor is needed for G2, the review page for G3.
 
 ## Rules for this track
 

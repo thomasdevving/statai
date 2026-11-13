@@ -54,7 +54,7 @@ Write the answers in `pitch/user-notes.md` under "Pilot conversation".
 
 ### WEB-04.4 Architecture diagram
 
-**Do** — `pitch/architecture.svg` (hand-written SVG or exported from a diagram tool): glasses → iPhone app → backend → Gemini, with the four Gemini jobs labelled (video → steps; reference vs. live comparison; fast mistake watcher; Live voice with function calls), plus Supabase and the chef studio. One slide, readable from the back of a room, no more than ~12 boxes. Base it on [ARCHITECTURE §1–§2](../../docs/ARCHITECTURE.md#1-components-and-folders), and remove anything that was cut.
+**Do** — `pitch/architecture.svg` (hand-written SVG or exported from a diagram tool): glasses → iPhone app → backend → Gemini, with the four Gemini jobs labelled (video → steps; reference vs. live comparison; fast mistake watcher; Live voice with function calls), plus Supabase, the app's Chef mode (record → signed upload), and the review page. One slide, readable from the back of a room, no more than ~12 boxes. Base it on [ARCHITECTURE §1–§2](../../docs/ARCHITECTURE.md#1-components-and-folders), and remove anything that was cut.
 
 **Acceptance:** opens in a browser; a teammate confirms it matches what runs.
 

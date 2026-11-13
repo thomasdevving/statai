@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Track** | `web/` |
-| **Gate** | G2. Build this **before** the studio. |
+| **Gate** | G2. Build this **before** the review page. |
 | **Depends on** | WEB-01 (shared modules). BE-01 gives the feed's shape; BE-03.5 and BE-05 make it complete (latest frame, `ok` watch results, latency). |
 | **Unblocks** | Peer review and partner judging: people who are not wearing the glasses can see it work |
 | **Size** | Medium |

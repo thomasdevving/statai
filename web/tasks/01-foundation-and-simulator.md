@@ -29,7 +29,7 @@ A no-build static web app with shared API, lens, and debounce modules, and a sim
 - `shared/api.js`: `api.get(path)`, `api.postJson(path, body)`, `api.patchJson`, `api.del`, `api.postForm(path, formData)`; adds `X-Demo-Key`; parses the error envelope into `ApiError { status, code, message, retryable }`; network failures become `ApiError { code: "network" }`; per-call timeout through `AbortController` (**10 s check, 4 s watch**, 10 s default). Named helpers for each endpoint used here: `health`, `listRecipes`, `getRecipe`, `createSession`, `postEvent`, `check`, `watch`, `getSession`.
 - A settings dialog component (gear icon) to edit base URL, key, threshold, interval; and the footer status strip from the README (API base, `ai_mode`, `storage`; red when fake; "unreachable" when `/health` fails).
 - `shared/ui.css`: a small, clean base style (system font, dark theme, large tap targets).
-- `index.html`: landing page with three large links (Simulator, Studio, Monitor) and the status strip.
+- `index.html`: landing page with three large links (Simulator, Review, Monitor) and the status strip.
 
 **Acceptance:** opening the landing page against a running backend shows `ai_mode` and `storage`; a wrong key shows a clear "unauthorized" state, not a blank page.
 
@@ -107,7 +107,7 @@ Walk through WEB-01.4 and WEB-01.5's acceptance by hand in a current Chrome or S
 
 ## Out of scope
 
-Gemini Live voice in the browser. Studio and monitor (next batches). Any build tooling or framework.
+Gemini Live voice in the browser. Review page and monitor (next batches). Any build tooling or framework.
 
 ## When done
 
