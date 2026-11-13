@@ -6,7 +6,7 @@
 
 | # | Batch | Status | Date / commit | Notes |
 |---|---|---|---|---|
-| 01 | Package skeleton, fake mode, fixture | DONE (fake) | 2026-11-14 · not yet committed | Fake mode only: no Gemini call exists yet. 38 tests pass, ruff clean, all verification commands run (Windows, Python 3.13). Fixture recipe and the six reference images are **placeholders**, not chef footage. Model IDs in `config.py` are unverified placeholders until AI-02. |
+| 01 | Package skeleton, fake mode, fixture | DONE (fake) | 2026-11-14 · `273fadb` | Fake mode only: no Gemini call exists yet. 38 tests pass, ruff clean, all verification commands run (Windows, Python 3.13). Fixture recipe and the six reference images are **placeholders**, not chef footage. Model IDs in `config.py` are unverified placeholders until AI-02. |
 | 02 | Gemini access and model selection | NOT STARTED | | |
 | 03 | Chef footage and evaluation set | NOT STARTED | | |
 | 04 | Check and watch | NOT STARTED | | |
