@@ -19,19 +19,20 @@ struct SettingsView: View {
                     .listRowInsets(EdgeInsets())
 
                     if settings.dataSource == .backend {
-                        LabeledContent("URL") {
+                        // Stacked label + bordered field, so these read as inputs, not values.
+                        InputRow(title: "Backend URL", systemImage: "network") {
                             TextField("http://192.168.1.20:8000", text: $settings.baseURLString)
                                 .keyboardType(.URL)
                                 .textContentType(.URL)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
-                                .multilineTextAlignment(.trailing)
+                                .submitLabel(.done)
                         }
-                        LabeledContent("Demo key") {
-                            SecureField("X-Demo-Key", text: $settings.demoKey)
+                        InputRow(title: "Demo key", systemImage: "key") {
+                            SecureField("Ask the backend owner", text: $settings.demoKey)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
-                                .multilineTextAlignment(.trailing)
+                                .submitLabel(.done)
                         }
                         Button("Reset to Build Defaults") { settings.resetConnectionToBuildDefaults() }
                     }
@@ -194,6 +195,41 @@ private struct HealthSection: View {
         } catch {
             state = .failed(error.localizedDescription)
         }
+    }
+}
+
+/// A caption label above a tinted, bordered input, with a pencil to signal it can be edited.
+private struct InputRow<Field: View>: View {
+    let title: String
+    let systemImage: String
+    @ViewBuilder var field: Field
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                field
+                    .font(.body.monospaced())
+                    .focused($focused)
+                Image(systemName: "pencil")
+                    .foregroundStyle(.tint)
+                    .opacity(focused ? 0 : 1)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(focused ? Color.accentColor : .clear, lineWidth: 1.5)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { focused = true }
+        }
+        .padding(.vertical, 4)
     }
 }
 
