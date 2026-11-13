@@ -5,7 +5,7 @@
 
 ## Preliminary submission (WEB-05.1)
 
-**Status at drafting (Sat 14 Nov 01:20):** the deadline (Fri 23:55 platform / 23:59 homepage) has passed. First check whether a teammate already submitted; if not, ask an organizer whether a late preliminary entry is accepted, and record the answer in `web/STATUS.md`.
+**Status:** not missed, per the web owner (Sat 14 Nov). Record the submission time and who submitted in `web/STATUS.md` → Submission. The fields below are what was planned; reuse them for the final form.
 
 | Field | Value |
 |---|---|

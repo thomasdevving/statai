@@ -42,7 +42,7 @@ Not verified: webcam capture with a real camera and a person; speech output by e
 
 | Item | State | When / by whom | Link or note |
 |---|---|---|---|
-| Preliminary submission (Fri night) | NOT DONE | Deadline passed (Fri 23:55) before anyone recorded it | Check whether a teammate submitted; if not, ask an organizer about a late entry. Text ready in `pitch/submission-draft.md` |
+| Preliminary submission (Fri night) | Not missed (per Türker, 2026-11-14) | ⟨fill: time and who submitted⟩ | Text kept in `pitch/submission-draft.md` |
 | Challenges selected on the platform: Meta main + Gemini technology | NOT DONE | | |
 | Final submission | NOT DONE | | |
 | Confirmation saved | NOT DONE | | |
