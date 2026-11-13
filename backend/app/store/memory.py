@@ -63,6 +63,10 @@ class MemoryStore:
         for sess_id in [s.id for s in self._sessions.values() if s.recipe_id == recipe_id]:
             del self._sessions[sess_id]
             self._events.pop(sess_id, None)
+        # A still-valid upload token must not write into a deleted recipe's folder.
+        for tok, (bucket, path, _) in list(self._upload_tokens.items()):
+            if bucket == "videos" and path.startswith(f"{recipe_id}/"):
+                del self._upload_tokens[tok]
         return True
 
     # ------------------------------------------------------------------ steps
@@ -153,7 +157,7 @@ class MemoryStore:
 
         def _write() -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
-            tmp = target.with_name(target.name + ".part")
+            tmp = target.with_name(f"{target.name}.{secrets.token_hex(8)}.part")
             tmp.write_bytes(data)
             tmp.replace(target)
 
@@ -190,6 +194,7 @@ class MemoryStore:
 
     async def signed_upload(self, bucket: str, path: str) -> SignedUpload:
         check_blob_path(bucket, path)
+        self._purge_expired_tokens()
         token = secrets.token_urlsafe(32)
         expires_at = utcnow() + UPLOAD_TTL
         self._upload_tokens[token] = (bucket, path, expires_at)
@@ -200,17 +205,33 @@ class MemoryStore:
             "expires_at": expires_at,
         }
 
-    def consume_upload_token(self, bucket: str, path: str, token: str) -> bool:
-        """Single use, constant-time compare. True when the token matches bucket/path."""
+    def _purge_expired_tokens(self) -> None:
+        now = utcnow()
+        for tok, (_, _, expires_at) in list(self._upload_tokens.items()):
+            if now > expires_at:
+                del self._upload_tokens[tok]
+
+    def _match_token(self, bucket: str, path: str, token: str) -> str | None:
         match: str | None = None
         given = token.encode()
         for known in list(self._upload_tokens):
             if hmac.compare_digest(known.encode(), given):
                 match = known
         if match is None:
-            return False
+            return None
         t_bucket, t_path, expires_at = self._upload_tokens[match]
         if t_bucket != bucket or t_path != path or utcnow() > expires_at:
+            return None
+        return match
+
+    def check_upload_token(self, bucket: str, path: str, token: str) -> bool:
+        """Constant-time compare; True when the token is valid for bucket/path. Not consumed."""
+        return self._match_token(bucket, path, token) is not None
+
+    def consume_upload_token(self, bucket: str, path: str, token: str) -> bool:
+        """Mark the token used (after a successful upload). Single use."""
+        match = self._match_token(bucket, path, token)
+        if match is None:
             return False
         del self._upload_tokens[match]
         return True

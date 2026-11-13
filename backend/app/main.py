@@ -14,8 +14,10 @@ from app.auth import require_demo_key
 from app.config import get_settings
 from app.deps import get_store
 from app.errors import install_error_handlers
+from app.guard import GuardMiddleware
+from app.jobs import ingest
 from app.request_ctx import request_base_url
-from app.routers import health, local
+from app.routers import frames, health, live, local, recipes, sessions, steps
 from app.seed import seed_fixture
 
 log = logging.getLogger("ghostchef")
@@ -28,12 +30,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.storage == "memory":
         await seed_fixture(store)
     yield
+    await ingest.cancel_all()
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="Ghost Chef API", version="2.0", lifespan=lifespan)
+    # No /docs or /openapi.json: contract §1 leaves only /health open. The schema is exported
+    # to backend/openapi.json instead.
+    app = FastAPI(
+        title="Ghost Chef API",
+        version="2.0",
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
 
+    # Added first = innermost: CORS (outer) answers preflights and decorates our 401/413s.
+    app.add_middleware(GuardMiddleware)
     origins = settings.cors_origin_list
     app.add_middleware(
         CORSMiddleware,
@@ -54,8 +68,8 @@ def create_app() -> FastAPI:
 
     auth = [Depends(require_demo_key)]
     app.include_router(health.router)
-    # Authenticated routers are added here as they are implemented (BE-01.4 onward).
-    _ = auth
+    for module in (recipes, steps, frames, sessions, live):
+        app.include_router(module.router, dependencies=auth)
     if settings.storage == "memory":
         app.include_router(local.router)
 

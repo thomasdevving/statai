@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import mimetypes
+import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -20,7 +21,8 @@ from app.store.paths import BadPath
 
 router = APIRouter(tags=["local (memory mode only)"], include_in_schema=False)
 
-CHUNK = 1024 * 1024
+# (bucket, path) pairs with an upload running; one writer per target.
+_in_flight: set[tuple[str, str]] = set()
 
 
 def _memory_store(settings: Settings) -> MemoryStore:
@@ -58,30 +60,42 @@ async def local_upload(
         target = store.blob_file(bucket, path)
     except BadPath:
         raise ApiError(404, "not_found", "not found") from None
-    if not store.consume_upload_token(bucket, path, token):
+    # The token is only consumed after the file is in place, so a dropped or oversized upload
+    # can be retried with the same URL until it expires.
+    if not store.check_upload_token(bucket, path, token):
         raise ApiError(403, "forbidden", "invalid or expired upload token")
+    if (bucket, path) in _in_flight:
+        raise ApiError(409, "upload_in_progress", "an upload to this path is already running")
 
     limit = settings.max_video_bytes
     declared = request.headers.get("content-length")
     if declared and declared.isdigit() and int(declared) > limit:
         raise ApiError(413, "payload_too_large", f"upload exceeds {settings.max_video_mb} MB")
 
-    await asyncio.to_thread(target.parent.mkdir, parents=True, exist_ok=True)
-    tmp = target.with_name(target.name + ".part")
-    total = 0
-    fh = await asyncio.to_thread(open, tmp, "wb")
+    _in_flight.add((bucket, path))
     try:
-        async for chunk in request.stream():
-            total += len(chunk)
-            if total > limit:
-                raise ApiError(
-                    413, "payload_too_large", f"upload exceeds {settings.max_video_mb} MB"
-                )
-            await asyncio.to_thread(fh.write, chunk)
-    except BaseException:
+        await asyncio.to_thread(target.parent.mkdir, parents=True, exist_ok=True)
+        tmp = target.with_name(f"{target.name}.{secrets.token_hex(8)}.part")
+        total = 0
+        fh = await asyncio.to_thread(open, tmp, "wb")
+        try:
+            async for chunk in request.stream():
+                total += len(chunk)
+                if total > limit:
+                    raise ApiError(
+                        413, "payload_too_large", f"upload exceeds {settings.max_video_mb} MB"
+                    )
+                await asyncio.to_thread(fh.write, chunk)
+        except BaseException:
+            await asyncio.to_thread(fh.close)
+            await asyncio.to_thread(tmp.unlink, True)
+            raise
         await asyncio.to_thread(fh.close)
-        await asyncio.to_thread(tmp.unlink, True)
-        raise
-    await asyncio.to_thread(fh.close)
-    await asyncio.to_thread(tmp.replace, target)
+        # Re-check: the token may have expired or been revoked (recipe deleted) meanwhile.
+        if not store.consume_upload_token(bucket, path, token):
+            await asyncio.to_thread(tmp.unlink, True)
+            raise ApiError(403, "forbidden", "invalid or expired upload token")
+        await asyncio.to_thread(tmp.replace, target)
+    finally:
+        _in_flight.discard((bucket, path))
     return Response(status_code=200)

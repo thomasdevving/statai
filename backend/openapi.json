@@ -1,0 +1,2530 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "Ghost Chef API",
+  "version": "2.0"
+ },
+ "paths": {
+  "/health": {
+   "get": {
+    "tags": [
+     "health"
+    ],
+    "summary": "Health",
+    "operationId": "health_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "additionalProperties": {
+          "type": "string"
+         },
+         "type": "object",
+         "title": "Response Health Health Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/recipes": {
+   "post": {
+    "tags": [
+     "recipes"
+    ],
+    "summary": "Create Recipe",
+    "operationId": "create_recipe_recipes_post",
+    "parameters": [
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RecipeCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecipeCreated"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "recipes"
+    ],
+    "summary": "List Recipes",
+    "operationId": "list_recipes_recipes_get",
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecipeList"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/recipes/{recipe_id}/process": {
+   "post": {
+    "tags": [
+     "recipes"
+    ],
+    "summary": "Process Recipe",
+    "operationId": "process_recipe_recipes__recipe_id__process_post",
+    "parameters": [
+     {
+      "name": "recipe_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Recipe Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProcessStarted"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/recipes/{recipe_id}": {
+   "get": {
+    "tags": [
+     "recipes"
+    ],
+    "summary": "Get Recipe",
+    "operationId": "get_recipe_recipes__recipe_id__get",
+    "parameters": [
+     {
+      "name": "recipe_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Recipe Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecipeDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "recipes"
+    ],
+    "summary": "Patch Recipe",
+    "operationId": "patch_recipe_recipes__recipe_id__patch",
+    "parameters": [
+     {
+      "name": "recipe_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Recipe Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RecipePatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecipeDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "recipes"
+    ],
+    "summary": "Delete Recipe",
+    "operationId": "delete_recipe_recipes__recipe_id__delete",
+    "parameters": [
+     {
+      "name": "recipe_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Recipe Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/recipes/{recipe_id}/publish": {
+   "post": {
+    "tags": [
+     "recipes"
+    ],
+    "summary": "Publish Recipe",
+    "operationId": "publish_recipe_recipes__recipe_id__publish_post",
+    "parameters": [
+     {
+      "name": "recipe_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Recipe Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RecipeDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/steps/{step_id}": {
+   "patch": {
+    "tags": [
+     "steps"
+    ],
+    "summary": "Patch Step",
+    "operationId": "patch_step_steps__step_id__patch",
+    "parameters": [
+     {
+      "name": "step_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Step Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/StepPatch"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/StepOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/check": {
+   "post": {
+    "tags": [
+     "check and watch"
+    ],
+    "summary": "Check",
+    "operationId": "check_check_post",
+    "parameters": [
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_check_check_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CheckOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/watch": {
+   "post": {
+    "tags": [
+     "check and watch"
+    ],
+    "summary": "Watch",
+    "operationId": "watch_watch_post",
+    "parameters": [
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_watch_watch_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/WatchOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/sessions": {
+   "post": {
+    "tags": [
+     "sessions"
+    ],
+    "summary": "Create Session",
+    "operationId": "create_session_sessions_post",
+    "parameters": [
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SessionCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionCreated"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "sessions"
+    ],
+    "summary": "List Sessions",
+    "operationId": "list_sessions_sessions_get",
+    "parameters": [
+     {
+      "name": "active",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "boolean"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Active"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 100,
+       "minimum": 1,
+       "default": 20,
+       "title": "Limit"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionList"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/sessions/{session_id}/events": {
+   "post": {
+    "tags": [
+     "sessions"
+    ],
+    "summary": "Post Event",
+    "operationId": "post_event_sessions__session_id__events_post",
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Session Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/EventCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/EventCreated"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/sessions/{session_id}": {
+   "get": {
+    "tags": [
+     "sessions"
+    ],
+    "summary": "Get Session",
+    "operationId": "get_session_sessions__session_id__get",
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Session Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/SessionDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/sessions/{session_id}/monitor": {
+   "get": {
+    "tags": [
+     "sessions"
+    ],
+    "summary": "Monitor",
+    "operationId": "monitor_sessions__session_id__monitor_get",
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Session Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Monitor"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/live-token": {
+   "get": {
+    "tags": [
+     "live"
+    ],
+    "summary": "Live Token",
+    "operationId": "live_token_live_token_get",
+    "parameters": [
+     {
+      "name": "recipe_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Recipe Id"
+      }
+     },
+     {
+      "name": "session_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Session Id"
+      }
+     },
+     {
+      "name": "x-demo-key",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Demo-Key"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LiveTokenOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "Body_check_check_post": {
+    "properties": {
+     "frame": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "Frame"
+     },
+     "step_id": {
+      "type": "string",
+      "title": "Step Id"
+     },
+     "request_id": {
+      "type": "string",
+      "title": "Request Id"
+     },
+     "session_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Session Id"
+     },
+     "captured_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Captured At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "frame",
+     "step_id",
+     "request_id"
+    ],
+    "title": "Body_check_check_post"
+   },
+   "Body_watch_watch_post": {
+    "properties": {
+     "frame": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "Frame"
+     },
+     "step_id": {
+      "type": "string",
+      "title": "Step Id"
+     },
+     "request_id": {
+      "type": "string",
+      "title": "Request Id"
+     },
+     "session_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Session Id"
+     },
+     "captured_at": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Captured At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "frame",
+     "step_id",
+     "request_id"
+    ],
+    "title": "Body_watch_watch_post"
+   },
+   "CheckOut": {
+    "properties": {
+     "request_id": {
+      "type": "string",
+      "title": "Request Id"
+     },
+     "step_id": {
+      "type": "string",
+      "title": "Step Id"
+     },
+     "verdict": {
+      "type": "string",
+      "enum": [
+       "pass",
+       "fix",
+       "unsure"
+      ],
+      "title": "Verdict"
+     },
+     "mistake_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mistake Id"
+     },
+     "headline": {
+      "type": "string",
+      "title": "Headline"
+     },
+     "fix": {
+      "type": "string",
+      "title": "Fix"
+     },
+     "spoken": {
+      "type": "string",
+      "title": "Spoken"
+     },
+     "confidence": {
+      "type": "number",
+      "title": "Confidence"
+     },
+     "latency_ms": {
+      "type": "integer",
+      "title": "Latency Ms"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     }
+    },
+    "type": "object",
+    "required": [
+     "request_id",
+     "step_id",
+     "verdict",
+     "mistake_id",
+     "headline",
+     "fix",
+     "spoken",
+     "confidence",
+     "latency_ms",
+     "model"
+    ],
+    "title": "CheckOut"
+   },
+   "EventCreate": {
+    "properties": {
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "step_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Step Id"
+     },
+     "request_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request Id"
+     },
+     "payload": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Payload"
+     }
+    },
+    "type": "object",
+    "required": [
+     "kind"
+    ],
+    "title": "EventCreate"
+   },
+   "EventCreated": {
+    "properties": {
+     "event_id": {
+      "type": "string",
+      "title": "Event Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "event_id"
+    ],
+    "title": "EventCreated"
+   },
+   "EventOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "step_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Step Id"
+     },
+     "request_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Request Id"
+     },
+     "payload": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Payload"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "kind",
+     "step_id",
+     "request_id",
+     "payload",
+     "created_at"
+    ],
+    "title": "EventOut"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "LastResult": {
+    "properties": {
+     "source": {
+      "type": "string",
+      "enum": [
+       "check",
+       "watch"
+      ],
+      "title": "Source"
+     },
+     "at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "At"
+     },
+     "body": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Body"
+     }
+    },
+    "type": "object",
+    "required": [
+     "source",
+     "at",
+     "body"
+    ],
+    "title": "LastResult"
+   },
+   "Latency": {
+    "properties": {
+     "check_p50_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check P50 Ms"
+     },
+     "check_max_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Check Max Ms"
+     },
+     "watch_p50_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Watch P50 Ms"
+     },
+     "watch_max_ms": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Watch Max Ms"
+     },
+     "n_check": {
+      "type": "integer",
+      "title": "N Check"
+     },
+     "n_watch": {
+      "type": "integer",
+      "title": "N Watch"
+     }
+    },
+    "type": "object",
+    "required": [
+     "check_p50_ms",
+     "check_max_ms",
+     "watch_p50_ms",
+     "watch_max_ms",
+     "n_check",
+     "n_watch"
+    ],
+    "title": "Latency"
+   },
+   "LiveConfigOut": {
+    "properties": {
+     "system_instruction": {
+      "type": "string",
+      "title": "System Instruction"
+     },
+     "response_modalities": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Response Modalities"
+     },
+     "voice": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Voice"
+     },
+     "tools": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Tools"
+     },
+     "session_resumption": {
+      "type": "boolean",
+      "title": "Session Resumption"
+     }
+    },
+    "type": "object",
+    "required": [
+     "system_instruction",
+     "response_modalities",
+     "voice",
+     "tools",
+     "session_resumption"
+    ],
+    "title": "LiveConfigOut"
+   },
+   "LiveTokenOut": {
+    "properties": {
+     "token": {
+      "type": "string",
+      "title": "Token"
+     },
+     "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At"
+     },
+     "new_session_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "New Session Expires At"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     },
+     "api_version": {
+      "type": "string",
+      "title": "Api Version"
+     },
+     "locked": {
+      "type": "boolean",
+      "title": "Locked"
+     },
+     "config": {
+      "$ref": "#/components/schemas/LiveConfigOut"
+     }
+    },
+    "type": "object",
+    "required": [
+     "token",
+     "expires_at",
+     "new_session_expires_at",
+     "model",
+     "api_version",
+     "locked",
+     "config"
+    ],
+    "title": "LiveTokenOut"
+   },
+   "Monitor": {
+    "properties": {
+     "session": {
+      "$ref": "#/components/schemas/MonitorSession"
+     },
+     "recipe_title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Recipe Title"
+     },
+     "current_step": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/StepOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "last_frame_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Frame Url"
+     },
+     "last_frame_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Frame At"
+     },
+     "last_result": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/LastResult"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/EventOut"
+      },
+      "type": "array",
+      "title": "Events"
+     },
+     "latency": {
+      "$ref": "#/components/schemas/Latency"
+     }
+    },
+    "type": "object",
+    "required": [
+     "session",
+     "recipe_title",
+     "current_step",
+     "last_frame_url",
+     "last_frame_at",
+     "last_result",
+     "events",
+     "latency"
+    ],
+    "title": "Monitor"
+   },
+   "MonitorSession": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "client": {
+      "type": "string",
+      "title": "Client"
+     },
+     "device_label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Device Label"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "client",
+     "device_label",
+     "started_at",
+     "finished_at"
+    ],
+    "title": "MonitorSession"
+   },
+   "ProcessStarted": {
+    "properties": {
+     "recipe_id": {
+      "type": "string",
+      "title": "Recipe Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "recipe_id",
+     "status"
+    ],
+    "title": "ProcessStarted"
+   },
+   "RecipeCreate": {
+    "properties": {
+     "title": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Title"
+     },
+     "chef_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chef Name"
+     },
+     "step_marks_s": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "maxItems": 500,
+      "title": "Step Marks S"
+     },
+     "consent": {
+      "type": "boolean",
+      "title": "Consent"
+     }
+    },
+    "type": "object",
+    "required": [
+     "title",
+     "consent"
+    ],
+    "title": "RecipeCreate"
+   },
+   "RecipeCreated": {
+    "properties": {
+     "recipe_id": {
+      "type": "string",
+      "title": "Recipe Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "upload_url": {
+      "type": "string",
+      "title": "Upload Url"
+     },
+     "upload_token": {
+      "type": "string",
+      "title": "Upload Token"
+     },
+     "bucket": {
+      "type": "string",
+      "title": "Bucket"
+     },
+     "object_path": {
+      "type": "string",
+      "title": "Object Path"
+     },
+     "resumable_endpoint": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Resumable Endpoint"
+     },
+     "upload_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Upload Expires At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "recipe_id",
+     "status",
+     "upload_url",
+     "upload_token",
+     "bucket",
+     "object_path",
+     "resumable_endpoint",
+     "upload_expires_at"
+    ],
+    "title": "RecipeCreated"
+   },
+   "RecipeDetail": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "chef_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chef Name"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error"
+     },
+     "video_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Video Url"
+     },
+     "step_marks_s": {
+      "items": {
+       "type": "number"
+      },
+      "type": "array",
+      "title": "Step Marks S"
+     },
+     "transcript": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Transcript"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "steps": {
+      "items": {
+       "$ref": "#/components/schemas/StepOut"
+      },
+      "type": "array",
+      "title": "Steps"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "chef_name",
+     "status",
+     "error",
+     "video_url",
+     "step_marks_s",
+     "transcript",
+     "created_at",
+     "steps"
+    ],
+    "title": "RecipeDetail"
+   },
+   "RecipeList": {
+    "properties": {
+     "recipes": {
+      "items": {
+       "$ref": "#/components/schemas/RecipeListItem"
+      },
+      "type": "array",
+      "title": "Recipes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "recipes"
+    ],
+    "title": "RecipeList"
+   },
+   "RecipeListItem": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "chef_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chef Name"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "step_count": {
+      "type": "integer",
+      "title": "Step Count"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "chef_name",
+     "status",
+     "step_count",
+     "created_at"
+    ],
+    "title": "RecipeListItem"
+   },
+   "RecipePatch": {
+    "properties": {
+     "title": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 80,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     },
+     "chef_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chef Name"
+     }
+    },
+    "type": "object",
+    "title": "RecipePatch"
+   },
+   "SessionCreate": {
+    "properties": {
+     "recipe_id": {
+      "type": "string",
+      "title": "Recipe Id"
+     },
+     "client": {
+      "type": "string",
+      "enum": [
+       "ios",
+       "web-sim"
+      ],
+      "title": "Client"
+     },
+     "device_label": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Device Label"
+     }
+    },
+    "type": "object",
+    "required": [
+     "recipe_id",
+     "client"
+    ],
+    "title": "SessionCreate"
+   },
+   "SessionCreated": {
+    "properties": {
+     "session_id": {
+      "type": "string",
+      "title": "Session Id"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "session_id",
+     "started_at"
+    ],
+    "title": "SessionCreated"
+   },
+   "SessionDetail": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "recipe_id": {
+      "type": "string",
+      "title": "Recipe Id"
+     },
+     "client": {
+      "type": "string",
+      "title": "Client"
+     },
+     "device_label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Device Label"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     },
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/EventOut"
+      },
+      "type": "array",
+      "title": "Events"
+     },
+     "summary": {
+      "$ref": "#/components/schemas/SessionSummary"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "recipe_id",
+     "client",
+     "device_label",
+     "started_at",
+     "finished_at",
+     "events",
+     "summary"
+    ],
+    "title": "SessionDetail"
+   },
+   "SessionList": {
+    "properties": {
+     "sessions": {
+      "items": {
+       "$ref": "#/components/schemas/SessionListItem"
+      },
+      "type": "array",
+      "title": "Sessions"
+     }
+    },
+    "type": "object",
+    "required": [
+     "sessions"
+    ],
+    "title": "SessionList"
+   },
+   "SessionListItem": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "recipe_id": {
+      "type": "string",
+      "title": "Recipe Id"
+     },
+     "recipe_title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Recipe Title"
+     },
+     "client": {
+      "type": "string",
+      "title": "Client"
+     },
+     "device_label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Device Label"
+     },
+     "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Started At"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "recipe_id",
+     "recipe_title",
+     "client",
+     "device_label",
+     "started_at",
+     "finished_at"
+    ],
+    "title": "SessionListItem"
+   },
+   "SessionSummary": {
+    "properties": {
+     "steps_total": {
+      "type": "integer",
+      "title": "Steps Total"
+     },
+     "steps_passed_first_try": {
+      "type": "integer",
+      "title": "Steps Passed First Try"
+     },
+     "fixes_caught": {
+      "type": "integer",
+      "title": "Fixes Caught"
+     },
+     "warnings": {
+      "type": "integer",
+      "title": "Warnings"
+     },
+     "questions": {
+      "type": "integer",
+      "title": "Questions"
+     }
+    },
+    "type": "object",
+    "required": [
+     "steps_total",
+     "steps_passed_first_try",
+     "fixes_caught",
+     "warnings",
+     "questions"
+    ],
+    "title": "SessionSummary"
+   },
+   "StepOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "recipe_id": {
+      "type": "string",
+      "title": "Recipe Id"
+     },
+     "idx": {
+      "type": "integer",
+      "title": "Idx"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "key_line": {
+      "type": "string",
+      "title": "Key Line"
+     },
+     "instruction": {
+      "type": "string",
+      "title": "Instruction"
+     },
+     "chef_quote": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Chef Quote"
+     },
+     "timestamp_s": {
+      "type": "number",
+      "title": "Timestamp S"
+     },
+     "clip_start_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Clip Start S"
+     },
+     "clip_end_s": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Clip End S"
+     },
+     "success_criteria": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Success Criteria"
+     },
+     "watch_fors": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Watch Fors"
+     },
+     "ref_image_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ref Image Url"
+     },
+     "clip_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Clip Url"
+     },
+     "timer_s": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Timer S"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "recipe_id",
+     "idx",
+     "title",
+     "key_line",
+     "instruction",
+     "chef_quote",
+     "timestamp_s",
+     "clip_start_s",
+     "clip_end_s",
+     "success_criteria",
+     "watch_fors",
+     "ref_image_url",
+     "clip_url",
+     "timer_s"
+    ],
+    "title": "StepOut"
+   },
+   "StepPatch": {
+    "properties": {
+     "title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     },
+     "key_line": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Key Line"
+     },
+     "instruction": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Instruction"
+     },
+     "success_criteria": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "string"
+        },
+        "type": "array",
+        "maxItems": 20
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Success Criteria"
+     },
+     "watch_fors": {
+      "anyOf": [
+       {
+        "items": {
+         "$ref": "#/components/schemas/WatchFor"
+        },
+        "type": "array",
+        "maxItems": 20
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Watch Fors"
+     },
+     "timer_s": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "maximum": 86400.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Timer S"
+     },
+     "timestamp_s": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Timestamp S"
+     }
+    },
+    "type": "object",
+    "title": "StepPatch",
+    "description": "PATCH /steps/{id}: any of these. Explicit null only where the field is nullable."
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   },
+   "WatchFor": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "title": "Id"
+     },
+     "mistake": {
+      "type": "string",
+      "title": "Mistake"
+     },
+     "headline": {
+      "type": "string",
+      "title": "Headline"
+     },
+     "fix": {
+      "type": "string",
+      "title": "Fix"
+     },
+     "spoken": {
+      "type": "string",
+      "title": "Spoken"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "mistake",
+     "headline",
+     "fix",
+     "spoken"
+    ],
+    "title": "WatchFor"
+   },
+   "WatchOut": {
+    "properties": {
+     "request_id": {
+      "type": "string",
+      "title": "Request Id"
+     },
+     "step_id": {
+      "type": "string",
+      "title": "Step Id"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "ok",
+       "warn"
+      ],
+      "title": "Status"
+     },
+     "mistake_id": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Mistake Id"
+     },
+     "headline": {
+      "type": "string",
+      "title": "Headline"
+     },
+     "fix": {
+      "type": "string",
+      "title": "Fix"
+     },
+     "spoken": {
+      "type": "string",
+      "title": "Spoken"
+     },
+     "confidence": {
+      "type": "number",
+      "title": "Confidence"
+     },
+     "latency_ms": {
+      "type": "integer",
+      "title": "Latency Ms"
+     },
+     "model": {
+      "type": "string",
+      "title": "Model"
+     }
+    },
+    "type": "object",
+    "required": [
+     "request_id",
+     "step_id",
+     "status",
+     "mistake_id",
+     "headline",
+     "fix",
+     "spoken",
+     "confidence",
+     "latency_ms",
+     "model"
+    ],
+    "title": "WatchOut"
+   }
+  }
+ }
+}

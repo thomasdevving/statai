@@ -77,4 +77,9 @@ def test_local_upload_too_large(client, monkeypatch):
 
     store = get_store()
     assert not asyncio.run(store.blob_exists("videos", "r1/source.mp4"))
-    assert not (store.data_dir / "videos" / "r1" / "source.mp4.part").exists()
+    assert not list((store.data_dir / "videos" / "r1").glob("*.part"))
+    # a failed upload does not burn the token: retry with the same URL works
+    monkeypatch.setenv("MAX_VIDEO_MB", "5")
+    get_settings.cache_clear()
+    assert client.put(url, content=b"x" * 1000).status_code == 200
+    assert asyncio.run(store.blob_exists("videos", "r1/source.mp4"))

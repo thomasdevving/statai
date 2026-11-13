@@ -77,8 +77,8 @@ def test_api_error_and_500_envelopes(app):
         assert "secret" not in r.text
 
 
-def test_404_envelope(client):
-    r = client.get("/no-such-route")
+def test_404_envelope(client, auth):
+    r = client.get("/no-such-route", headers=auth)
     assert r.status_code == 404
     _envelope_ok(r.json(), "not_found")
 
