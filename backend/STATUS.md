@@ -48,7 +48,7 @@ Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not
 
 | Service | Project name | Owner | Region / plan |
 |---|---|---|---|
-| Supabase | — | — | — |
+| Supabase | Echo (`trfaijfrgfyrjvhocqif`) | Stelios | eu-north-1, created 2026-11-14 |
 | Railway | — | — | — |
 
 ## Recovery tests (BE-07)

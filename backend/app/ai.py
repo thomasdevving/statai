@@ -7,7 +7,22 @@ AINotInstalled with a clear message, and /health reports ai_mode "unavailable".
 
 from __future__ import annotations
 
+import os
 from types import ModuleType
+
+from app.config import get_settings
+
+
+def _export_ai_env() -> None:
+    """ghostchef_ai reads os.environ, not backend/.env. Hand it the backend's settings
+    (README defaults: GHOSTCHEF_AI_FAKE=1). Real environment variables still win."""
+    settings = get_settings()
+    os.environ.setdefault("GHOSTCHEF_AI_FAKE", settings.ghostchef_ai_fake)
+    if settings.gemini_api_key is not None:
+        os.environ.setdefault("GEMINI_API_KEY", settings.gemini_api_key.get_secret_value())
+
+
+_export_ai_env()
 
 try:  # pragma: no cover - exercised implicitly by import
     import ghostchef_ai as _ghostchef_ai
