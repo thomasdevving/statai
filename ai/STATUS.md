@@ -6,7 +6,7 @@
 
 | # | Batch | Status | Date / commit | Notes |
 |---|---|---|---|---|
-| 01 | Package skeleton, fake mode, fixture | NOT STARTED | | |
+| 01 | Package skeleton, fake mode, fixture | DONE (fake) | 2026-11-14 · not yet committed | Fake mode only: no Gemini call exists yet. 38 tests pass, ruff clean, all verification commands run (Windows, Python 3.13). Fixture recipe and the six reference images are **placeholders**, not chef footage. Model IDs in `config.py` are unverified placeholders until AI-02. |
 | 02 | Gemini access and model selection | NOT STARTED | | |
 | 03 | Chef footage and evaluation set | NOT STARTED | | |
 | 04 | Check and watch | NOT STARTED | | |
@@ -75,6 +75,14 @@ Candidates seen on the public models page on 2026-11-13, **not yet tried with ou
 
 Nothing measured yet.
 
+## For other tracks: using the package (AI-01)
+
+- Install from `backend/`: `pip install -e ../ai`, set `GHOSTCHEF_AI_FAKE=1` (and `GHOSTCHEF_AI_FAKE_DELAY=0` in tests).
+- Call `ghostchef_ai.fake.reset()` between tests: the fake check/watch sequences use per-step counters.
+- Fake sequences: `check_frame` → frame under 5000 bytes is `unsure`; otherwise odd calls per step are `fix` with the step's first watch-for, even calls `pass`. `watch_frame` → per step, calls 1–3 `ok`, 4–6 `warn`, repeating. Steps without watch-fors always `pass` / `ok`.
+- Fixture: `ai/fixtures/sushi_recipe.json` (6 steps, `RecipeDraft`) and `ai/fixtures/images/step-1.jpg` … `step-6.jpg` (720×1280). The demo mistake is step 3, `rice_too_thick`.
+- Real (non-fake) calls raise `AIUnavailable("… not implemented yet …")` until AI-04/05/06.
+
 ## Needs from other tracks
 
-- —
+- **Contract wording (docs owner, no rush):** API-CONTRACT §7 says the package reads only `GEMINI_API_KEY` and the four `GHOSTCHEF_MODEL_*` variables, but the package also reads `GHOSTCHEF_AI_FAKE`, `GHOSTCHEF_AI_FAKE_DELAY` and `GHOSTCHEF_FIXTURE_DIR` (all specified by AI-01 and referenced by the backend tasks). Suggest listing them in §7 as an additive change. Nothing is blocked.
