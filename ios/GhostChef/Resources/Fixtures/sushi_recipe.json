@@ -1,26 +1,26 @@
 {
   "title": "Maki roll",
-  "transcript": "[PLACEHOLDER NARRATION — replace with the real chef transcript] [INTERIM iOS COPY — written in ios/ because ai/fixtures/sushi_recipe.json (AI-01) was not pushed yet; replace with ios/scripts/sync-fixture.sh] Okay, let's make a simple maki roll. First, the nori goes on the bamboo mat shiny side down, with the long edge towards you. Before you touch the rice, wet your fingers in the water bowl. Sushi rice is sticky, and wet hands stop it clinging to your fingers so it spreads instead of tearing the nori. Now take a small handful of rice and spread it in a thin, even layer. You should almost see the nori through it in places. Leave about two centimetres of bare nori at the far edge; that strip seals the roll. Don't press the rice down hard. Next, lay one line of filling across the third of the sheet nearest to you. Cucumber and salmon here. Keep it to one neat line; too much filling and the roll will split. Now lift the near edge of the mat, tuck the nori over the filling, and roll forward, pressing gently as you go so it stays tight. Finish with the seam underneath. Last, wet your knife so it doesn't drag, cut the roll in half, then cut each half into three. Six pieces, all the same size. That's it.",
+  "transcript": "[PLACEHOLDER NARRATION — replace with the real chef transcript]\nToday we're making a simple maki roll, and I'll show you exactly what it should look like at every step. First, lay a sheet of nori on the bamboo mat, shiny side down, with the long edge towards you. The rough side holds the rice. Next, dip your fingers in the water bowl and shake off the excess. You wet your hands so the rice doesn't stick to your fingers and you can spread it gently without squashing the grains. Now take a small handful of rice and spread it in a thin, even layer. You should still see the dark nori through the rice in places. Leave about two centimetres of bare nori along the far edge, because that strip seals the roll. Most beginners use far too much rice, and then the roll won't close. Lay one line of filling across the third of the sheet closest to you. Just one thin line of cucumber; don't pile it up, or it squeezes out when you roll. To roll, lift the near edge of the mat, tuck the nori over the filling, then roll forward and press gently along the whole length so it holds its shape. Finally, wet your knife, cut the roll in half, then cut each half into three equal pieces. Six even pieces, and you're done.",
   "steps": [
     {
       "idx": 1,
       "title": "Place nori",
       "key_line": "Shiny side down, long edge near",
-      "instruction": "Put one sheet of nori on the bamboo mat, shiny side down, with the long edge towards you.",
-      "chef_quote": "First, the nori goes on the bamboo mat shiny side down, with the long edge towards you.",
-      "timestamp_s": 12.0,
-      "clip_start_s": 10.0,
-      "clip_end_s": 14.5,
+      "instruction": "Lay a sheet of nori on the bamboo mat, shiny side down, with the long edge towards you.",
+      "chef_quote": "Lay a sheet of nori on the bamboo mat, shiny side down, with the long edge towards you.",
+      "timestamp_s": 14.0,
+      "clip_start_s": 9.0,
+      "clip_end_s": 13.5,
       "success_criteria": [
-        "A whole nori sheet lies flat on the bamboo mat",
-        "The long edge of the sheet is parallel to the near edge of the mat"
+        "One whole nori sheet lies flat on the mat",
+        "The long edge of the sheet faces the cook"
       ],
       "watch_fors": [
         {
-          "id": "nori_turned_sideways",
-          "mistake": "The short edge of the nori faces the cook instead of the long edge",
-          "headline": "Nori is sideways",
-          "fix": "Turn it, long edge towards you",
+          "id": "nori_short_edge_near",
+          "mistake": "The nori is turned so its short edge faces the cook",
+          "headline": "Turn the nori",
+          "fix": "Long edge towards you",
           "spoken": "Turn the nori so the long edge is towards you."
         }
       ],
@@ -29,14 +29,14 @@
     {
       "idx": 2,
       "title": "Wet hands",
-      "key_line": "Dip fingers in the water bowl",
-      "instruction": "Dip your fingers in the bowl of water so the rice does not stick to them.",
-      "chef_quote": "Before you touch the rice, wet your fingers in the water bowl.",
-      "timestamp_s": 31.0,
-      "clip_start_s": 29.0,
-      "clip_end_s": 33.0,
+      "key_line": "Dip fingers, shake off the excess",
+      "instruction": "Dip your fingers in the water bowl and shake off the excess so the rice doesn't stick.",
+      "chef_quote": "You wet your hands so the rice doesn't stick to your fingers.",
+      "timestamp_s": 30.0,
+      "clip_start_s": 26.0,
+      "clip_end_s": 30.5,
       "success_criteria": [
-        "A bowl of water is next to the mat"
+        "The nori sheet is still dry and flat on the mat"
       ],
       "watch_fors": [],
       "timer_s": null
@@ -45,15 +45,15 @@
       "idx": 3,
       "title": "Spread rice",
       "key_line": "Thin layer, leave 2cm top",
-      "instruction": "Spread a small handful of rice in a thin, even layer over the nori. Leave about two centimetres of bare nori at the far edge.",
-      "chef_quote": "Leave about two centimetres of bare nori at the far edge; that strip seals the roll.",
+      "instruction": "Spread a small handful of rice in a thin, even layer, leaving about two centimetres of bare nori along the far edge.",
+      "chef_quote": "You should still see the dark nori through the rice in places.",
       "timestamp_s": 74.5,
       "clip_start_s": 72.0,
       "clip_end_s": 76.5,
       "success_criteria": [
         "Rice layer is thin enough to see nori through it in places",
-        "A strip of bare nori about 2 cm wide is left at the far edge",
-        "Rice covers the rest of the sheet evenly, without large gaps"
+        "A strip of bare nori about 2 cm wide remains along the far edge",
+        "Rice covers the rest of the sheet evenly, without bare patches"
       ],
       "watch_fors": [
         {
@@ -65,10 +65,10 @@
         },
         {
           "id": "rice_covers_top_edge",
-          "mistake": "Rice reaches the far edge, leaving no bare strip of nori",
-          "headline": "No bare edge",
-          "fix": "Clear 2cm of nori at top",
-          "spoken": "Push the rice back from the far edge so about two centimetres of nori stays bare."
+          "mistake": "Rice reaches the far edge, leaving no bare nori strip",
+          "headline": "No top margin",
+          "fix": "Clear 2cm at the far edge",
+          "spoken": "Push the rice back so there's a two-centimetre strip of bare nori at the far edge."
         }
       ],
       "timer_s": null
@@ -77,13 +77,13 @@
       "idx": 4,
       "title": "Add fillings",
       "key_line": "One line across the near third",
-      "instruction": "Lay one neat line of filling across the third of the sheet nearest to you.",
-      "chef_quote": "Keep it to one neat line; too much filling and the roll will split.",
-      "timestamp_s": 118.0,
-      "clip_start_s": 115.5,
-      "clip_end_s": 120.0,
+      "instruction": "Lay one thin line of filling across the third of the sheet closest to you.",
+      "chef_quote": "Just one thin line of cucumber; don't pile it up.",
+      "timestamp_s": 120.0,
+      "clip_start_s": 115.0,
+      "clip_end_s": 119.5,
       "success_criteria": [
-        "Filling forms a single line across the rice",
+        "Filling forms a single thin line running across the sheet",
         "The line sits in the third of the sheet nearest the cook"
       ],
       "watch_fors": [
@@ -91,8 +91,8 @@
           "id": "too_much_filling",
           "mistake": "Filling is piled high or spread over more than one line",
           "headline": "Too much filling",
-          "fix": "Keep one thin line only",
-          "spoken": "That's a lot of filling — keep it to one thin line or the roll will split."
+          "fix": "One thin line, no piles",
+          "spoken": "That's a lot of filling — keep it to one thin line so the roll closes."
         }
       ],
       "timer_s": null
@@ -100,15 +100,15 @@
     {
       "idx": 5,
       "title": "Roll",
-      "key_line": "Lift mat, tuck, roll, press",
-      "instruction": "Lift the near edge of the mat, tuck the nori over the filling, and roll forward, pressing gently so it stays tight. Finish seam side down.",
-      "chef_quote": "Lift the near edge of the mat, tuck the nori over the filling, and roll forward.",
-      "timestamp_s": 165.0,
+      "key_line": "Lift, tuck, roll, press gently",
+      "instruction": "Lift the near edge of the mat, tuck the nori over the filling, then roll forward and press gently along the whole length.",
+      "chef_quote": "Press gently along the whole length so it holds its shape.",
+      "timestamp_s": 170.0,
       "clip_start_s": 162.0,
-      "clip_end_s": 167.0,
+      "clip_end_s": 166.5,
       "success_criteria": [
-        "The roll is a closed cylinder with no filling showing on the outside",
-        "The seam is underneath the roll"
+        "The roll is closed, with the bare nori strip sealed underneath",
+        "The roll has an even thickness along its length"
       ],
       "watch_fors": [],
       "timer_s": null
@@ -116,14 +116,15 @@
     {
       "idx": 6,
       "title": "Slice",
-      "key_line": "Wet knife, halve, then thirds",
-      "instruction": "Wet your knife, cut the roll in half, then cut each half into three pieces.",
-      "chef_quote": "Cut the roll in half, then cut each half into three.",
-      "timestamp_s": 214.0,
-      "clip_start_s": 211.0,
-      "clip_end_s": 216.0,
+      "key_line": "Wet knife, half, then thirds",
+      "instruction": "Wet your knife, cut the roll in half, then cut each half into three equal pieces.",
+      "chef_quote": "Six even pieces, and you're done.",
+      "timestamp_s": 220.0,
+      "clip_start_s": 212.0,
+      "clip_end_s": 216.5,
       "success_criteria": [
-        "Six pieces of roughly equal width are on the board"
+        "There are six pieces of roughly equal width",
+        "Each piece shows the filling in the centre"
       ],
       "watch_fors": [],
       "timer_s": null

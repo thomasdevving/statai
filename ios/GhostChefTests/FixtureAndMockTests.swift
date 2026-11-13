@@ -45,6 +45,14 @@ struct FixtureTests {
         #expect(a.steps.allSatisfy { $0.recipeID == a.id })
         #expect(UUID(uuidString: a.id) != nil)
     }
+
+    @Test func everyStepHasABundledReferenceImage() throws {
+        for step in try FixtureRecipe.load().steps {
+            let url = try #require(step.refImageURL, "step \(step.idx) has no bundled image")
+            let data = try Data(contentsOf: url)
+            #expect(JPEGEncoder.pixelSize(of: data) != nil, "step \(step.idx): not a readable image")
+        }
+    }
 }
 
 @Suite("MockAPI")
