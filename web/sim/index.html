@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echo · Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/ui.css">
+<link rel="stylesheet" href="../shared/lens.css">
+<link rel="stylesheet" href="sim.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="../"><span class="brand-mark"></span>Echo <span class="brand-page">Simulator</span></a>
+  <nav class="topnav" aria-label="Main">
+    <a href="../">Home</a>
+    <a href="./" aria-current="page">Simulator</a>
+    <button class="btn btn-icon btn-ghost" type="button" data-open-settings aria-label="Settings"></button>
+  </nav>
+</header>
+
+<main class="sim" id="sim">
+  <!-- what the camera sees -->
+  <section class="panel camera" aria-labelledby="cam-title">
+    <div class="panel-head">
+      <h2 id="cam-title">Camera</h2>
+      <div class="segmented" role="radiogroup" aria-label="Frame source">
+        <button type="button" role="radio" aria-checked="false" data-source="webcam"><span data-icon="camera"></span>Webcam</button>
+        <button type="button" role="radio" aria-checked="true" data-source="photo"><span data-icon="image"></span>Photo</button>
+      </div>
+    </div>
+    <div class="viewfinder" id="viewfinder" data-empty="true">
+      <video id="video" playsinline muted autoplay aria-label="Live webcam preview"></video>
+      <img id="photo" alt="">
+      <div class="viewfinder-empty" id="vf-empty">
+        <span data-icon="upload"></span>
+        <p id="vf-empty-text">Drop a photo here or choose one. It stands in for what the glasses see until you replace it.</p>
+        <button class="btn btn-light" type="button" id="choose-photo">Choose photo</button>
+      </div>
+    </div>
+    <div class="camera-foot">
+      <input type="file" id="file" accept="image/*" class="visually-hidden" tabindex="-1">
+      <button class="btn btn-ghost" type="button" id="replace-photo" hidden>Replace photo</button>
+      <p class="camera-note" id="camera-note"></p>
+    </div>
+  </section>
+
+  <!-- the lens -->
+  <section class="panel lens-panel" aria-labelledby="lens-title">
+    <h2 id="lens-title" class="visually-hidden">Lens</h2>
+    <div id="lens"></div>
+    <p class="visually-hidden" id="lens-live" aria-live="assertive"></p>
+  </section>
+
+  <!-- controls -->
+  <section class="panel controls" aria-labelledby="ctl-title">
+    <h2 id="ctl-title" class="visually-hidden">Controls</h2>
+
+    <div id="picker" class="picker">
+      <p class="controls-label" id="picker-label">Published recipes</p>
+      <ul class="picker-list" id="picker-list" aria-labelledby="picker-label"></ul>
+      <p class="picker-empty" id="picker-msg" role="status"></p>
+    </div>
+
+    <div id="cook" class="cook" hidden>
+      <div class="cook-recipe">
+        <span class="controls-label">Cooking</span>
+        <strong id="cook-title"></strong>
+      </div>
+      <button class="btn btn-primary btn-xl" type="button" id="primary"><span id="primary-label">Check my work</span><kbd>Space</kbd></button>
+      <div class="btn-row">
+        <button class="btn" type="button" id="prev"><span data-icon="arrowLeft"></span>Previous<kbd>←</kbd></button>
+        <button class="btn" type="button" id="next">Next<span data-icon="arrowRight"></span><kbd>→</kbd></button>
+      </div>
+      <div class="btn-row">
+        <button class="btn" type="button" id="dismiss">Dismiss<kbd>Esc</kbd></button>
+        <button class="btn" type="button" id="restart"><span data-icon="restart"></span>Restart<kbd>R</kbd></button>
+      </div>
+      <div class="btn-row toggles">
+        <button class="btn" type="button" id="speak-toggle" aria-pressed="true"><span data-icon="sound"></span>Speak results</button>
+        <button class="btn" type="button" id="watch-toggle" aria-pressed="true"><span data-icon="eye"></span>Watcher</button>
+      </div>
+      <p class="watch-line" id="watch-line" role="status"></p>
+    </div>
+
+    <details class="debug" id="debug">
+      <summary>Debug</summary>
+      <dl class="debug-facts">
+        <div><dt>Session</dt><dd id="dbg-session">—</dd></div>
+        <div><dt>Last request</dt><dd id="dbg-req">—</dd></div>
+        <div><dt>Latency</dt><dd id="dbg-latency">—</dd></div>
+        <div><dt>Model</dt><dd id="dbg-model">—</dd></div>
+      </dl>
+      <p class="debug-label">Last response</p>
+      <pre id="dbg-json">—</pre>
+      <p class="debug-label">Last ten watch calls</p>
+      <table class="debug-table">
+        <thead><tr><th scope="col">#</th><th scope="col">Sent</th><th scope="col">Took</th><th scope="col">Status</th><th scope="col">Mistake</th><th scope="col">Conf.</th><th scope="col">Server</th></tr></thead>
+        <tbody id="dbg-watch"><tr><td colspan="7">No watch calls yet</td></tr></tbody>
+      </table>
+    </details>
+  </section>
+</main>
+
+<script type="module" src="sim.js"></script>
+</body>
+</html>

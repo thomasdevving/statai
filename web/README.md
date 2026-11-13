@@ -31,7 +31,7 @@ python -m http.server 5173 --directory web
 #   open http://localhost:5173/  and set the API base URL + demo key in Settings (gear icon)
 ```
 
-Optional: Node 18+ only to run the one unit-test file (`node --test web/tests/`).
+Optional: Node 18+ only to run the one unit-test file (`node --test "web/tests/*.test.mjs"`; Node 22+ no longer accepts a bare directory, so `node --test web/tests/` fails there).
 
 **Camera note:** browsers allow camera access only on `https://` or `localhost`. The simulator's webcam works on your own laptop at `localhost` and on the deployed HTTPS URL, but not when another device opens `http://<LAN-IP>:…`. Use "Upload a photo" there.
 

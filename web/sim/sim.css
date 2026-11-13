@@ -1,0 +1,364 @@
+.sim {
+  width: min(1560px, 100%);
+  margin: 0 auto;
+  padding: var(--space-2) clamp(16px, 4vw, 56px) var(--space-7);
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.15fr) minmax(280px, 0.95fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.panel {
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: var(--space-5);
+  min-width: 0;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.panel-head h2 {
+  font-size: 20px;
+  font-weight: 750;
+}
+
+/* segmented control */
+
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: var(--pill);
+  background: var(--bg);
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 650;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.segmented button[aria-checked="true"] {
+  background: var(--echo-mist);
+  color: var(--echo-ink);
+}
+
+/* camera */
+
+.viewfinder {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #0f1a20;
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+  transition: outline-color 160ms var(--ease-out);
+}
+
+.viewfinder[data-drag="true"] {
+  outline-color: var(--echo-sky);
+}
+
+.viewfinder video,
+.viewfinder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.viewfinder[data-source="webcam"][data-empty="false"] video,
+.viewfinder[data-source="photo"][data-empty="false"] img {
+  display: block;
+}
+
+.viewfinder-empty {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.viewfinder-empty .icon {
+  width: 40px;
+  height: 40px;
+  color: var(--echo-sky);
+}
+
+.viewfinder-empty p {
+  max-width: 32ch;
+  font-size: 15px;
+}
+
+.viewfinder[data-empty="true"] .viewfinder-empty {
+  display: flex;
+}
+
+.camera-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  margin-top: var(--space-3);
+}
+
+.camera-note {
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
+/* lens */
+
+.lens-panel {
+  padding: var(--space-4);
+  background: transparent;
+}
+
+/* controls */
+
+.controls {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.controls-label {
+  color: var(--text-faint);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.picker {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.picker-list .btn {
+  width: 100%;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius);
+  font-size: 18px;
+}
+
+.picker-list .btn small {
+  color: var(--text-dim);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.picker-empty {
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+.picker-empty:empty {
+  display: none;
+}
+
+.cook {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cook[hidden] {
+  display: none;
+}
+
+.cook-recipe {
+  display: grid;
+  margin-bottom: var(--space-2);
+}
+
+.cook-recipe strong {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.btn-xl {
+  min-height: 72px;
+  font-size: 21px;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.btn-row .btn {
+  padding: 0 var(--space-4);
+}
+
+.btn-row .btn kbd {
+  margin-left: auto;
+}
+
+.toggles {
+  margin-top: var(--space-2);
+}
+
+.toggles .btn[aria-pressed="false"] {
+  color: var(--text-dim);
+}
+
+.watch-line {
+  color: var(--text-dim);
+  font-size: 15px;
+  min-height: 1.5em;
+}
+
+/* debug */
+
+.debug {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-4);
+}
+
+.debug summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text-dim);
+  min-height: 32px;
+}
+
+.debug summary:hover {
+  color: var(--text);
+}
+
+.debug-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.debug-facts dt {
+  color: var(--text-faint);
+  font-size: 13px;
+}
+
+.debug-facts dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.debug-label {
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--text-faint);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.debug pre {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font: 12px/1.45 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.debug-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 12px/1.4 var(--mono);
+}
+
+.debug-table th {
+  text-align: left;
+  color: var(--text-faint);
+  font: 600 12px/1.4 var(--font);
+  padding: 4px 6px 4px 0;
+}
+
+.debug-table td {
+  padding: 4px 6px 4px 0;
+  border-top: 1px solid var(--line);
+}
+
+.debug-table tr[data-warn="true"] td {
+  color: var(--echo-amber);
+}
+
+/* gallery (?gallery=1) */
+
+.gallery {
+  width: min(1560px, 100%);
+  margin: 0 auto;
+  padding: var(--space-4) clamp(16px, 4vw, 56px) var(--space-7);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-5);
+}
+
+.gallery figure {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.gallery figcaption {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 1180px) {
+  .sim {
+    grid-template-columns: 1fr 1fr;
+  }
+  .lens-panel {
+    order: -1;
+    grid-column: 1 / -1;
+    width: min(560px, 100%);
+    justify-self: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .sim {
+    grid-template-columns: 1fr;
+  }
+  .btn-row .btn kbd {
+    display: none;
+  }
+}

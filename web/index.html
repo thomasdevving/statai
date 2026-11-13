@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echo · web tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/ui.css">
+<style>
+  .home {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+    padding: clamp(24px, 6vw, 72px) clamp(16px, 4vw, 56px) var(--space-8);
+    display: grid;
+    gap: clamp(32px, 5vw, 56px);
+  }
+  .home h1 {
+    font-size: clamp(44px, 7vw, 84px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+    max-width: 14ch;
+  }
+  .home h1 span { color: var(--echo-sky); }
+  .home .lede {
+    max-width: 58ch;
+    color: var(--text-dim);
+    font-size: 19px;
+  }
+  .tools {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-3);
+  }
+  .tool {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-5);
+    min-height: 112px;
+    padding: var(--space-5) var(--space-6);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+    transition: background-color 180ms var(--ease-out), transform 180ms var(--ease-out);
+  }
+  a.tool:hover { background: var(--surface-2); }
+  a.tool:hover .tool-go { transform: translateX(4px); background: var(--echo-blue); color: #fff; }
+  .tool-swatch {
+    width: 14px;
+    align-self: stretch;
+    border-radius: 7px;
+  }
+  .tool h2 { font-size: clamp(26px, 3vw, 34px); font-weight: 800; letter-spacing: -0.015em; }
+  .tool p { color: var(--text-dim); margin-top: var(--space-1); max-width: 60ch; }
+  .tool-go {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    transition: transform 180ms var(--ease-out), background-color 180ms var(--ease-out);
+  }
+  .tool[aria-disabled="true"] { opacity: 0.62; }
+  .tool-later {
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--pill);
+    border: 2px solid var(--line);
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .tool { grid-template-columns: auto 1fr; padding: var(--space-5); }
+    .tool-go, .tool-later { grid-column: 2; justify-self: start; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./"><span class="brand-mark"></span>Echo</a>
+  <button class="btn btn-icon btn-ghost" type="button" data-open-settings aria-label="Settings"></button>
+</header>
+
+<main class="home">
+  <div>
+    <h1>The glasses see the board. <span>So can everyone else.</span></h1>
+    <p class="lede" style="margin-top: var(--space-5)">Web tools for Echo: run the cook-along loop without the glasses, review what the chef recorded, and show the room what the wearer sees.</p>
+  </div>
+
+  <ul class="tools">
+    <li>
+      <a class="tool" href="sim/">
+        <span class="tool-swatch" style="background: var(--echo-sky)"></span>
+        <div>
+          <h2>Simulator</h2>
+          <p>The full cook-along loop from a laptop webcam or uploaded photos: step cards, checks, the proactive watcher, spoken results.</p>
+        </div>
+        <span class="tool-go" data-icon="arrowRight"></span>
+      </a>
+    </li>
+    <li>
+      <div class="tool" aria-disabled="true">
+        <span class="tool-swatch" style="background: var(--echo-mist)"></span>
+        <div>
+          <h2>Review</h2>
+          <p>Review, edit and publish a recipe the iOS app recorded in Chef mode.</p>
+        </div>
+        <span class="tool-later">Not built yet · WEB-02</span>
+      </div>
+    </li>
+    <li>
+      <div class="tool" aria-disabled="true">
+        <span class="tool-swatch" style="background: var(--echo-blue)"></span>
+        <div>
+          <h2>Monitor</h2>
+          <p>A live view of a running session, readable from across the table.</p>
+        </div>
+        <span class="tool-later">Not built yet · WEB-03</span>
+      </div>
+    </li>
+  </ul>
+</main>
+
+<script type="module">
+  import { mountChrome } from "./shared/chrome.js";
+  import { icon } from "./shared/icons.js";
+  document.querySelector("[data-open-settings]").innerHTML = icon("gear", { size: 22 });
+  document.querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = icon(el.dataset.icon, { size: 24 })));
+  mountChrome();
+</script>
+</body>
+</html>
