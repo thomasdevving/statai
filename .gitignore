@@ -1,0 +1,52 @@
+# --- secrets (the repo is public) ---
+.env
+.env.*
+!.env.example
+*.xcconfig
+!*.example.xcconfig
+!Config.xcconfig
+*.pem
+*.p8
+*.mobileprovision
+service-account*.json
+
+# --- Python (backend/, ai/) ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# --- iOS (ios/) ---
+ios/**/DerivedData/
+ios/**/*.xcodeproj/xcuserdata/
+ios/**/*.xcworkspace/xcuserdata/
+ios/**/.build/
+ios/**/.swiftpm/
+*.xcuserstate
+# the Xcode project is generated from ios/project.yml by XcodeGen
+ios/**/*.xcodeproj/
+
+# --- web ---
+node_modules/
+
+# --- large media: keep raw footage and eval frames out of git unless small ---
+*.mov
+*.mp4
+!ai/fixtures/**/*.mp4
+ai/footage/
+ai/eval/frames/raw/
+backend/.data/
+backend/tmp/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
