@@ -18,7 +18,7 @@
 
 - [../../docs/API-CONTRACT.md §6](../../docs/API-CONTRACT.md#6-data-model-supabase-postgres) — tables, buckets, RLS
 - `backend/app/store/base.py` — the protocol you are implementing
-- Current Supabase Python client documentation (`supabase` package) for table queries, storage upload, and `create_signed_url`
+- Current Supabase Python client documentation (`supabase` package) for table queries, storage upload, `create_signed_url`, and `create_signed_upload_url`; Supabase's resumable-upload guide (`https://supabase.com/docs/guides/storage/uploads/resumable-uploads`, "Presigned uploads")
 
 ## Tasks
 
@@ -33,7 +33,7 @@
 **Do** — `backend/migrations/001_init.sql`:
 - The four `create table` statements from API-CONTRACT §6, verbatim, plus indexes: `steps(recipe_id, idx)`, `sessions(recipe_id)`, `sessions(started_at desc)`, `session_events(session_id, created_at)`.
 - `alter table … enable row level security;` on all four, with **no policies** (so `anon` and `authenticated` can do nothing; the service role bypasses RLS).
-- Storage buckets `videos`, `media`, `frames`, all private: `insert into storage.buckets (id, name, public) values (…, false) on conflict do nothing;`
+- Storage buckets `videos`, `media`, `frames`, all private: `insert into storage.buckets (id, name, public) values (…, false) on conflict do nothing;`. Because clients upload videos straight to Storage, set `videos`' `file_size_limit` to 500 MB and `allowed_mime_types` to `{video/mp4}` so Storage itself refuses anything else.
 - The file is idempotent (`create table if not exists`, `create index if not exists`).
 
 The human runs it once in the Supabase SQL editor.
@@ -45,13 +45,13 @@ The human runs it once in the Supabase SQL editor.
 **Do** — `app/store/supabase_store.py` implementing the full `Store` protocol:
 - Add `supabase` to the dependencies. Create one client at startup from the settings. The client's calls are blocking: run them with `asyncio.to_thread` (or use the async client if the installed version provides a stable one) so a slow query never blocks the event loop.
 - Recipes / steps / sessions / events: straightforward table operations. `replace_steps(recipe_id, steps)` deletes then inserts in order. `delete_recipe` relies on `on delete cascade`, then removes blobs under `videos/<recipe_id>/`, `media/<recipe_id>/`, and `frames/<session_id>/` for each deleted session.
-- Blobs: `put_blob` uploads with upsert; `get_blob` downloads; `signed_url` uses `create_signed_url(path, ttl)`. Cache signed URLs in memory for half their lifetime to avoid one network call per step on every `GET /recipes/{id}`.
+- Blobs: `put_blob` uploads with upsert; `get_blob` downloads; `blob_exists` lists the parent folder (or calls `info`) for the object; `signed_url` uses `create_signed_url(path, ttl)`; `signed_upload` uses `create_signed_upload_url(path)` and returns its signed URL, its token, `resumable_endpoint = https://<project-ref>.storage.supabase.co/storage/v1/upload/resumable`, and an expiry 2 hours out (check the current default in the docs and record it). Cache signed URLs in memory for half their lifetime to avoid one network call per step on every `GET /recipes/{id}`.
 - Map Supabase failures to `ApiError(500, "internal", …)` with a log line that does not include the key.
 - `deps.get_store()` returns it when `STORAGE=supabase`; missing URL or key → fail at startup with a clear message.
 
 **Acceptance**
 - The existing test suite still passes on memory.
-- An opt-in integration test module (`tests/test_supabase_integration.py`, skipped unless `SUPABASE_URL` is set and `RUN_SUPABASE_TESTS=1`) runs the store CRUD and blob round trip against the real project using a throwaway recipe, and cleans up.
+- An opt-in integration test module (`tests/test_supabase_integration.py`, skipped unless `SUPABASE_URL` is set and `RUN_SUPABASE_TESTS=1`) runs the store CRUD and blob round trip against the real project using a throwaway recipe, plus a signed-upload round trip (`signed_upload` → `PUT` a small MP4 with `httpx` → `blob_exists` is true), and cleans up.
 
 ### BE-02.4 Seed script
 

@@ -1,22 +1,22 @@
-# BE-06 — Ingestion pipeline: upload → Gemini → ffmpeg → review → publish
+# BE-06 — Ingestion pipeline: signed upload → process → Gemini → ffmpeg → review → publish
 
 | | |
 |---|---|
 | **Track** | `backend/` |
 | **Gate** | G3 |
 | **Depends on** | BE-02 (storage); AI-06 on `main` for real extraction (everything else here can be built and tested with the fake) |
-| **Unblocks** | WEB-02 (chef studio) end to end |
+| **Unblocks** | IOS-08 (Chef mode) and WEB-02 (review page) end to end |
 | **Size** | Medium–large |
 | **Model** | Opus 5.5 |
 | **Needs a human for** | Uploading the real chef video once and looking at the result |
 
 ## Goal
 
-A chef's MP4 goes in; a reviewable recipe comes out, with a real reference still and (optionally) a short clip for every step, cut by ffmpeg at the timestamps Gemini returned. The chef can correct text and re-pick frames, then publish. Failures are visible and never affect the seeded demo recipe.
+A chef's MP4 lands in Storage (uploaded by the iOS app in Chef mode, or by the review page's dev fallback, through the signed URL from `POST /recipes`); `POST /recipes/{id}/process` turns it into a reviewable recipe, with a real reference still and (optionally) a short clip for every step, cut by ffmpeg at the timestamps Gemini returned. The chef can correct text and re-pick frames, then publish. Failures are visible and never affect the seeded demo recipe.
 
 ## Read first
 
-- [../../docs/API-CONTRACT.md §2](../../docs/API-CONTRACT.md#2-recipes-and-steps) — `POST /recipes`, `PATCH /steps/{id}`, publish, delete
+- [../../docs/API-CONTRACT.md §2](../../docs/API-CONTRACT.md#2-recipes-and-steps) — `POST /recipes`, `POST /recipes/{id}/process`, `PATCH /steps/{id}`, publish, delete
 - [../../docs/ARCHITECTURE.md §3.1](../../docs/ARCHITECTURE.md#31-ingestion-chef--recipe)
 - `backend/app/routers/recipes.py` — the BE-01 version you are upgrading
 
@@ -32,22 +32,23 @@ A chef's MP4 goes in; a reviewable recipe comes out, with a real reference still
 
 **Acceptance:** tests generate a 5-second test video with ffmpeg's `testsrc` and assert a still and a clip come out with the right dimensions. Tests are skipped with a clear reason when ffmpeg is not installed.
 
-### BE-06.2 Upload handling
+### BE-06.2 Upload completion and validation
 
-**Do** — `POST /recipes`:
-- Stream the upload to a temp file in chunks; abort with `413` once `MAX_VIDEO_MB` is exceeded (do not read the whole file into memory).
-- Accept only `video/mp4` by content type **and** by `ffprobe` succeeding (`415` otherwise).
-- Require `consent == "true"`; store `consent_at`.
-- Upload to `videos/<recipe_id>/source.mp4`, create the recipe as `processing`, schedule the job, return `202`.
+The bytes never pass through FastAPI (contract v2.0), so validation moves to `/process` and the job.
 
-**Acceptance:** tests for the size limit (with a small `MAX_VIDEO_MB`), wrong type, missing consent, and the happy path.
+**Do**
+- `POST /recipes` and `POST /recipes/{id}/process` stay as built in BE-01, now on the Supabase store (signed upload URL from BE-02.3).
+- First thing in the job: download `videos/<recipe_id>/source.mp4` to a temp file **in chunks**; stop and fail with `"video larger than <MAX_VIDEO_MB> MB"` once the limit is passed; then `probe` it — if `ffprobe` fails, fail with `"not a readable MP4"`. Nothing reaches Gemini before both pass.
+- Recipes still `uploading` after 2 hours become `failed` with `"upload never completed"` (check on startup and whenever `GET /recipes` runs; no scheduler needed).
+
+**Acceptance:** tests for the size limit (with a small `MAX_VIDEO_MB`), a non-video file uploaded to the signed URL, `/process` before the upload (`409 upload_missing`), the 2-hour timeout (inject the clock), and the happy path.
 
 ### BE-06.3 The job
 
 **Do** — `app/jobs/ingest.py::run_ingestion(recipe_id)`:
-1. Download the video to a temp dir (or reuse the upload temp file).
-2. `probe` → duration.
-3. `draft = await ghostchef_ai.extract_recipe(path, title_hint=recipe.title)`.
+1. Download the video from Storage to a temp dir (size check, BE-06.2).
+2. `probe` → duration. Drop any `step_marks_s` beyond the duration.
+3. `draft = await ghostchef_ai.extract_recipe(path, title_hint=recipe.title, step_marks_s=recipe.step_marks_s)`.
 4. Clamp every `timestamp_s` into `[0, duration − 0.1]`; clamp clips into the duration; drop clips shorter than 1 s.
 5. For each step: `extract_still` → upload to `media/<recipe_id>/steps/<idx>/ref.jpg`. If the step has a clip window: `extract_clip` → upload `clip.mp4`. A failed clip is logged and skipped; a failed still marks the step as having no reference image.
 6. `replace_steps`, store the transcript, set status `review`.
@@ -74,10 +75,13 @@ Operational rules:
 
 ### BE-06.5 Real run *(human looks at the result)*
 
-- With real AI and Supabase, upload the real chef video through `curl` or the studio:
+- With real AI and Supabase, upload the real chef video from the iOS app (Chef mode), the review page, or `curl`:
 
   ```bash
-  curl -H "X-Demo-Key: <key>" -F "video=@chef-take-1.mp4;type=video/mp4" -F "title=Maki roll (ingested)" -F "consent=true" <base>/recipes
+  curl -s -H "X-Demo-Key: <key>" -H "Content-Type: application/json" \
+       -d '{"title":"Maki roll (ingested)","step_marks_s":[],"consent":true}' <base>/recipes      # note recipe_id, upload_url
+  curl -X PUT -H "Content-Type: video/mp4" --data-binary @chef-take-1.mp4 "<upload_url>"
+  curl -X POST -H "X-Demo-Key: <key>" <base>/recipes/<recipe_id>/process
   ```
 - Poll `GET /recipes/{id}` until `review`. Open each `ref_image_url`.
 
@@ -95,7 +99,7 @@ python scripts/smoke.py --base http://localhost:8000 --key dev-key --fast
 
 ## Out of scope
 
-Recording through the glasses inside the app (a nice-to-have owned by `ios/`). The review UI (WEB-02). Prompt quality (`ai/`).
+Recording through the glasses inside the app (IOS-08, owned by `ios/`). The review UI (WEB-02). Prompt quality (`ai/`).
 
 ## When done
 

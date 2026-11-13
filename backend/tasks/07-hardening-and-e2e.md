@@ -41,12 +41,13 @@ Run it against production with real Gemini **once**, mindful of quota (ask the A
 ### BE-07.3 Security pass
 
 Check and fix each:
-- [ ] No endpoint except `/health`, `/local-files/*` (memory mode only), `/sessions/{id}/latest-frame.jpg` (token), and `/app/*` (static) is reachable without the key.
+- [ ] No endpoint except `/health`, `/local-files/*` and `/local-upload/*` (memory mode only, the latter token-checked), `/sessions/{id}/latest-frame.jpg` (token), and `/app/*` (static) is reachable without the key.
 - [ ] `DEMO_API_KEY` in production is not `dev-key`; the server refuses to start with `dev-key` when `STORAGE=supabase` and `GHOSTCHEF_AI_FAKE=0`.
 - [ ] `CORS_ORIGINS` in production is not `*`.
 - [ ] Path traversal impossible in `/local-files`.
 - [ ] Logs contain no keys, tokens, or signed-URL signatures (grep a log sample).
-- [ ] Upload limits enforced by streaming.
+- [ ] Video limits enforced: the `videos` bucket has the 500 MB / `video/mp4` limits; the job checks size while downloading and `ffprobe`s before Gemini; the memory-mode `PUT /local-upload` streams with a cap and refuses a reused or wrong token.
+- [ ] A signed upload URL only allows writing `videos/<recipe_id>/source.mp4` (try another path with the same token: refused).
 - [ ] `git log -p` contains no secret (`git log -p | grep -n -i -E "service_role|AIza|sk-"` returns nothing real).
 - [ ] A Supabase request with the anon key still returns nothing.
 

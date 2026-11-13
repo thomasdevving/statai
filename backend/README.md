@@ -52,6 +52,7 @@ backend/
     deps.py          get_store(), get_settings()
     metrics.py       per-session latency ring buffers
     routers/         health.py recipes.py steps.py check.py watch.py sessions.py live.py
+                     local.py (memory mode only: /local-files, /local-upload)
     store/
       base.py        Store protocol + record types
       memory.py      MemoryStore (+ local files under DATA_DIR)
@@ -79,7 +80,7 @@ Every variable is read in `app/config.py` and listed in `.env.example`.
 | `GEMINI_API_KEY` | — | Required when fake is off (read by `ghostchef_ai`) |
 | `CHECK_BUDGET_S` / `WATCH_BUDGET_S` | `8` / `3.5` | Model time budgets from the contract |
 | `SIGNED_URL_TTL_S` | `7200` | Signed URL lifetime |
-| `MAX_VIDEO_MB` | `500` | Upload limit |
+| `MAX_VIDEO_MB` | `500` | Video size limit, enforced by the ingestion job (and the memory-mode upload route); the `videos` bucket carries the same limit |
 | `CORS_ORIGINS` | `*` | Comma-separated origins; restrict in production |
 | `WEB_DIR` | `../web` | Static web app, mounted at `/app/` when the directory exists |
 | `PUBLIC_BASE_URL` | derived from the request | Used to build local file URLs in memory mode |
