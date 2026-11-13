@@ -1,4 +1,4 @@
-# Ghost Chef
+# Echo
 
 **A chef records a recipe once through smart glasses. Anyone wearing the glasses can then cook it hands-free while Gemini compares what they are doing with the chef's own point-of-view footage, corrects mistakes as they happen, and answers questions in the chef's method.**
 
