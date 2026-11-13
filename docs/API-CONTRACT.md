@@ -1,9 +1,9 @@
-# Ghost Chef — API & data contract (v1)
+# Ghost Chef — API & data contract (v2)
 
 > **This file is the single source of truth for every interface between the four tracks.**
 > It refines the "Backend API" and "Data model" sections of [TECH-SPEC.md](TECH-SPEC.md). Where the two differ, this file wins; every difference is listed in [§10 Differences from TECH-SPEC](#10-differences-from-tech-spec).
 >
-> `contract_version: 1.0` · frozen 2026-11-13 · change it only through [§9 Change protocol](#9-change-protocol).
+> `contract_version: 2.0` · frozen 2026-11-14 (v1.0 frozen 2026-11-13) · change it only through [§9 Change protocol](#9-change-protocol).
 
 Who implements what:
 
@@ -39,6 +39,7 @@ Every non-2xx response has this body:
 | 401 | `unauthorized` | Bad or missing `X-Demo-Key` | Show setup error. Do not retry. |
 | 404 | `not_found` | Unknown recipe / step / session | Show error. Do not retry. |
 | 409 | `recipe_not_ready` | Recipe is not in the status the call needs | Show status. |
+| 409 | `upload_missing` | `POST /recipes/{id}/process` was called but no video is at the upload path | Finish or restart the upload, then call `/process` again. |
 | 413 | `payload_too_large` | Upload or frame over the limit | Downscale and retry once. |
 | 415 | `unsupported_media` | Not MP4 / not JPEG | Show error. |
 | 422 | `validation_error` | Missing or malformed field | Bug. Log it. |
@@ -54,24 +55,63 @@ Every non-2xx response has this body:
 ### `GET /health` (no auth)
 
 ```json
-{ "status": "ok", "contract_version": "1.0", "ai_mode": "fake", "storage": "memory" }
+{ "status": "ok", "contract_version": "2.0", "ai_mode": "fake", "storage": "memory" }
 ```
 
 `ai_mode` is `fake` or `gemini`. `storage` is `memory` or `supabase`. Clients show these in their debug/settings view so nobody demos against a fake by accident.
 
-### `POST /recipes` *(multipart)*
+### `POST /recipes` — create a recipe and get an upload URL
 
-Fields: `video` (file, `video/mp4`, ≤ 500 MB), `title` (string, 1–80 chars), `chef_name` (string, optional), `consent` (must be the string `"true"`: the uploader confirms the chef agreed to be recorded and to the footage being processed by Gemini).
+Called by the iOS app in **Chef mode** when recording stops, and by the review web page's **dev-fallback** MP4 upload. The video itself never goes through FastAPI: the client uploads it straight to Storage.
 
-`202`:
+Request (JSON):
 ```json
-{ "recipe_id": "uuid", "status": "processing" }
+{ "title": "Maki roll", "chef_name": "…", "step_marks_s": [12.4, 58.0, 101.7], "consent": true }
 ```
-Errors: `415`, `413`, `422` (including missing consent).
+
+| Field | Rule |
+|---|---|
+| `title` | Required, 1–80 chars |
+| `chef_name` | Optional |
+| `step_marks_s` | Optional, default `[]`. Seconds from the start of the video at which the chef pinched "new step" while recording. Non-negative, ascending. Passed to Gemini as step-boundary **hints**, not hard cuts. The web dev fallback sends `[]` |
+| `consent` | Required, must be `true`: the chef agreed to be recorded and to the footage being processed by Gemini |
+
+`201`:
+```json
+{
+  "recipe_id": "uuid",
+  "status": "uploading",
+  "upload_url": "https://<project>.supabase.co/storage/v1/object/upload/sign/videos/<recipe_id>/source.mp4?token=…",
+  "upload_token": "…",
+  "bucket": "videos",
+  "object_path": "<recipe_id>/source.mp4",
+  "resumable_endpoint": "https://<project>.storage.supabase.co/storage/v1/upload/resumable",
+  "upload_expires_at": "…"
+}
+```
+
+How the client uploads (pick one):
+
+- **Simple:** `PUT upload_url` with the raw MP4 bytes as the body and `Content-Type: video/mp4`. No `X-Demo-Key`. Used by the web dev fallback.
+- **Resumable (iOS, venue Wi-Fi):** TUS against `resumable_endpoint` with header `x-signature: <upload_token>`, metadata `bucketName = bucket`, `objectName = object_path`, `contentType = video/mp4`, chunk size **exactly 6 MB**. Supabase documents this presigned-resumable path **[VERIFIED-DOC 2026-11-14, untested by us]**; if it fails on device, fall back to the simple `PUT`.
+
+`resumable_endpoint` is `null` when the backend runs with `STORAGE=memory`; then `upload_url` points at the backend's own dev-only upload route and only the simple `PUT` works. `upload_url` is valid until `upload_expires_at` (Supabase default: 2 hours). Max video size is 500 MB; the backend enforces it when processing.
+
+Errors: `422` (including `consent` not `true`).
+
+### `POST /recipes/{id}/process`
+
+Called once the upload has finished. No body. Moves `uploading → processing` and starts the background ingestion job (download from Storage → Gemini → ffmpeg → `review`).
+
+`202`: `{ "recipe_id": "uuid", "status": "processing" }`
+
+Errors: `409 recipe_not_ready` if the status is not `uploading`; `409 upload_missing` if nothing is at the upload path yet. A video that is too large or not a readable MP4 is detected by the job and ends as `failed` with a readable `error`.
+
+A recipe left in `uploading` for more than 2 hours is set to `failed` with error `"upload never completed"`.
 
 ### `GET /recipes?status=published`
 
-`status` filter is optional (`processing | review | published | failed`). Without it, returns all.
+`status` filter is optional (`uploading | processing | review | published | failed`). Without it, returns all. Cook mode's recipe library calls it with `status=published`. For the hackathon every published recipe is visible to every client; there are no accounts.
 
 ```json
 { "recipes": [ { "id": "uuid", "title": "Maki roll", "chef_name": "…", "status": "published", "step_count": 8, "created_at": "…" } ] }
@@ -86,14 +126,15 @@ Errors: `415`, `413`, `422` (including missing consent).
   "chef_name": "…",
   "status": "published",
   "error": null,
-  "video_url": "https://…signed, only while status is review (for the studio scrubber), else null",
+  "video_url": "https://…signed, only while status is review (for the review page's scrubber), else null",
+  "step_marks_s": [12.4, 58.0, 101.7],
   "transcript": "full chef narration",
   "created_at": "…",
   "steps": [ "<Step>", "…" ]
 }
 ```
 
-`steps` is ordered by `idx` and is empty while the recipe is `processing`.
+`steps` is ordered by `idx` and is empty while the recipe is `uploading` or `processing`. The review page polls this endpoint for `status`.
 
 **`Step` object** (identical everywhere it appears):
 
@@ -138,7 +179,7 @@ Errors: `415`, `413`, `422` (including missing consent).
 | `clip_url` | 3–5 s looping clip (nice-to-have feature) |
 | `timer_s` | Optional countdown in seconds |
 
-Signed URLs are valid for at least 2 hours. Clients download and cache the images when a session starts, so an expired URL never breaks a running session.
+Signed URLs are valid for at least 2 hours. **Cook mode downloads every `ref_image_url` and `clip_url` before cooking starts**; during cooking only `/check`, `/watch` and Gemini Live use the network, so step changes are instant on bad Wi-Fi and an expired URL never breaks a running session.
 
 ### `PATCH /recipes/{id}`
 
@@ -146,7 +187,7 @@ Body: any of `title`, `chef_name`. Returns the full recipe.
 
 ### `POST /recipes/{id}/publish`
 
-Moves `review → published`. `409 recipe_not_ready` if the recipe is `processing` or `failed`, or if any step has no reference image. Returns the full recipe.
+Called from the review page. Moves `review → published`. `409 recipe_not_ready` if the recipe is `uploading`, `processing` or `failed`, or if any step has no reference image. Returns the full recipe.
 
 ### `DELETE /recipes/{id}`
 
@@ -378,7 +419,8 @@ create table recipes (
   chef_name text,
   video_path text,                 -- Storage path, bucket "videos"
   transcript text,
-  status text not null,            -- 'processing' | 'review' | 'published' | 'failed'
+  step_marks_s numeric[] not null default '{}',  -- chef's pinch marks while recording (step-boundary hints)
+  status text not null,            -- 'uploading' | 'processing' | 'review' | 'published' | 'failed'
   error text,                      -- human-readable reason when status = 'failed'
   consent_at timestamptz,          -- when the uploader confirmed consent
   created_at timestamptz not null default now()
@@ -427,12 +469,12 @@ Storage buckets (all private):
 
 | Path | Content |
 |---|---|
-| `videos/{recipe_id}/source.mp4` | Chef recording |
+| `videos/{recipe_id}/source.mp4` | Chef recording, uploaded by the client through a signed upload URL |
 | `media/{recipe_id}/steps/{idx}/ref.jpg` | Reference still |
 | `media/{recipe_id}/steps/{idx}/clip.mp4` | "Show me" clip |
 | `frames/{session_id}/{request_id}.jpg` | Wearer frames kept for the monitor |
 
-Row Level Security is enabled on all four tables with no policies for `anon`. Only the backend (service role) reads and writes.
+Row Level Security is enabled on all four tables with no policies for `anon`. Only the backend (service role) reads and writes. The single exception to "clients never touch Supabase" is the one-object signed upload URL from `POST /recipes`, which the backend mints with the service role.
 
 ---
 
@@ -447,7 +489,8 @@ from ghostchef_ai.schemas import (
 )
 from ghostchef_ai.errors import AIError, AITimeout, AIQuotaError, AIUnavailable, AIInvalidOutput
 
-async def extract_recipe(video_path: Path, *, title_hint: str | None = None) -> RecipeDraft: ...
+async def extract_recipe(video_path: Path, *, title_hint: str | None = None,
+                         step_marks_s: list[float] | None = None) -> RecipeDraft: ...
 
 async def check_frame(frame_jpeg: bytes, step: StepSpec, ref_image_jpeg: bytes | None,
                       *, timeout_s: float = 8.0) -> CheckResult: ...
@@ -531,6 +574,7 @@ Rules:
 - **Env.** The package reads `GEMINI_API_KEY` and the optional model overrides `GHOSTCHEF_MODEL_VIDEO`, `GHOSTCHEF_MODEL_CHECK`, `GHOSTCHEF_MODEL_WATCH`, `GHOSTCHEF_MODEL_LIVE`. It reads no other configuration.
 - **No I/O beyond Gemini.** The package never touches Supabase or ffmpeg, and reads nothing from disk except `video_path`. `backend/` owns storage, ffmpeg, HTTP, and latency measurement.
 - **ffmpeg** frame and clip extraction is done by `backend/`, using the `timestamp_s`, `clip_start_s`, `clip_end_s` values in the `RecipeDraft`.
+- **Step marks** are hints. `extract_recipe` tells the model where the chef pinched, but it may merge, split, or ignore marks to satisfy the step rules. An empty or missing list means "no hints".
 
 ---
 
@@ -556,6 +600,7 @@ Rules:
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-11-13 | Initial contract derived from TECH-SPEC.md. |
+| 2.0 | 2026-11-14 | **Breaking**, following the TECH-SPEC update (iOS Chef mode + review-only web page). `POST /recipes` becomes JSON and returns a signed Storage upload URL instead of taking a multipart video; new `POST /recipes/{id}/process`; new status `uploading`; new `step_marks_s` (request, recipe response, `recipes` column, `extract_recipe` argument); new error `409 upload_missing`; Cook mode prefetches clips as well as images. Requested by the team. |
 
 ---
 
@@ -568,10 +613,11 @@ These are additions made while turning the spec into a buildable contract. None 
 | 1 | `verdict` gains a third value, `unsure` | The Meta rubric scores useful uncertainty. A forced pass/fix on a blurry frame produces confident mistakes on stage. |
 | 2 | `request_id`, `step_id`, `latency_ms`, `model` on `/check` and `/watch`; the stale-result rule | Stops an old frame's answer being shown for the current state. Gives measured latency for judging evidence. |
 | 3 | `watch_fors` items gain `id`, `headline`, `spoken` | The spec's `/watch` response returns `mistake_id` and display strings, but the spec's `watch_fors` had only `{mistake, fix}`. |
-| 4 | `POST /recipes/{id}/publish`, `PATCH /recipes/{id}`, `DELETE /recipes/{id}`, the `consent` field | The spec says "then publish" without an endpoint. Delete and consent support the trust criterion. |
+| 4 | `PATCH /recipes/{id}`, `DELETE /recipes/{id}`, the `consent` field on `POST /recipes` | Delete and consent support the trust criterion. (`POST /recipes/{id}/publish` is now in the spec itself.) |
 | 5 | `GET /health`, `GET /sessions`, `GET /sessions/{id}`, `GET /sessions/{id}/monitor` | Needed by the Done screen and by the audience-facing demo monitor. |
 | 6 | The server records check/watch events itself | One source of truth. The phone does not double-post. |
 | 7 | Extra event kinds: `step_change`, `check_unsure`, `warning_shown`, `warning_dismissed`, `show_me`, `client_error`, `session_end` | The monitor and the Done summary need them. The spec's four kinds are unchanged. |
 | 8 | `/live-token` takes `recipe_id` and returns the config, tool declarations, and lock state | Makes the voice commands ("check", "next", "show me") implementable as Live function calls. |
 | 9 | Columns `recipes.error`, `recipes.consent_at`, `sessions.client`, `sessions.device_label`, `session_events.request_id` | Support the items above. |
 | 10 | The `ghostchef_ai` package boundary (§7) and fake mode | Lets `backend/` and `ai/` be built on different laptops without touching each other's files. |
+| 11 | `POST /recipes` also returns `upload_token`, `bucket`, `object_path`, `resumable_endpoint`, `upload_expires_at`; the `409 upload_missing` error; the 2-hour `uploading` timeout | The spec names only `upload_url`. The extra fields make the resumable (TUS) upload the spec asks for possible, and memory mode works without Supabase. |
