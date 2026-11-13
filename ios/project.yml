@@ -8,6 +8,13 @@ options:
     iOS: "17.2"
   createIntermediateGroups: true
 
+packages:
+  # Meta Wearables Device Access Toolkit. Pinned to an exact version (ios/README.md rule);
+  # the version actually used is recorded in ios/STATUS.md.
+  MWDAT:
+    url: https://github.com/facebook/meta-wearables-dat-ios
+    exactVersion: 1.0.1
+
 configFiles:
   Debug: Config/Config.xcconfig
   Release: Config/Config.xcconfig
@@ -32,6 +39,17 @@ targets:
       - path: GhostChef/Resources/Fixtures
         type: folder
         buildPhase: resources
+    dependencies:
+      - package: MWDAT
+        product: MWDATCore
+      - package: MWDAT
+        product: MWDATCamera
+      - package: MWDAT
+        product: MWDATDisplay
+      - package: MWDAT
+        product: MWDATInputs
+      - package: MWDAT
+        product: MWDATMockDevice
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(GHOSTCHEF_BUNDLE_ID)
@@ -48,11 +66,34 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        # UIBackgroundModes: intentionally absent until IOS-02 adds what the DAT SDK docs require.
+        # --- Meta Wearables DAT (IOS-02), per the SDK 1.0.1 getting-started guide ---
+        # URL scheme Meta AI calls back after registration and permission flows.
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLName: $(PRODUCT_BUNDLE_IDENTIFIER)
+            CFBundleURLSchemes:
+              - ghostchef
+        MWDAT:
+          AppLinkURLScheme: "ghostchef://"
+          # Empty / unexpanded values keep the SDK in Developer Mode (no attestation).
+          MetaAppID: $(META_APP_ID)
+          ClientToken: $(CLIENT_TOKEN)
+          TeamID: $(DEVELOPMENT_TEAM)
+        # Bluetooth LE + Bluetooth Classic (camera streaming) links.
+        UIBackgroundModes:
+          - processing
+          - bluetooth-central
+          - bluetooth-peripheral
+          - external-accessory
+        UISupportedExternalAccessoryProtocols:
+          - com.meta.ar.wearable
+        # Wi-Fi (high bandwidth) link.
+        NSBonjourServices:
+          - _bonjour._tcp
         NSCameraUsageDescription: Ghost Chef looks at your cutting board through the camera to check each cooking step against the chef's reference.
         NSMicrophoneUsageDescription: Ghost Chef listens when you ask a question about the recipe so it can answer by voice.
         NSBluetoothAlwaysUsageDescription: Ghost Chef connects to your Meta glasses over Bluetooth to show steps in the lens and receive gestures.
-        NSLocalNetworkUsageDescription: Ghost Chef talks to the team's development server on your local network.
+        NSLocalNetworkUsageDescription: Ghost Chef connects to your glasses over Wi-Fi and talks to the team's development server on your local network.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         # Defaults for the Settings screen; come from Config/Config.xcconfig and Secrets.xcconfig.

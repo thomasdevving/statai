@@ -15,4 +15,10 @@ GHOSTCHEF_BUNDLE_ID = com.ghostchef.app
 // regenerating the project keeps signing working.
 DEVELOPMENT_TEAM =
 
+// Meta Wearables Developer Center app values. Leave empty while the glasses are in
+// Developer Mode (the SDK then skips attestation). Set them in Secrets.xcconfig for a
+// release channel build.
+META_APP_ID =
+CLIENT_TOKEN =
+
 #include? "Secrets.xcconfig"

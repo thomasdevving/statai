@@ -7,6 +7,8 @@ import Observation
 @Observable
 final class AppEnvironment {
     let settings: Settings
+    /// Meta Wearables SDK: registration, devices, session, Glasses Lab proofs (IOS-02).
+    let glasses = GlassesManager()
     @ObservationIgnored private let client: APIClient
     @ObservationIgnored private let mock: MockAPI
     @ObservationIgnored private var frameSources: [FrameSourceKind: any FrameSource] = [:]

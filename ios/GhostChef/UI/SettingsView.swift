@@ -64,6 +64,18 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        GlassesLabView()
+                    } label: {
+                        Label("Glasses Lab", systemImage: "eyeglasses")
+                    }
+                } header: {
+                    Text("Glasses")
+                } footer: {
+                    Text("Device checks for the Meta glasses, with simulated glasses for testing without hardware.")
+                }
+
+                Section {
                     VStack(alignment: .leading, spacing: 8) {
                         LabeledContent("Alert confidence") {
                             Text(settings.watchThreshold, format: .number.precision(.fractionLength(2)))
