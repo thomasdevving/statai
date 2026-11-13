@@ -6,6 +6,7 @@
   --echo-blue: #0064e0;
   --echo-mist: #f1f5f8;
   --echo-ink: #1c2b33;
+  --echo-sky-text: #3d9dfc;   /* sky lifted for text on ink: 5.15:1 (sky itself is 3.9:1) */
 
   --echo-amber: #ffb020;      /* fix / warning on dark */
   --echo-amber-ink: #b45309;  /* amber text on light */

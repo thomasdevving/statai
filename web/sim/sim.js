@@ -111,7 +111,11 @@ function startSimulator() {
   // ---------- frame source ----------
   const vf = $("#viewfinder");
   const video = $("#video");
-  const photo = $("#photo");
+  // Created here, not in the HTML, so the page never ships an <img> without a src.
+  const photo = document.createElement("img");
+  photo.id = "photo";
+  photo.alt = "";
+  vf.insertBefore(photo, $("#vf-empty"));
   const fileInput = $("#file");
   const camNote = $("#camera-note");
   let source = "photo";
