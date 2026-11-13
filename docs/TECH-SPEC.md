@@ -17,13 +17,13 @@ A chef records a recipe once while wearing Meta Ray-Ban Display glasses. Gemini 
 |---|---|---|
 | Glasses | Meta Ray-Ban Display + Meta Neural Band | — |
 | Glasses SDK | Meta Wearables **Device Access Toolkit (DAT)**, iOS | Teammate |
-| Phone app | iOS / Swift (Xcode, iOS 17.2+) | Teammate (has Mac + iPhone) |
+| Phone app | iOS / Swift (Xcode, iOS 17.2+). **One app, two modes: Chef (record) and Cook (follow along)** | Teammate (has Mac + iPhone) |
 | Voice Q&A | **Gemini Live API**, native audio, opened directly from phone with ephemeral token | Teammate (client) / Stelios (token) |
 | Backend | **Python FastAPI** on **Railway** | Stelios |
 | AI SDK | `google-genai` Python SDK (video understanding, frame checks) | Stelios |
 | Media processing | ffmpeg (reference frames, step clips) | Stelios |
 | Database + storage | **Supabase** (Postgres + Storage) | Stelios |
-| Chef UI | Small web page served by FastAPI | Stelios |
+| Review web page | Small web page served by FastAPI. **Review/edit/publish only**, plus an MP4 upload as a dev fallback | Stelios |
 
 ### Why these choices
 
@@ -47,8 +47,8 @@ A chef records a recipe once while wearing Meta Ray-Ban Display glasses. Gemini 
                                                     │ HTTPS        │ WebSocket (ephemeral token)
                                                     ▼              ▼
                               ┌──────────────────────────┐   ┌──────────────────┐
-  Chef web page ────────────► │ FastAPI backend (Railway)│   │ Gemini Live API  │
-  (upload / review steps)     │ - ingestion pipeline     │   └──────────────────┘
+  Review web page ──────────► │ FastAPI backend (Railway)│   │ Gemini Live API  │
+  (review / edit / publish)   │ - ingestion pipeline     │   └──────────────────┘
                               │ - /check, /watch         │
                               │ - /live-token            │──► Gemini (video + vision)
                               └────────────┬─────────────┘
@@ -67,13 +67,37 @@ A chef records a recipe once while wearing Meta Ray-Ban Display glasses. Gemini 
 
 ### 1. Chef recording → recipe (ingestion)
 
-1. Chef cooks while wearing the glasses and talks through each step. The phone records the DAT camera stream and audio to MP4. **Fallback:** upload any MP4 through the chef web page.
-2. `POST /recipes` uploads the video to Supabase Storage and starts an ingestion job.
-3. Gemini video understanding returns structured JSON steps (schema below), including timestamps.
-4. ffmpeg extracts, for each step:
+**Record (iOS app, Chef mode).**
+- The chef cooks while wearing the glasses and talks through each step.
+- The app records the DAT camera stream and mic audio to an MP4 on the phone. There is no clip-length limit, unlike the glasses' built-in capture.
+- The lens shows a minimal "● REC 03:12" indicator.
+- A Neural Band pinch **marks a new step**. These marks are saved as `step_marks_s[]` and passed to Gemini as step-boundary hints.
+
+**Upload.**
+1. The app calls `POST /recipes` with the title and step marks. The backend creates the recipe with status `uploading` and returns a **signed Supabase Storage upload URL**.
+2. The app uploads the MP4 **directly to Supabase Storage**, not through FastAPI, using resumable upload because of venue Wi-Fi.
+3. The app calls `POST /recipes/{id}/process`, and status becomes `processing`.
+
+**Dev fallback:** the review web page can upload any MP4 (for example, phone footage) through the same signed-URL flow. This lets the pipeline be built and tested before the glasses arrive.
+
+**Process (background job on the backend).**
+1. Download the video from Storage and send it to the Gemini Files API.
+2. Gemini video understanding returns structured JSON steps (schema below) plus the transcript, using the step marks as hints.
+3. ffmpeg extracts, for each step:
    - one **reference frame** at the step's key timestamp
    - one **3–5 s looping clip** for "show me"
-5. The chef reviews the steps on the web page: edit text, re-pick the reference frame by timestamp, then publish.
+4. Upload the frames and clips to Storage. Status becomes `review`.
+
+**Review (web page).** The chef or a teammate opens the review page on a laptop. The page polls the status. They check the steps, edit text, re-pick a reference frame by timestamp, then press **Publish**. Status becomes `published`.
+
+### 1b. Recipe → cook's app (delivery)
+
+1. Cook mode calls `GET /recipes?status=published` to show the recipe library. For the hackathon, all published recipes are visible to everyone, with no accounts.
+2. The cook picks a recipe. `GET /recipes/{id}` returns the steps plus signed URLs for the reference images and clips.
+3. **The app downloads every image and clip before cooking starts.** During cooking, only `/check`, `/watch` and Gemini Live need the network, so step changes are instant on bad Wi-Fi.
+4. The phone sends the current step's image or clip to the glasses display through DAT.
+
+In the pitch: chefs share a recipe link or QR code, and followers open it in the app.
 
 ### 2. Cook-along
 
@@ -95,7 +119,8 @@ recipes (
   chef_name text,
   video_path text,            -- Storage path
   transcript text,            -- chef narration, used to ground Q&A
-  status text,                -- 'processing' | 'review' | 'published' | 'failed'
+  step_marks_s numeric[],     -- chef's pinch marks while recording (step-boundary hints)
+  status text,                -- 'uploading' | 'processing' | 'review' | 'published' | 'failed'
   created_at timestamptz
 )
 
@@ -143,10 +168,22 @@ session_events (
 Agree on this first so both tracks can build in parallel.
 
 ### `POST /recipes`
-Multipart upload of an MP4 plus a title. Returns `{ recipe_id, status: "processing" }`.
+```json
+// request
+{ "title": "Maki sushi", "chef_name": "...", "step_marks_s": [12.4, 58.0, 101.7] }
+// response
+{ "recipe_id": "...", "status": "uploading", "upload_url": "<signed Supabase Storage URL>" }
+```
+The client then uploads the MP4 directly to `upload_url`.
 
-### `GET /recipes` · `GET /recipes/{id}`
-Returns the recipe and its ordered steps, with **signed URLs** for `ref_image` and `clip`.
+### `POST /recipes/{id}/process`
+Called after the upload finishes. Starts the background ingestion job. Returns `{ status: "processing" }`.
+
+### `GET /recipes?status=published` · `GET /recipes/{id}`
+Returns the recipe library, or one recipe with its ordered steps and **signed URLs** for `ref_image` and `clip`. The review page polls `GET /recipes/{id}` for `status`.
+
+### `POST /recipes/{id}/publish`
+Called from the review page. Status changes from `review` to `published`.
 
 ### `PATCH /steps/{id}`
 Chef edits from the web page: text fields, or a new `timestamp_s`, which triggers ffmpeg to re-extract the frame.
@@ -255,12 +292,12 @@ Amber. One sentence is spoken at the same time. It interrupts the step card and 
 - `/check` with pass/fix
 - `/watch` proactive warning with debouncing; the scripted "too much rice" mistake must be in `watch_fors`
 - Gemini Live voice Q&A grounded in the recipe
-- Chef web page: upload + review steps
+- iOS Chef mode: record through DAT with pinch step marks, then upload
+- Review web page: review, edit, publish (plus MP4 upload as a dev fallback)
 
 ### Nice to have
 - "Show me" clips
 - Timer widget
-- In-app recording of the chef via DAT (the MP4 upload fallback covers this)
 - Done summary screen
 
 ### Cut (pitch as "what's next")
