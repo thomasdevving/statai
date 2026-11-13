@@ -1,0 +1,18 @@
+// Ghost Chef: committed build configuration.
+//
+// Defaults only. Put real values in Config/Secrets.xcconfig (untracked; copy
+// Secrets.example.xcconfig). Values set there override the ones below.
+//
+// Note: "//" starts a comment in xcconfig files, so a URL is written with an
+// empty variable between the slashes: http:/$()/192.168.1.20:8000
+
+API_BASE_URL = http:/$()/localhost:8000
+DEMO_API_KEY =
+
+// Change in Secrets.xcconfig if your signing team cannot use this bundle id.
+GHOSTCHEF_BUNDLE_ID = com.ghostchef.app
+// Your Apple team id (Xcode > Settings > Accounts). Set it in Secrets.xcconfig so
+// regenerating the project keeps signing working.
+DEVELOPMENT_TEAM =
+
+#include? "Secrets.xcconfig"

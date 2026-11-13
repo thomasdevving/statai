@@ -1,0 +1,132 @@
+{
+  "title": "Maki roll",
+  "transcript": "[PLACEHOLDER NARRATION — replace with the real chef transcript] [INTERIM iOS COPY — written in ios/ because ai/fixtures/sushi_recipe.json (AI-01) was not pushed yet; replace with ios/scripts/sync-fixture.sh] Okay, let's make a simple maki roll. First, the nori goes on the bamboo mat shiny side down, with the long edge towards you. Before you touch the rice, wet your fingers in the water bowl. Sushi rice is sticky, and wet hands stop it clinging to your fingers so it spreads instead of tearing the nori. Now take a small handful of rice and spread it in a thin, even layer. You should almost see the nori through it in places. Leave about two centimetres of bare nori at the far edge; that strip seals the roll. Don't press the rice down hard. Next, lay one line of filling across the third of the sheet nearest to you. Cucumber and salmon here. Keep it to one neat line; too much filling and the roll will split. Now lift the near edge of the mat, tuck the nori over the filling, and roll forward, pressing gently as you go so it stays tight. Finish with the seam underneath. Last, wet your knife so it doesn't drag, cut the roll in half, then cut each half into three. Six pieces, all the same size. That's it.",
+  "steps": [
+    {
+      "idx": 1,
+      "title": "Place nori",
+      "key_line": "Shiny side down, long edge near",
+      "instruction": "Put one sheet of nori on the bamboo mat, shiny side down, with the long edge towards you.",
+      "chef_quote": "First, the nori goes on the bamboo mat shiny side down, with the long edge towards you.",
+      "timestamp_s": 12.0,
+      "clip_start_s": 10.0,
+      "clip_end_s": 14.5,
+      "success_criteria": [
+        "A whole nori sheet lies flat on the bamboo mat",
+        "The long edge of the sheet is parallel to the near edge of the mat"
+      ],
+      "watch_fors": [
+        {
+          "id": "nori_turned_sideways",
+          "mistake": "The short edge of the nori faces the cook instead of the long edge",
+          "headline": "Nori is sideways",
+          "fix": "Turn it, long edge towards you",
+          "spoken": "Turn the nori so the long edge is towards you."
+        }
+      ],
+      "timer_s": null
+    },
+    {
+      "idx": 2,
+      "title": "Wet hands",
+      "key_line": "Dip fingers in the water bowl",
+      "instruction": "Dip your fingers in the bowl of water so the rice does not stick to them.",
+      "chef_quote": "Before you touch the rice, wet your fingers in the water bowl.",
+      "timestamp_s": 31.0,
+      "clip_start_s": 29.0,
+      "clip_end_s": 33.0,
+      "success_criteria": [
+        "A bowl of water is next to the mat"
+      ],
+      "watch_fors": [],
+      "timer_s": null
+    },
+    {
+      "idx": 3,
+      "title": "Spread rice",
+      "key_line": "Thin layer, leave 2cm top",
+      "instruction": "Spread a small handful of rice in a thin, even layer over the nori. Leave about two centimetres of bare nori at the far edge.",
+      "chef_quote": "Leave about two centimetres of bare nori at the far edge; that strip seals the roll.",
+      "timestamp_s": 74.5,
+      "clip_start_s": 72.0,
+      "clip_end_s": 76.5,
+      "success_criteria": [
+        "Rice layer is thin enough to see nori through it in places",
+        "A strip of bare nori about 2 cm wide is left at the far edge",
+        "Rice covers the rest of the sheet evenly, without large gaps"
+      ],
+      "watch_fors": [
+        {
+          "id": "rice_too_thick",
+          "mistake": "Rice layer is thick and covers the whole sheet",
+          "headline": "Too much rice",
+          "fix": "Spread thinner, 2cm nori free",
+          "spoken": "There's a bit too much rice — spread it thinner and leave two centimetres of nori at the top."
+        },
+        {
+          "id": "rice_covers_top_edge",
+          "mistake": "Rice reaches the far edge, leaving no bare strip of nori",
+          "headline": "No bare edge",
+          "fix": "Clear 2cm of nori at top",
+          "spoken": "Push the rice back from the far edge so about two centimetres of nori stays bare."
+        }
+      ],
+      "timer_s": null
+    },
+    {
+      "idx": 4,
+      "title": "Add fillings",
+      "key_line": "One line across the near third",
+      "instruction": "Lay one neat line of filling across the third of the sheet nearest to you.",
+      "chef_quote": "Keep it to one neat line; too much filling and the roll will split.",
+      "timestamp_s": 118.0,
+      "clip_start_s": 115.5,
+      "clip_end_s": 120.0,
+      "success_criteria": [
+        "Filling forms a single line across the rice",
+        "The line sits in the third of the sheet nearest the cook"
+      ],
+      "watch_fors": [
+        {
+          "id": "too_much_filling",
+          "mistake": "Filling is piled high or spread over more than one line",
+          "headline": "Too much filling",
+          "fix": "Keep one thin line only",
+          "spoken": "That's a lot of filling — keep it to one thin line or the roll will split."
+        }
+      ],
+      "timer_s": null
+    },
+    {
+      "idx": 5,
+      "title": "Roll",
+      "key_line": "Lift mat, tuck, roll, press",
+      "instruction": "Lift the near edge of the mat, tuck the nori over the filling, and roll forward, pressing gently so it stays tight. Finish seam side down.",
+      "chef_quote": "Lift the near edge of the mat, tuck the nori over the filling, and roll forward.",
+      "timestamp_s": 165.0,
+      "clip_start_s": 162.0,
+      "clip_end_s": 167.0,
+      "success_criteria": [
+        "The roll is a closed cylinder with no filling showing on the outside",
+        "The seam is underneath the roll"
+      ],
+      "watch_fors": [],
+      "timer_s": null
+    },
+    {
+      "idx": 6,
+      "title": "Slice",
+      "key_line": "Wet knife, halve, then thirds",
+      "instruction": "Wet your knife, cut the roll in half, then cut each half into three pieces.",
+      "chef_quote": "Cut the roll in half, then cut each half into three.",
+      "timestamp_s": 214.0,
+      "clip_start_s": 211.0,
+      "clip_end_s": 216.0,
+      "success_criteria": [
+        "Six pieces of roughly equal width are on the board"
+      ],
+      "watch_fors": [],
+      "timer_s": null
+    }
+  ]
+}

@@ -6,7 +6,7 @@
 
 | # | Batch | Status | Date / commit | Notes |
 |---|---|---|---|---|
-| 01 | Project foundation | NOT STARTED | | |
+| 01 | Project foundation | PARTIAL | 2026-11-14, commit `[ios] IOS-01 project foundation` | **Pass (simulator, run 2026-11-14):** IOS-01.1 build; IOS-01.3 decoding tests (contract **v2.0** examples + error envelope + fixture); IOS-01.4 `URLProtocol` stub tests (header, multipart, 429, 504, timeouts); frame encoding at 1280/0.8 and 512/0.6 within limits on the **still test image**; 43/43 tests green. **Not yet run (needs a human with the iPhone):** permission prompts (01.2), "Grab frame" on the real camera (01.5), recipe list + health panel against a running backend (01.6). Recipe list seen in the simulator against the **bundled fixture only**; backend mode seen showing its "Couldn't load recipes" state (no backend running). The bundled fixture is an **interim iOS-written copy**, see Needs. UI follows the apple-design guidance (system type, press feedback on touch-down, critically damped springs, Reduce Motion fallbacks). |
 | 02 | DAT glasses spike | NOT STARTED | | |
 | 03 | Cook-along core | NOT STARTED | | |
 | 04 | Proactive watcher | NOT STARTED | | |
@@ -31,12 +31,12 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 
 | Item | Value |
 |---|---|
-| Mac / Xcode version | — |
+| Mac / Xcode version | Mac17,9, macOS 26.6.2 / **Xcode 27.3 beta (27C5020n)** at `~/Downloads/Xcode-beta.app`, used via `export DEVELOPER_DIR=~/Downloads/Xcode-beta.app/Contents/Developer` (the active developer dir is still Command Line Tools). XcodeGen 2.46.0. Simulator: iPhone 18 Pro, iOS 27.3 |
 | iPhone model / iOS version | — |
 | Glasses model / firmware | — |
 | DAT SDK version pinned | — |
 | Meta AI app version; Developer Mode on? | — |
-| Backend URL the app points at | — |
+| Backend URL the app points at | None yet. Build default `http://localhost:8000`; set the real one in `Config/Secrets.xcconfig` or in the app's Settings |
 
 ## Device facts (IOS-02)
 
@@ -94,4 +94,5 @@ Looking down at a board: is the work in frame? —
 
 ## Needs from other tracks
 
-- —
+- **ai/ (AI-01):** `ai/fixtures/sushi_recipe.json` and `ai/fixtures/images/step-*.jpg` were not on `main` at `ef08af0`. IOS-01 bundles an interim fixture written in `ios/` to the AI-01.6 spec (6 steps, exact `rice_too_thick` entry, marked `[INTERIM iOS COPY]` in its transcript) and no reference images. Once AI-01 is pushed, run `ios/scripts/sync-fixture.sh` and rebuild.
+- **backend/ (BE-01):** no backend was reachable, so the list and health panel are unverified against a server. Need the LAN or Railway URL and the demo key.
