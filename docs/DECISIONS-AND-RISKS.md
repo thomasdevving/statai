@@ -55,7 +55,7 @@ Likelihood / impact: H, M, L. Ordered by how much they threaten the core demo.
 | Q-02 | Who on site supports the **iOS** DAT SDK? | Meta booth | IOS-02 |
 | Q-03 | Do Neural Band gestures reach a DAT app, or only display buttons and captouch? | Meta booth / IOS-02 | Input mapping |
 | Q-04 | Has the team received Gemini credits, and on which project and tier? | Team / Google booth | AI-02 |
-| Q-05 | Who owns which track? (iOS = Mac owner; backend = Stelios per the spec; AI and web unassigned) | Team | PLAN.md §2 |
+| Q-05 | ~~Who owns which track?~~ **Answered 2026-11-14:** iOS = Thomas, backend = Stelios, AI = Aleksandr, web = Türker | Team | Resolved |
 | Q-06 | ~~Who has the larger Claude allowance?~~ **Answered 2026-11-14: the Mac owner**, who owns `ios/` | Team | Resolved |
 | Q-07 | What does the preliminary submission require, and by exactly when? | Platform / organizers | Tonight |
 | Q-08 | Pitch length, review format, required submission fields, video rules | Organizers / authenticated platform | WEB-05 |

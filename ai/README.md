@@ -1,5 +1,7 @@
 # Track: `ai/` — Gemini package, fixture recipe, evaluation
 
+**Owner: Aleksandr**
+
 You own **every prompt and every Gemini call** in Ghost Chef, the fixture recipe everyone develops against, and the evaluation that produces the numbers for the pitch. Your code is a Python package, `ghostchef_ai`, that the backend imports. You never write HTTP endpoints, database code, or ffmpeg calls.
 
 New here? Read [../README.md](../README.md), then [../docs/API-CONTRACT.md](../docs/API-CONTRACT.md) §7 and §8 (your public interface), then this file.

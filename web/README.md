@@ -1,5 +1,7 @@
 # Track: `web/` — simulator, chef studio, demo monitor, pitch and submission
 
+**Owner: Türker**
+
 You own three small browser apps and everything that faces people outside the team: user conversations, the pitch pack, demo operations, and the submission. The code here is the lightest of the four tracks; the non-code work (users, deck, rehearsal, forms) is what usually gets forgotten at hackathons, so it has an owner: you.
 
 New here? Read [../README.md](../README.md), [../docs/PRODUCT.md](../docs/PRODUCT.md), [../docs/API-CONTRACT.md](../docs/API-CONTRACT.md) §1–§4, [../docs/DEMO-AND-SUBMISSION.md](../docs/DEMO-AND-SUBMISSION.md), then this file.

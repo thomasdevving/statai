@@ -20,10 +20,12 @@ Each laptop works in exactly one folder. No two tracks ever edit the same file, 
 
 | Track | Folder | Machine | Size | Owner | What it delivers |
 |---|---|---|---|---|---|
-| **iOS** | [`ios/`](../ios/README.md) | **The Mac** (Xcode) + iPhone | **Largest and riskiest — 7 batches** | Mac owner, who also has the largest Claude allowance — *name to fill in* | The app on the phone and glasses |
-| **Backend** | [`backend/`](../backend/README.md) | Any | Large — 7 batches, integration hub | TECH-SPEC names Stelios | API, storage, ffmpeg, deploy, end-to-end tests |
-| **AI** | [`ai/`](../ai/README.md) | Any | Medium — 7 smaller batches, one is physical (filming) | *name to fill in* | Every prompt and Gemini call, fixture recipe, evaluation |
-| **Web** | [`web/`](../web/README.md) | Any | Medium-light in code — 5 batches; carries users, pitch, demo, submission | *name to fill in* | Simulator, chef studio, demo monitor, pitch pack, submission |
+| **iOS** | [`ios/`](../ios/README.md) | **The Mac** (Xcode) + iPhone | **Largest and riskiest — 7 batches** | **Thomas** (the Mac; largest Claude allowance) | The app on the phone and glasses |
+| **Backend** | [`backend/`](../backend/README.md) | Any | Large — 7 batches, integration hub | **Stelios** | API, storage, ffmpeg, deploy, end-to-end tests |
+| **AI** | [`ai/`](../ai/README.md) | Any | Medium — 7 smaller batches, one is physical (filming) | **Aleksandr** | Every prompt and Gemini call, fixture recipe, evaluation |
+| **Web** | [`web/`](../web/README.md) | Any | Medium-light in code — 5 batches; carries users, pitch, demo, submission | **Türker** | Simulator, chef studio, demo monitor, pitch pack, submission |
+
+**Owners** were assigned by the team on 2026-11-14. The `ai/` and `web/` assignment was arbitrary (either person could take either) and the two may swap by agreement. TECH-SPEC lists the Gemini SDK calls and the chef UI under Stelios; in this four-way split they move to `ai/` (Aleksandr) and `web/` (Türker), and Stelios's backend imports and serves them.
 
 **The heavier load.** The Mac owner has the largest Claude allowance (team, 2026-11-14), and `ios/` is the largest and riskiest track, so the two line up: no rebalancing is needed. `backend/` is the second-largest. The limit on `ios/` is time at the one Mac, not usage, so a second person pairs there during IOS-06 (risk R-06).
 

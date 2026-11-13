@@ -10,14 +10,14 @@ Built at **Junction 2026** (13–15 November, Espoo) for two challenges: **Meta 
 
 Four people, four laptops, four folders. You work in exactly one folder, so nobody's changes collide.
 
-| If you own… | Open | Machine | First batch |
-|---|---|---|---|
-| The iPhone / glasses app | [ios/README.md](ios/README.md) | **The Mac** + an iPhone | [IOS-01](ios/tasks/01-project-foundation.md) |
-| The API, storage, deployment | [backend/README.md](backend/README.md) | Any | [BE-01](backend/tasks/01-skeleton-and-mock-api.md) |
-| Prompts, Gemini calls, evaluation | [ai/README.md](ai/README.md) | Any | [AI-01](ai/tasks/01-package-skeleton-and-fixture.md) |
-| Web tools, pitch, demo, submission | [web/README.md](web/README.md) | Any | [WEB-05 task 1](web/tasks/05-demo-ops-and-submission.md), then [WEB-01](web/tasks/01-foundation-and-simulator.md) |
+| Owner | Track | Open | Machine | First batch |
+|---|---|---|---|---|
+| **Thomas** | The iPhone / glasses app | [ios/README.md](ios/README.md) | **The Mac** + an iPhone | [IOS-01](ios/tasks/01-project-foundation.md) |
+| **Stelios** | The API, storage, deployment | [backend/README.md](backend/README.md) | Any | [BE-01](backend/tasks/01-skeleton-and-mock-api.md) |
+| **Aleksandr** | Prompts, Gemini calls, evaluation | [ai/README.md](ai/README.md) | Any | [AI-01](ai/tasks/01-package-skeleton-and-fixture.md) |
+| **Türker** | Web tools, pitch, demo, submission | [web/README.md](web/README.md) | Any | [WEB-05 task 1](web/tasks/05-demo-ops-and-submission.md), then [WEB-01](web/tasks/01-foundation-and-simulator.md) |
 
-Who owns which track, and which track is the heavy one: [docs/PLAN.md §2](docs/PLAN.md#2-four-tracks-four-folders-four-laptops).
+Track sizes and the hand-over rule: [docs/PLAN.md §2](docs/PLAN.md#2-four-tracks-four-folders-four-laptops).
 
 ### On your laptop
 

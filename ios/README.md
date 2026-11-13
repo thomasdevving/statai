@@ -1,5 +1,7 @@
 # Track: `ios/` — the app on the iPhone and the glasses
 
+**Owner: Thomas**
+
 You own everything the wearer experiences: frames from the glasses, the cards in the lens, gestures and voice, the watcher loop, and how the app behaves when something drops. This track **must run on the Mac** (Xcode) with a physical iPhone, and it carries the project's highest risk: integration with borrowed glasses. Prove the device path early (IOS-02), before polishing anything.
 
 New here? Read [../README.md](../README.md), then [../docs/API-CONTRACT.md](../docs/API-CONTRACT.md) §1–§5 (the API you call and the client rules you must implement), [../docs/TECH-SPEC.md](../docs/TECH-SPEC.md) "Display spec", then this file.
