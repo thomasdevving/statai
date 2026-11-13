@@ -53,17 +53,17 @@ Review what it did, commit with your track's prefix (`[ios]`, `[backend]`, `[ai]
 ```
  Meta glasses ⇄ ios/ (iPhone app) ──HTTPS──► backend/ (FastAPI) ──imports──► ai/ (ghostchef_ai) ──► Gemini API
                      │                            │        ▲
-                     └──WebSocket──► Gemini Live   │        └── web/ (simulator · chef studio · demo monitor)
+                     └──WebSocket──► Gemini Live   │        └── web/ (simulator · review page · demo monitor)
                                                    ▼
                                                Supabase
 ```
 
 | Folder | What it is | Batches |
 |---|---|---|
-| [`ios/`](ios/README.md) | Swift app: frames from the glasses, cards in the lens, watcher loop, voice | 7 |
+| [`ios/`](ios/README.md) | Swift app, two modes: **Chef** (record through the glasses, pinch = step mark, upload) and **Cook** (frames from the glasses, cards in the lens, watcher loop, voice) | 8 |
 | [`backend/`](backend/README.md) | FastAPI: recipes, `/check`, `/watch`, sessions, live tokens, ffmpeg, deploy | 7 |
 | [`ai/`](ai/README.md) | Python package with every prompt and Gemini call; fixture recipe; evaluation | 7 |
-| [`web/`](web/README.md) | Browser simulator, chef studio, demo monitor; pitch pack and submission | 5 |
+| [`web/`](web/README.md) | Browser simulator, review page (review / edit / publish + dev MP4 upload), demo monitor; pitch pack and submission | 5 |
 | [`docs/`](docs/) | Shared, slow-changing documents (below) | — |
 
 Each track folder has a `README.md` (setup, design, rules), a `STATUS.md` (what is actually done and measured), and `tasks/` — one markdown file per batch of tasks, each with concrete acceptance criteria.

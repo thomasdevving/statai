@@ -1,7 +1,7 @@
 # Ghost Chef — decisions, risks, open questions
 
 > Decisions are settled unless the team changes them here. Risks each have an owner and a next test. Open questions are things only a person on site or an account owner can answer.
-> Last updated 2026-11-13.
+> Last updated 2026-11-14.
 
 ## 1. Decisions
 
@@ -21,6 +21,10 @@
 | D-12 | `spoken` results use **on-device text-to-speech**; Gemini Live speaks only answers to questions | Proposed in this plan | One deterministic path; works when Live is down; no double speech | Yes |
 | D-13 | **Mock-first**: fake-mode AI package and a full mock API in the first hours | Proposed in this plan | Nobody waits for anybody | Yes |
 | D-14 | Trunk-based git on `main`, commits scoped to one track folder | Proposed in this plan | Simplest thing that cannot conflict | Yes |
+| D-15 | **One iOS app, two modes: Chef (record through DAT, pinch = step mark, upload) and Cook (follow along).** In-app chef recording moves from nice-to-have to **Must** | TECH-SPEC update (2026-11-14) | The chef half of the story runs on the glasses too; pinch marks give Gemini step boundaries | Settled. Fallback: dev-fallback MP4 upload on the review page (cut order) |
+| D-16 | The web page is **review / edit / publish only**, plus an MP4 upload as a dev fallback | TECH-SPEC update (2026-11-14) | Recording happens on the glasses; the browser does not need a full upload studio | Settled |
+| D-17 | Video goes **directly from client to Supabase Storage** through a signed upload URL (resumable on iOS); FastAPI never receives the bytes. `POST /recipes` → upload → `POST /recipes/{id}/process`. Contract v2.0 | TECH-SPEC update (2026-11-14) | Venue Wi-Fi; Railway request limits; resumable uploads | Settled |
+| D-18 | Cook mode **prefetches every image and clip** before cooking; all published recipes visible to everyone, no accounts | TECH-SPEC update (2026-11-14) | Instant step changes on bad Wi-Fi | Settled |
 
 ## 2. Risks
 
@@ -46,6 +50,8 @@ Likelihood / impact: H, M, L. Ordered by how much they threaten the core demo.
 | R-16 | **Overclaiming** on device support, accuracy, or pilot | M | M | web | Deck numbers come only from EVALUATION.md; claims table in PRODUCT.md §10 | — |
 | R-17 | **Country or account restrictions** on the glasses' developer features | L | H | ios | Ask the booth; they supply the devices | Whatever Meta staff configure on the loan devices |
 | R-18 | **Too many additions** (simulator, monitor, `unsure`, function calls) dilute the core | M | M | all | Cut order in PLAN.md §6; gates forbid optional work before the core loop | Strike items of D-10 / D-11 |
+| R-19 | **Recording DAT video + mic to MP4 on the phone** (Chef mode) is new and untested: frame rate, A/V sync, file size, heat, a long recording on one Display pair | M | M | ios | IOS-08 records a 2-minute take on the glasses and plays it back | Record with the phone camera (labelled), or upload an MP4 on the review page |
+| R-20 | **Resumable upload with a signed token** (TUS + `x-signature`) is documented by Supabase but untested by us, and needs a TUS client in Swift | M | L | ios / backend | IOS-08 uploads a >50 MB file over hotspot | Simple `PUT` to `upload_url`; shorter takes |
 
 ## 3. Open questions
 

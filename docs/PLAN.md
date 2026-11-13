@@ -20,12 +20,12 @@ Each laptop works in exactly one folder. No two tracks ever edit the same file, 
 
 | Track | Folder | Machine | Size | Owner | What it delivers |
 |---|---|---|---|---|---|
-| **iOS** | [`ios/`](../ios/README.md) | **The Mac** (Xcode) + iPhone | **Largest and riskiest — 7 batches** | **Thomas** (the Mac; largest Claude allowance) | The app on the phone and glasses |
+| **iOS** | [`ios/`](../ios/README.md) | **The Mac** (Xcode) + iPhone | **Largest and riskiest — 8 batches** | **Thomas** (the Mac; largest Claude allowance) | The app on the phone and glasses: Chef mode (record) and Cook mode (follow along) |
 | **Backend** | [`backend/`](../backend/README.md) | Any | Large — 7 batches, integration hub | **Stelios** | API, storage, ffmpeg, deploy, end-to-end tests |
 | **AI** | [`ai/`](../ai/README.md) | Any | Medium — 7 smaller batches, one is physical (filming) | **Aleksandr** | Every prompt and Gemini call, fixture recipe, evaluation |
-| **Web** | [`web/`](../web/README.md) | Any | Medium-light in code — 5 batches; carries users, pitch, demo, submission | **Türker** | Simulator, chef studio, demo monitor, pitch pack, submission |
+| **Web** | [`web/`](../web/README.md) | Any | Medium-light in code — 5 batches; carries users, pitch, demo, submission | **Türker** | Simulator, review page, demo monitor, pitch pack, submission |
 
-**Owners** were assigned by the team on 2026-11-14. The `ai/` and `web/` assignment was arbitrary (either person could take either) and the two may swap by agreement. TECH-SPEC lists the Gemini SDK calls and the chef UI under Stelios; in this four-way split they move to `ai/` (Aleksandr) and `web/` (Türker), and Stelios's backend imports and serves them.
+**Owners** were assigned by the team on 2026-11-14. The `ai/` and `web/` assignment was arbitrary (either person could take either) and the two may swap by agreement. TECH-SPEC lists the Gemini SDK calls and the review web page under Stelios; in this four-way split they move to `ai/` (Aleksandr) and `web/` (Türker), and Stelios's backend imports and serves them. Chef-mode recording is part of the iOS app (Thomas).
 
 **The heavier load.** The Mac owner has the largest Claude allowance (team, 2026-11-14), and `ios/` is the largest and riskiest track, so the two line up: no rebalancing is needed. `backend/` is the second-largest. The limit on `ios/` is time at the one Mac, not usage, so a second person pairs there during IOS-06 (risk R-06).
 
@@ -49,7 +49,7 @@ A batch is one markdown file with a group of tasks. One Claude session runs one 
  ai/      01 ──► 02 ──► 04 ──────────► 05 ──────────► 06 ──────────────► 07
                   └──► 03 (filming) ───────────────────────────────────► 07
  backend/ 01 ──► 02 ──► 03 ──────────► 04 ──────────► 05 ──► 06 ───────► 07
- ios/     01 ──► 02 (spike) ──► 03 ──► 04 ──────────► 06 / 05 ─────────► 07
+ ios/     01 ──► 02 (spike) ──► 03 ──► 04 ──────────► 06 / 05 ──► 08 ──► 07
  web/     01 ──────────────────► 03 ──────────────► 02 ──► 04 (draft) ──► 04 (final) ──► 05
           05 task 1 (preliminary submission) is done first, tonight; the rest of 05 closes at G5.
 ```
@@ -65,7 +65,8 @@ Cross-track dependencies (everything else is internal to a track):
 | BE-05 | AI-05 | Live config and token minting |
 | IOS-05 | BE-05 | A real `/live-token` |
 | BE-06 | AI-06 | Real `extract_recipe` |
-| WEB-02 | BE-06 for the real thing | Buildable earlier against the mock, which simulates `processing → review` |
+| WEB-02 | BE-06 for the real thing | Buildable earlier against the mock, which simulates `uploading → processing → review` |
+| IOS-08 | IOS-02 result, BE-01 (upload flow on the mock), BE-06 for real ingestion | Chef mode records through DAT and uploads through the v2 flow |
 | IOS-06 | IOS-02 result + glasses in hand | Device facts decide the display and input mapping |
 | AI-07 | AI-03, AI-04, BE-04 | Eval frames, final prompts, deployed latency |
 | WEB-04 | AI-07 results, IOS-06 | Evidence slide and device claims use measured values only |
@@ -103,7 +104,7 @@ A gate is passed when its exit criteria are demonstrated to the team, not when s
 
 - [ ] The G2 journey runs **on the glasses** (camera from the glasses, card in the lens or the agreed fallback).
 - [ ] Voice: one spoken question is answered from the chef's method; "check" and "next" work by voice.
-- [ ] Chef studio: upload → review → publish works on one real video.
+- [ ] Chef mode: record on the glasses with pinch step marks → upload → `/process` → review page → publish works on one real take. (If the glasses are not available yet: phone-camera recording or the review page's MP4 upload, labelled as such.)
 - [ ] Evaluation run #1 exists in `ai/eval/results/`.
 - [ ] Deck draft exists. A backup recording of one full run exists.
 - [ ] **After this gate no new feature is started.** Only fixes, tuning, and demo hardening.
@@ -140,12 +141,12 @@ Cut from the top. Never cut from the bottom group.
 | 1 | Personalization, accounts, other domains | Already cut; "what's next" slide |
 | 2 | Timer widget | Nothing in the demo needs it |
 | 3 | Done summary screen | End on the last Pass |
-| 4 | In-app chef recording through DAT | Upload an MP4 instead |
-| 5 | "Show me" clips | The reference still stays |
-| 6 | Studio: re-pick frame with a video scrubber | Edit text only; timestamps typed as numbers |
-| 7 | Monitor polish (timeline, latency panel) | Keep frame + reference + verdict |
-| 8 | Voice commands as function calls | Keep spoken Q&A; gestures do the commands |
-| 9 | Live ingestion shown in the demo | Show the studio on a pre-ingested recipe |
+| 4 | "Show me" clips | The reference still stays |
+| 5 | Review page: re-pick frame with a video scrubber | Edit text only; timestamps typed as numbers |
+| 6 | Monitor polish (timeline, latency panel) | Keep frame + reference + verdict |
+| 7 | Voice commands as function calls | Keep spoken Q&A; gestures do the commands |
+| 8 | Live ingestion shown in the demo | Show the review page on a pre-ingested recipe |
+| 9 | Chef mode recording through DAT (a Must since the 2026-11-14 spec update) | Record in Chef mode with the phone camera, or upload an MP4 on the review page (dev fallback), and say so |
 | 10 | Gemini Live voice Q&A | Loses a Gemini talking point; core loop intact |
 | 11 | Proactive watcher on the glasses | On-demand check only |
 | 12 | In-lens display | Audio-only on the glasses, lens mirrored on the monitor |

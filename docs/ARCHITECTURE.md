@@ -9,16 +9,17 @@
 
 | Folder | Component | Runs on | Talks to |
 |---|---|---|---|
-| [`ios/`](../ios/README.md) | iOS app (Swift, SwiftUI, Meta DAT SDK) | iPhone paired with the glasses | Glasses (DAT over Bluetooth), backend (HTTPS), Gemini Live (WebSocket) |
+| [`ios/`](../ios/README.md) | iOS app (Swift, SwiftUI, Meta DAT SDK), **one app with two modes: Chef (record a recipe) and Cook (follow along)** | iPhone paired with the glasses | Glasses (DAT over Bluetooth), backend (HTTPS), Supabase Storage (one signed upload per recording), Gemini Live (WebSocket) |
 | [`backend/`](../backend/README.md) | FastAPI service: recipes, check, watch, sessions, live tokens, ffmpeg, storage | Laptop in development, Railway in production | Supabase, `ghostchef_ai` package |
 | [`ai/`](../ai/README.md) | Python package `ghostchef_ai`: every prompt and every Gemini call; fixture recipe; evaluation | Imported by the backend; CLI on a laptop | Gemini API |
-| [`web/`](../web/README.md) | Static web app: cook-along **simulator**, chef **studio**, demo **monitor**; plus the pitch pack | Any browser; served by the backend at `/app/` | Backend (HTTPS) |
+| [`web/`](../web/README.md) | Static web app: cook-along **simulator**, recipe **review page** (review / edit / publish, plus a dev-fallback MP4 upload), demo **monitor**; plus the pitch pack | Any browser; served by the backend at `/app/` | Backend (HTTPS); Supabase Storage only for the dev-fallback upload |
 
 ```
  ┌──────────────────────┐  Bluetooth / DAT  ┌─────────────────────────────┐
  │ Meta Ray-Ban Display │ ◄───────────────► │ ios/  iPhone app            │
  │ camera · mic · lens  │                   │  FrameSource (swappable)    │
- │ speakers · inputs    │                   │  CookSession state machine  │
+ │ speakers · inputs    │                   │  Chef mode: Recorder + marks│
+ │                      │                   │  CookSession state machine  │
  └──────────────────────┘                   │  Watcher loop + debounce    │
                                             │  LensModel → 2 renderers    │
                                             │  LiveClient (voice)         │
@@ -28,7 +29,7 @@
  ┌───────────────────────┐  HTTPS   ┌───────────────────────┐   ┌──────────────────┐
  │ web/  browser         │ ───────► │ backend/  FastAPI     │   │ Gemini Live API  │
  │  simulator (webcam)   │          │  /recipes /steps      │   └──────────────────┘
- │  chef studio          │          │  /check /watch        │
+ │  review page          │          │  /check /watch        │
  │  demo monitor         │          │  /sessions /live-token│
  └───────────────────────┘          │  ffmpeg · jobs        │
                                     └──────┬──────────┬─────┘
@@ -65,12 +66,21 @@ Two things in this diagram are additions to TECH-SPEC, both for the weekend's pr
 
 ### 3.1 Ingestion (chef → recipe)
 
-1. Studio uploads MP4 + title + consent → `POST /recipes` → `202 processing`.
-2. Backend stores the video, starts a background job.
-3. Job calls `ghostchef_ai.extract_recipe(video_path)` → `RecipeDraft` (steps, timestamps, transcript).
-4. Backend runs ffmpeg per step: reference still at `timestamp_s`, optional clip `clip_start_s…clip_end_s`.
-5. Backend inserts steps, sets status `review` (or `failed` with `error`).
-6. Chef edits text / re-picks timestamps in the studio → `PATCH /steps/{id}` → `POST /recipes/{id}/publish`.
+1. **Record (iOS, Chef mode).** The chef cooks wearing the glasses and narrates. The app writes the DAT camera stream and mic audio to an MP4 on the phone (no clip-length limit, unlike the glasses' built-in capture). The lens shows "● REC 03:12". Each Neural Band pinch saves a **step mark** (seconds since start) into `step_marks_s`.
+2. **Create.** On stop: `POST /recipes` with title, `step_marks_s`, consent → `201 uploading` + a signed Supabase Storage upload URL.
+3. **Upload.** The app uploads the MP4 **directly to Supabase Storage** (resumable TUS, because of venue Wi-Fi), never through FastAPI. Dev fallback: the review page uploads any MP4 through the same signed URL with a simple `PUT`.
+4. **Process.** `POST /recipes/{id}/process` → `processing`. The background job downloads the video from Storage and calls `ghostchef_ai.extract_recipe(video_path, step_marks_s=…)` → `RecipeDraft` (steps, timestamps, transcript); the marks are hints.
+5. Backend runs ffmpeg per step: reference still at `timestamp_s`, optional clip `clip_start_s…clip_end_s`; uploads them to Storage; sets status `review` (or `failed` with `error`).
+6. **Review (web page).** The chef or a teammate opens the review page on a laptop, which polls the status, edits text / re-picks timestamps → `PATCH /steps/{id}` → `POST /recipes/{id}/publish` → `published`.
+
+### 3.1b Delivery (recipe → cook's app)
+
+1. Cook mode lists the library: `GET /recipes?status=published` (no accounts; every published recipe is visible).
+2. The cook picks one: `GET /recipes/{id}` → steps + signed URLs.
+3. **The app downloads every reference image and clip before cooking starts.** During cooking only `/check`, `/watch` and Gemini Live need the network.
+4. The phone sends the current step's image or clip to the glasses display through DAT.
+
+Pitch framing: chefs share a recipe link or QR code and followers open it in the app. Not built this weekend.
 
 **The demo never depends on this running live.** One seeded, pre-reviewed recipe is always present. **[TEAM]**
 
@@ -167,15 +177,16 @@ The rule: **the wearer always knows whether the system is watching, and never re
 | Live talks over a result | Arbitration in the audio layer | Result TTS wins; Live is ducked | Automatic |
 | Backend down | `/health` fails | Phone shows "Server unreachable" | Operator switches base URL to the emergency laptop |
 | Signed URL expired | Image load fails | Nothing: images are cached at session start | Refetch recipe |
-| Ingestion fails | Job exception | Studio shows `failed` with the reason | Re-upload; the seeded recipe is unaffected |
+| Chef upload interrupted | TUS error / app backgrounded | Chef mode shows upload progress and "Retrying…"; the MP4 stays on the phone | TUS resumes from the last chunk; else a simple `PUT` retry; after 2 h the recipe becomes `failed` ("upload never completed") |
+| Ingestion fails | Job exception | Review page shows `failed` with the reason | Re-upload; the seeded recipe is unaffected |
 
 Implemented in IOS-07 and BE-07; tested in the recovery checklist in [EVALUATION.md](EVALUATION.md#6-recovery-tests).
 
 ## 7. Security and privacy
 
-- The Gemini API key and the Supabase service key exist only on the backend. The phone receives ephemeral Live tokens and signed Storage URLs. **[TEAM]**
+- The Gemini API key and the Supabase service key exist only on the backend. The phone receives ephemeral Live tokens, signed Storage download URLs, and — in Chef mode — one signed **upload** URL scoped to `videos/<recipe_id>/source.mp4`. **[TEAM]**
 - Every endpoint except `/health` requires the shared `X-Demo-Key`.
-- Uploads are limited by type (MP4) and size; frames by type (JPEG) and size. Storage paths are scoped per recipe and per session.
-- Row Level Security is on for all tables; clients never touch Supabase directly. **[TEAM]**
+- Uploads are limited by type (MP4) and size; because the video bypasses FastAPI, the ingestion job checks size and runs `ffprobe` before anything else, and marks the recipe `failed` if either fails. Frames are limited by type (JPEG) and size. Storage paths are scoped per recipe and per session.
+- Row Level Security is on for all tables; clients never touch Supabase tables. The only direct client → Supabase call is the signed, single-object video upload. **[TEAM]**
 - The repository is public and MIT-licensed submissions are expected by the event FAQ, so no key, token, or personal footage is ever committed. See `.gitignore`.
 - Only frames from `/check` calls and from `/watch` calls that returned `warn` are stored. Deleting a recipe deletes its sessions and frames.

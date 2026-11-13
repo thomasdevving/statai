@@ -23,7 +23,7 @@ The ordinary alternatives are a phone propped against a jar (no feedback, needs 
 | Who | Situation | What they get |
 |---|---|---|
 | **Primary: a home cook learning a specific dish from a specific chef** | Hands busy and messy, following along for the first or second time | Step cards in the lens, a check against the chef's reference when asked, a warning when a known mistake appears, spoken answers |
-| **Secondary: the chef or instructor** | Teaches the same technique repeatedly | Records once while cooking normally; reviews and corrects the extracted steps on a web page |
+| **Secondary: the chef or instructor** | Teaches the same technique repeatedly | Records once in the app's Chef mode while cooking normally, pinching to mark each new step; reviews and corrects the extracted steps on a web page |
 
 **[OPEN]** Nobody outside the team has used it yet. Observed sessions with 2–3 novices are a task in [web/tasks/04](../web/tasks/04-user-evidence-and-pitch-pack.md).
 
@@ -37,9 +37,9 @@ This is not a mirrored phone screen: the phone is in a pocket for the whole cook
 
 ## 5. User journeys
 
-**Chef (once per recipe).** Cook the dish wearing the glasses and talk through each step → the video is uploaded → Gemini returns steps with timestamps, success criteria, and common mistakes → the chef fixes wording and re-picks any reference frame on the web page → publish.
+**Chef (once per recipe).** Open the app in **Chef mode** → cook the dish wearing the glasses and talk through each step, pinching to mark each new step (the lens shows "● REC") → stop → the app uploads the video → Gemini returns steps with timestamps, success criteria, and common mistakes, using the pinch marks as hints → the chef fixes wording and re-picks any reference frame on the review web page → publish.
 
-**Cook (every time).** Pick the recipe → see step card with the chef's reference still → work → the watcher flags a known mistake, or the cook pinches / says "check" → Pass advances; Fix shows the reference and one instruction → fix it → re-check passes → ask a question out loud at any time → Done summary.
+**Cook (every time).** Open the app in **Cook mode** → pick the recipe from the library (all its images and clips download before cooking starts) → see step card with the chef's reference still → work → the watcher flags a known mistake, or the cook pinches / says "check" → Pass advances; Fix shows the reference and one instruction → fix it → re-check passes → ask a question out loud at any time → Done summary.
 
 **Demo (the one journey that must work).** A volunteer rolls sushi, spreads too much rice, the glasses catch it and show the chef's reference, they fix it, the check passes, they ask a question and get a spoken answer. **[TEAM]** Full script: [DEMO-AND-SUBMISSION.md](DEMO-AND-SUBMISSION.md).
 
@@ -63,7 +63,7 @@ These map to the Meta rubric's "UX, accessibility, and trust" quarter.
 
 | Topic | What we do | Status |
 |---|---|---|
-| Chef consent | Upload requires an explicit consent tick; `DELETE /recipes/{id}` removes the video and everything derived from it | Planned (BE-04, WEB-02) |
+| Chef consent | Chef mode asks for explicit consent before recording starts, and the web dev-fallback upload requires a consent tick (`consent: true` on `POST /recipes`); the lens shows "● REC" for the whole recording; `DELETE /recipes/{id}` removes the video and everything derived from it | Planned (IOS-08, BE-06, WEB-02) |
 | Wearer awareness | The lens shows "● watching" whenever frames are being sent; grey when not | Planned (IOS-04) |
 | Bystanders | The glasses' own capture LED behaviour is Meta's; our demo frames a work surface, not faces. We do not store watcher frames except those that triggered a warning | Planned (BE-03) |
 | Data retention | Wearer frames live in a private bucket and are deleted with the recipe or session; nothing is public; keys never reach the phone | Planned (BE-02) |
