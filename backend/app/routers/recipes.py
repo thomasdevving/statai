@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -19,6 +18,7 @@ from app.schemas import (
     RecipePatch,
 )
 from app.store.base import RECIPE_STATUSES, Recipe, Store, utcnow
+from app.store.ops import purge_recipe
 from app.views import expire_stale_upload, load_recipe, recipe_detail
 
 router = APIRouter(tags=["recipes"])
@@ -133,13 +133,7 @@ async def publish_recipe(recipe_id: str, store: StoreDep) -> RecipeDetail:
 @router.delete("/recipes/{recipe_id}", status_code=204)
 async def delete_recipe(recipe_id: str, store: StoreDep) -> Response:
     recipe = await load_recipe(store, recipe_id)
-    sessions = await store.list_sessions(recipe_id=recipe.id, limit=1_000_000)
-    await store.delete_recipe(recipe.id)
-    await asyncio.gather(
-        store.delete_prefix("videos", recipe.id),
-        store.delete_prefix("media", recipe.id),
-        *(store.delete_prefix("frames", s.id) for s in sessions),
-    )
+    sessions = await purge_recipe(store, recipe.id) or []
     for s in sessions:
         metrics.drop(s.id)
     return Response(status_code=204)

@@ -16,6 +16,7 @@ dependencies = [
     "python-multipart",
     "httpx",
     "pillow",
+    "supabase>=2.34,<3",
 ]
 
 [project.optional-dependencies]

@@ -14,7 +14,14 @@ _store: Store | None = None
 def _build_store(settings: Settings) -> Store:
     if settings.storage == "memory":
         return MemoryStore(settings.data_path, settings.public_base_url)
-    raise RuntimeError("STORAGE=supabase is not implemented until BE-02; use STORAGE=memory")
+    if not settings.supabase_url or settings.supabase_service_key is None:
+        raise RuntimeError(
+            "STORAGE=supabase needs SUPABASE_URL and SUPABASE_SERVICE_KEY (backend/.env); "
+            "set them or use STORAGE=memory"
+        )
+    from app.store.supabase_store import SupabaseStore
+
+    return SupabaseStore(settings.supabase_url, settings.supabase_service_key.get_secret_value())
 
 
 def get_store() -> Store:
