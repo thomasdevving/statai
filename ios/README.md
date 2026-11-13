@@ -10,14 +10,14 @@ New here? Read [../README.md](../README.md), then [../docs/API-CONTRACT.md](../d
 
 | Deliverable | Notes |
 |---|---|
-| iOS app `GhostChef` (SwiftUI, iOS 17.2+) | Recipe pick → cook-along → done |
+| iOS app `GhostChef` (SwiftUI, iOS 17.2+) | **One app, two modes.** Cook: recipe library → prefetch → cook-along → done. Chef: record through the glasses with pinch step marks → upload → processing (IOS-08) |
 | A swappable **frame source** | iPhone camera now, glasses stream later; everything downstream sees "a JPEG" |
 | A **lens model** rendered two ways | On the phone screen (preview) and on the glasses display |
 | Watcher loop with the contract's debounce and pause rules | Identical behaviour to the web simulator |
 | Voice: Gemini Live over WebSocket with an ephemeral token; on-device speech for results | |
 | Device facts written down | What actually works on the borrowed glasses, in [STATUS.md](STATUS.md) |
 
-You do not write prompts, call Gemini's REST API, or talk to Supabase. Everything except the Live WebSocket goes through the backend.
+You do not write prompts, call Gemini's REST API, or talk to Supabase tables. Everything goes through the backend except the Live WebSocket and Chef mode's one video upload, which goes straight to Supabase Storage through the signed URL the backend returns.
 
 ## Prerequisites
 
@@ -73,7 +73,8 @@ ios/
     Lens/         PhoneLensView (preview renderer), GlassesLensRenderer (IOS-06)
     Voice/        SpeechOutput (on-device TTS), LiveClient (WebSocket), AudioIO
     Glasses/      GlassesManager (DAT), GlassesLabView (IOS-02 spike)
-    UI/           RecipeListView, CookView, SettingsView, DoneView
+    Chef/         ChefRecorder (DAT/phone → MP4 + step marks), ChefUploader (TUS / PUT)   (IOS-08)
+    UI/           ModePickerView, RecipeListView, CookView, ChefRecordView, SettingsView, DoneView
     Resources/    Fixtures/sushi_recipe.json (copy of ai/fixtures), assets, chime
   GhostChefTests/
   README.md  STATUS.md  tasks/
@@ -99,9 +100,10 @@ One Claude session per batch. Kickoff prompt: [../docs/PLAN.md §7](../docs/PLAN
 | 04 | [Proactive watcher](tasks/04-proactive-watcher.md) | G2 | 03 | Try it on real rice |
 | 05 | [Gemini Live voice](tasks/05-gemini-live-voice.md) | G3 | 03; BE-05; AI-05 protocol notes | Talk to it |
 | 06 | [Glasses integration](tasks/06-glasses-integration.md) | G3 | 02 result, 03 (04 if done); glasses in hand | Wear them |
-| 07 | [Resilience and demo mode](tasks/07-resilience-and-demo-mode.md) | G4 | 03–06 | Run the recovery tests, rehearse |
+| 07 | [Resilience and demo mode](tasks/07-resilience-and-demo-mode.md) | G4 | 03–06, 08 | Run the recovery tests, rehearse |
+| 08 | [Chef mode recording](tasks/08-chef-mode-recording.md) | G3 | 01, 02 (proof h); BE-01 to build, BE-06 for real ingestion; glasses for the real take | Record the real take wearing the glasses |
 
-**Order is flexible after 04:** if glasses are in hand, do 06 before 05. The Meta challenge is the main one; a working loop on the glasses outranks voice.
+**Order is flexible after 04:** if glasses are in hand, do 06 before 05. The Meta challenge is the main one; a working loop on the glasses outranks voice. Run 08 before 07, once 06 has the glasses stream working; it can start earlier on the phone camera. The real chef take (IOS-08.5) can become the demo recipe's source footage, so agree its timing with the AI owner.
 
 **IOS-02 runs as early as hardware allows**, in parallel with 03 if a second person can sit at the Mac. Its result decides the display and input mapping for 06.
 

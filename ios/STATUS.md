@@ -13,6 +13,7 @@
 | 05 | Gemini Live voice | NOT STARTED | | |
 | 06 | Glasses integration | NOT STARTED | | |
 | 07 | Resilience and demo mode | NOT STARTED | | |
+| 08 | Chef mode recording | NOT STARTED | | |
 
 Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (defined in docs/PLAN.md §8).
 
@@ -50,6 +51,7 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 | e | An input from the wearer reaches the app (which kinds?) | NOT TESTED | NOT TESTED | |
 | f | Phone audio in/out routes through the glasses while streaming video | NOT TESTED | NOT TESTED | |
 | g | Measured: stream resolution, frames per second, time from request to JPEG | NOT TESTED | NOT TESTED | |
+| h | 60 s of camera stream + mic recorded to an MP4 on the phone; plays back with sound in sync | NOT TESTED | NOT TESTED | |
 
 Looking down at a board: is the work in frame? —
 
@@ -61,6 +63,7 @@ Looking down at a board: is the work in frame? —
 | Input mapping for check / next / back / show me | — | |
 | Audio route for results and voice | — | |
 | Frame capture method and size for `/check` and `/watch` | — | |
+| Chef mode: step-mark input and recording mic | — | |
 
 ## Recovery tests (IOS-07)
 
@@ -82,6 +85,12 @@ Looking down at a board: is the work in frame? —
 | Date | Glasses | What ran (check / watcher / voice / display) | Result | Recorded? |
 |---|---|---|---|---|
 | — | — | — | — | — |
+
+## Chef mode takes (IOS-08)
+
+| Date | Glasses / firmware | Source (glasses / phone) | Duration | Size | Resolution, fps | Marks | Upload (TUS / PUT), time | Reached `review`? |
+|---|---|---|---|---|---|---|---|---|
+| — | — | — | — | — | — | — | — | — |
 
 ## Needs from other tracks
 

@@ -57,6 +57,7 @@ A SwiftUI app that builds from a generated Xcode project, decodes every contract
 
 **Do** — `GhostChef/Networking/`:
 - `protocol GhostChefAPI` with async methods: `health()`, `recipes(status:)`, `recipe(id:)`, `createSession(recipeID:deviceLabel:)`, `postEvent(sessionID:kind:stepID:requestID:payload:)`, `session(id:)`, `check(frame:stepID:requestID:sessionID:capturedAt:)`, `watch(frame:stepID:requestID:sessionID:capturedAt:)`, `liveToken(recipeID:sessionID:)`.
+- Chef-mode calls (`createRecipe`, `processRecipe`, the signed-URL upload) come in IOS-08; leave room for them in the protocol.
 - `APIClient: GhostChefAPI` on `URLSession`: adds `X-Demo-Key`; JSON and multipart bodies (`frame` part as `image/jpeg`, filename `frame.jpg`); request timeouts **10 s for check, 4 s for watch**, 10 s otherwise; decodes the error envelope into `APIError(status:code:message:retryable:)`; maps transport failures to `APIError.network`.
 - Base URL and key come from a `Settings` object (UserDefaults-backed, defaulting to the Info.plist values) and can change at runtime without restarting the app.
 - `MockAPI: GhostChefAPI` backed by the bundled fixture, with scriptable check and watch results, for previews and unit tests.
@@ -76,7 +77,7 @@ A SwiftUI app that builds from a generated Xcode project, decodes every contract
 ### IOS-01.6 App shell
 
 **Do** — `GhostChef/UI/`:
-- `RecipeListView`: loads `recipes(status: "published")`, shows title, chef, step count; pull to refresh; error and empty states. Tapping a recipe opens a placeholder `CookView` that just shows the first step's title and reference image.
+- `RecipeListView` (the Cook-mode recipe library; every published recipe is visible, no accounts): loads `recipes(status: "published")`, shows title, chef, step count; pull to refresh; error and empty states. Tapping a recipe opens a placeholder `CookView` that just shows the first step's title and reference image.
 - `SettingsView`: base URL, demo key (secure field), frame source picker (only "iPhone camera" for now), watch threshold (default 0.7), a **Health panel** showing `/health` (`ai_mode`, `storage`, `contract_version`) with a coloured warning when `ai_mode` is `fake`, and the "Grab frame" debug tool.
 - `AppEnvironment`: creates and holds `Settings`, `APIClient`, and the active `FrameSource`; injected through the SwiftUI environment.
 

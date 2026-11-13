@@ -88,8 +88,9 @@ The cook-along from IOS-03 runs on the glasses: frames come from the glasses' ca
 
 ### IOS-06.8 Nice-to-have, only if everything above is solid
 
-- "Show me": play the step's `clip_url` with the display's video component, or show the reference still full-size.
-- Chef recording through the glasses inside the app.
+- "Show me": play the step's prefetched clip with the display's video component, or show the reference still full-size.
+
+Chef recording through the glasses is no longer a nice-to-have: it is its own batch, [IOS-08](08-chef-mode-recording.md).
 
 ## Verification
 

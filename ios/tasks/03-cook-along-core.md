@@ -58,7 +58,7 @@ State: recipe, current step index, `lens: LensScreen`, session id, the latest ch
 
 | When | Input / event | Then |
 |---|---|---|
-| start(recipe) | — | Download and cache all reference images; `POST /sessions`; lens = `.step(1)`; speak the step (short form) |
+| start(recipe) | — | Download and cache **every** reference image and clip (IOS-03.5) before the first card; `POST /sessions`; lens = `.step(1)`; speak the step (short form) |
 | `.step` | `primary` | lens = `.checking`; grab a frame (`maxLongEdge` 1280, quality 0.8); new `request_id`; `POST /check` |
 | `.checking` | `primary` again | Ignored (one check at a time) |
 | check result (not stale) `pass` | — | lens = `.pass`; chime; speak `spoken`; after **2 s** auto-advance (`via: auto`) |
@@ -107,9 +107,9 @@ Rules:
 
 ### IOS-03.5 Image cache and offline cards
 
-**Do** — `ImageCache`: on session start download every step's `ref_image_url` to disk (keyed by step id); the lens reads only from the cache. If a download fails the card shows without an image. Step cards, navigation, and `repeatInstruction` must work with the network off.
+**Do** — `ImageCache` (it also holds clips): when the cook picks a recipe, download every step's `ref_image_url` **and** `clip_url` to disk (keyed by step id) **before cooking starts**, with a progress bar ("Preparing 8 steps…"); the lens and "show me" read only from the cache. During cooking only `/check`, `/watch` and Gemini Live use the network, so step changes are instant on bad Wi-Fi. If a download fails after one retry, the card shows without that image or clip. Step cards, navigation, and `repeatInstruction` must work with the network off.
 
-**Acceptance:** start a session, turn on airplane mode, navigate all steps: images still show; a check shows "No connection".
+**Acceptance:** start a session, turn on airplane mode, navigate all steps: images still show and step changes are instant; a check shows "No connection".
 
 ### IOS-03.6 Done screen
 
