@@ -9,8 +9,8 @@
 | 01 | Skeleton and full API on memory + fake AI | DONE (fake) | 2026-11-14 | Every §2–§5 endpoint on the memory store + fake AI (AI-01 `815f2a2`). See below. |
 | 02 | Supabase schema, storage, seed | DONE (fake) | 2026-11-14 | `STORAGE=supabase` works: migration applied, `SupabaseStore`, `scripts/seed.py`, smoke exit 0 against Supabase. AI still fake. See BE-02 notes. |
 | 03 | Check and watch, production-grade | DONE | 2026-11-14 | Real Gemini through `/check` and `/watch` (AI-04 `429b19a`). JPEG validation + downscale, ref-image cache, budgets, `/watch` in-flight guard, background frame/event persistence, latest-frame route, JSON call logs. Real-photo verdicts were checked by reading them only: no labelled mistake frame exists yet (AI-03). See BE-03 notes. |
-| 04 | Deploy to Railway + emergency mode | DONE | 2026-11-14 / `b72ce2d` | Production runs on Railway with `gemini` + `supabase`; smoke against production passed. Emergency laptop mode is **NOT REHEARSED** on a hotspot. Automatic deploys are still on until the owner disables them. See BE-04 notes. |
-| 05 | Live token, monitor, session summary | PARTIAL | 2026-11-14 / `ab84dc8` | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) but **no real token yet**: AI-05 is not on `main`, so with real AI it returns 503. Pushed, not deployed yet (production deploys are manual). See BE-05 notes. |
+| 04 | Deploy to Railway + emergency mode | DONE | 2026-11-14 / `b72ce2d` | Production runs on Railway with `gemini` + `supabase`; smoke against production passed. Emergency laptop mode is **NOT REHEARSED** on a hotspot. Automatic deploys are off (owner). See BE-04 notes. |
+| 05 | Live token, monitor, session summary | PARTIAL | 2026-11-14 / `ab84dc8` | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) but **no real token yet**: AI-05 is not on `main`, so with real AI it returns 503. Deployed to production (`c151ee6`), production smoke exit 0 (with `--allow-live-errors`). See BE-05 notes. |
 | 06 | Ingestion pipeline with ffmpeg | NOT STARTED | | |
 | 07 | Hardening and end-to-end | NOT STARTED | | |
 
@@ -52,6 +52,7 @@ The demo key is shared privately, never written here.
 | 2026-11-14 | `scripts/emergency.sh` on this laptop, reached via its LAN address `http://192.168.1.244:8020` from the same laptop (gemini, memory), `--fast` | every check/watch 200; `/live-token` 503 as above | 1662 / 1748 (n=2) | 932 / 1065 (n=6) |
 | 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), default fixture frame `ai/fixtures/images/step-3.jpg`, `--watch-n 10` | every check/watch 200; only failure `/live-token` 503 (AI-05, see Needs) | 1217 / 1238 (n=2) | 712 / 868 (n=10) |
 | 2026-11-14 | `http://localhost:8000` (fake, memory), BE-05 smoke (question, monitor follows step change, `last_frame_url` → 200 `image/jpeg`, double `session_end`), `--fast`, run after the review fixes | exit 0, every status as expected | 750 / 750 (n=2) | 301 / 301 (n=6) |
+| 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), BE-05 code `c151ee6`, default fixture frame, `--watch-n 6 --fast --allow-live-errors` | exit 0. Every check/watch 200 (check `unsure` ×2, watch `ok` ×6). Monitor followed both step changes. `last_frame_url` → 200 `image/jpeg`. Repeated `session_end` returned the same id. Signed ref URLs 200. Only error: `/live-token` 503 `model_unavailable` (AI-05) | 1085 / 1287 (n=2) | 717 / 852 (n=6) |
 
 Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not Gemini.
 
@@ -206,7 +207,7 @@ Run in this session and seen:
     - Smoke: see the table above. The frame was the default fixture image, not a newly taken photo.
   - **The demo key** was generated in this session and is in `backend/.env` and the Railway variables. The owner shares it privately.
   - **Still open:**
-    - Automatic deploys from `main` are still on. The owner must click "Disable" (Settings → Source); the MCP has no switch for it.
+    - Automatic deploys from `main`: turned off by the owner (confirmed 2026-11-14).
     - Delete the unused `zestful-passion` project, if the owner agrees.
 - **BE-04.4 Emergency mode.** `scripts/emergency.sh` ran on this laptop: memory store, real Gemini, fixture seeded at startup, LAN address printed (container bridges filtered out). Smoke through the LAN address passed (table above). With no `GEMINI_API_KEY` anywhere it refuses to start (exit 1). `emergency.ps1` was written but **not run** (no Windows machine here).
   - Emergency laptop: **NOT REHEARSED**. No phone, no hotspot, and the app was not pointed at it.
@@ -265,16 +266,16 @@ Run in this session and seen:
 
 Not done / not verified:
 - **BE-05.5 not done.**
-  - Committed and pushed as `ab84dc8`, but not deployed. Production still runs the BE-04 code.
-  - The smoke against production was therefore **not run** for BE-05.
+  - **Deployed 2026-11-14** through the Railway MCP. The MCP cannot do "Deploy Latest Commit", so the service source was **pinned to commit `c151ee6`** (`connect-service-source` with `commitSha`). This built and deployed immediately (deployment `e3ab9008`). A probe confirmed the new code was live: a repeated `session_end` returned the same event id. `/health` → `gemini` / `supabase`.
+  - **Production smoke:** exit 0 (table above).
+  - **Monitor on production:** 60 calls from this laptop gave p50 99 ms, max 248 ms. That is the round trip to EU West plus one Supabase query. The ~50 ms target was for the memory store, where it is met locally.
+  - **Pinned source:** the service now follows commit `c151ee6`, not the `main` branch. To release later, pin the new commit the same way, or reconnect the source to `main` in the dashboard and then use Deploy Latest Commit. Pushes to `main` do not deploy either way (automatic deploys are off, done by the owner earlier).
   - The iOS and web owners have **not** been told yet.
 - `STORAGE=supabase` was not run in this batch. The store code is unchanged; only router logic changed.
 
 To finish BE-05 (owner):
-1. Commit `[backend] BE-05 live token, monitor, summary` and push.
-2. Railway → Deploy Latest Commit.
-3. Run `python scripts/smoke.py --base https://statai-production.up.railway.app --key <demo key> --frame <real frame> --allow-live-errors`. Drop the flag once AI-05 is on `main` and deployed, and record `model` / `locked`.
-4. Tell web (WEB-03) that the monitor feed is complete. Tell iOS (IOS-05) that `/live-token` is wired, but the real token waits on AI-05.
+1. When AI-05 is on `main`: deploy it and run the production smoke **without** `--allow-live-errors`. Record `model` / `locked`.
+2. Tell web (WEB-03) that the monitor feed is complete. Tell iOS (IOS-05) that `/live-token` is wired, but the real token waits on AI-05.
 
 ## Needs from other tracks
 
