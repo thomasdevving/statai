@@ -66,7 +66,7 @@ Called by the iOS app in **Chef mode** when recording stops, and by the review w
 
 Request (JSON):
 ```json
-{ "title": "Maki roll", "chef_name": "…", "step_marks_s": [12.4, 58.0, 101.7], "consent": true }
+{ "title": "Ham and cheese sandwich", "chef_name": "…", "step_marks_s": [12.4, 58.0, 101.7], "consent": true }
 ```
 
 | Field | Rule |
@@ -114,7 +114,7 @@ A recipe left in `uploading` for more than 2 hours is set to `failed` with error
 `status` filter is optional (`uploading | processing | review | published | failed`). Without it, returns all. Cook mode's recipe library calls it with `status=published`. For the hackathon every published recipe is visible to every client; there are no accounts.
 
 ```json
-{ "recipes": [ { "id": "uuid", "title": "Maki roll", "chef_name": "…", "status": "published", "step_count": 8, "created_at": "…" } ] }
+{ "recipes": [ { "id": "uuid", "title": "Ham and cheese sandwich", "chef_name": "…", "status": "published", "step_count": 6, "created_at": "…" } ] }
 ```
 
 ### `GET /recipes/{id}`
@@ -122,7 +122,7 @@ A recipe left in `uploading` for more than 2 hours is set to `failed` with error
 ```json
 {
   "id": "uuid",
-  "title": "Maki roll",
+  "title": "Ham and cheese sandwich",
   "chef_name": "…",
   "status": "published",
   "error": null,
@@ -142,22 +142,22 @@ A recipe left in `uploading` for more than 2 hours is set to `failed` with error
 {
   "id": "uuid",
   "recipe_id": "uuid",
-  "idx": 3,
-  "title": "Spread rice",
-  "key_line": "Thin layer, leave 2cm top",
+  "idx": 4,
+  "title": "Add fillings",
+  "key_line": "One even layer, edge to edge",
   "instruction": "Full instruction, spoken on request.",
   "chef_quote": "Verbatim sentence from the chef's narration, or null",
   "timestamp_s": 74.5,
   "clip_start_s": 72.0,
   "clip_end_s": 76.5,
-  "success_criteria": ["Rice layer is thin enough to see nori through it in places", "…"],
+  "success_criteria": ["Ham and cheese cover the slice in one even layer, reaching the edges", "…"],
   "watch_fors": [
     {
-      "id": "rice_too_thick",
-      "mistake": "Rice layer is thick and covers the whole sheet",
-      "headline": "Too much rice",
-      "fix": "Spread thinner, 2cm nori free",
-      "spoken": "There's a bit too much rice — spread it thinner and leave two centimetres of nori at the top."
+      "id": "filling_piled_center",
+      "mistake": "Filling is piled in the middle, bare bread around it",
+      "headline": "Filling piled up",
+      "fix": "Spread it to the edges",
+      "spoken": "The filling is all in the middle — spread it out so it reaches the edges of the bread."
     }
   ],
   "ref_image_url": "https://…signed | null",
@@ -236,7 +236,7 @@ Body: any of `title`, `key_line`, `instruction`, `success_criteria`, `watch_fors
 | `confidence` | 0.0–1.0, the model's confidence in the verdict |
 | `latency_ms` | Server-measured, model call included |
 
-`unsure` means the model cannot judge from this frame (food out of frame, blur, occlusion, criteria not visible). `headline` is then something like `"Can't tell"` and `fix` tells the wearer how to give a better view, e.g. `"Look straight down at mat"`. `unsure` is a deliberate outcome, not an error.
+`unsure` means the model cannot judge from this frame (food out of frame, blur, occlusion, criteria not visible). `headline` is then something like `"Can't tell"` and `fix` tells the wearer how to give a better view, e.g. `"Look straight down at board"`. `unsure` is a deliberate outcome, not an error.
 
 Server budget: 8 s, then `504 model_timeout`.
 
@@ -341,7 +341,7 @@ One cheap call the demo monitor polls every second.
 ```json
 {
   "session": { "id": "uuid", "client": "ios", "device_label": "…", "started_at": "…", "finished_at": null },
-  "recipe_title": "Maki roll",
+  "recipe_title": "Ham and cheese sandwich",
   "current_step": { "…": "a full Step object" },
   "last_frame_url": "https://…signed | null",
   "last_frame_at": "…",
@@ -387,7 +387,7 @@ One cheap call the demo monitor polls every second.
 On every step change the client sends one text message into the Live session, exactly in this form. The system instruction tells the model not to answer it:
 
 ```
-[CONTEXT] Cook is now on step 3 of 8: "Spread rice". Do not reply to this message.
+[CONTEXT] Cook is now on step 4 of 6: "Add fillings". Do not reply to this message.
 ```
 
 ### 5.2 Voice commands as function calls
@@ -397,7 +397,7 @@ The Live config declares these functions. The client executes them through the s
 | Function | Arguments | Client action | Tool response |
 |---|---|---|---|
 | `check_my_work` | none | Runs the `/check` flow | `{ "status": "done", "note": "The app has shown and spoken the result. Say nothing more." }` |
-| `next_step` | none | Advances one step | `{ "status": "done", "now_on": "4 of 8: Roll" }` |
+| `next_step` | none | Advances one step | `{ "status": "done", "now_on": "5 of 6: Close" }` |
 | `previous_step` | none | Goes back one step | Same shape as `next_step` |
 | `show_me` | none | Plays the chef clip (or shows the reference still) | `{ "status": "done" }` |
 | `repeat_instruction` | none | None | `{ "instruction": "<full instruction text>" }` — the model reads it out |
@@ -580,7 +580,7 @@ Rules:
 
 ## 8. Fixture recipe
 
-`ai/fixtures/sushi_recipe.json` is a `RecipeDraft` (same schema as §7). Next to it, `ai/fixtures/images/step-<idx>.jpg` holds one reference still per step.
+`ai/fixtures/sushi_recipe.json` is a `RecipeDraft` (same schema as §7). Since D-19 it holds the sandwich lesson; the file name is historical and kept so no code path changes. Next to it, `ai/fixtures/images/step-<idx>.jpg` holds one reference still per step.
 
 - First version: hand-written by the `ai/` track with placeholder images, available from the first hour so nobody is blocked.
 - Later versions: replaced by real ingestion output from the team's own chef footage. The file path and schema do not change.
@@ -600,6 +600,7 @@ Rules:
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-11-13 | Initial contract derived from TECH-SPEC.md. |
+| 2.0 (no change) | 2026-11-14 | **Examples only, no interface change:** the JSON examples now use the sandwich lesson (D-19) instead of the maki roll; the fixture path is unchanged. |
 | 2.0 | 2026-11-14 | **Breaking**, following the TECH-SPEC update (iOS Chef mode + review-only web page). `POST /recipes` becomes JSON and returns a signed Storage upload URL instead of taking a multipart video; new `POST /recipes/{id}/process`; new status `uploading`; new `step_marks_s` (request, recipe response, `recipes` column, `extract_recipe` argument); new error `409 upload_missing`; Cook mode prefetches clips as well as images. Requested by the team. |
 
 ---
