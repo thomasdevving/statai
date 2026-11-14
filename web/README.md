@@ -48,7 +48,7 @@ web/
     ui.css                shared page styling
   sim/       index.html  sim.js
   review/    index.html  review.js
-  monitor/   index.html  monitor.js
+  monitor/   index.html  monitor.js  monitor.css  state.js  polling.js
   tests/     debounce.test.mjs
   pitch/     one-liners.md  deck-outline.md  evidence.md  qa.md  user-notes.md  run-sheet.md  architecture.svg  deck.pdf
   README.md  STATUS.md  tasks/
@@ -84,3 +84,11 @@ One Claude session per batch. Kickoff prompt: [../docs/PLAN.md §7](../docs/PLAN
 - Submitting forms, publishing videos, and messaging organizers or partners are done by **you, the human owner**. Claude drafts; you send.
 - Do not edit other tracks' folders. API problems go in [STATUS.md](STATUS.md) → "Needs from other tracks" and to the backend owner.
 - The demo key is typed into Settings and kept in the browser's localStorage. It is never written into a file in this folder.
+
+## Running the demo monitor
+
+Open `/monitor/` (standalone server) or `/app/monitor/` (backend server). Enter the API base URL and demo key in Settings. The monitor automatically follows the newest active simulator/iOS session. Choose a session in the picker to pin it, or use `?session=<id>`. `?clean=1` hides the metrics panel.
+
+Keyboard: **F** document fullscreen (if allowed), **B** choose a local backup recording, **S** focus session picker, **H** toggle details. Backup files stay on the device and are permanently marked REPLAY; fake-AI mode is always labelled. Start a new simulator session to demonstrate automatic reattachment.
+
+Verification: `node --test "web/tests/*.test.mjs"`. Hardware and three-metre checks still pending are recorded in `STATUS.md`.

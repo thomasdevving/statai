@@ -77,7 +77,7 @@ function settingsDialog() {
   };
 }
 
-function statusStrip(openSettings) {
+function statusStrip(openSettings, shouldPoll) {
   const strip = document.createElement("footer");
   strip.className = "status-strip";
   strip.setAttribute("aria-live", "polite");
@@ -113,6 +113,7 @@ function statusStrip(openSettings) {
   }
 
   async function poll() {
+    if (!shouldPoll()) return;
     let h;
     try {
       h = await health();
@@ -147,9 +148,9 @@ function statusStrip(openSettings) {
 }
 
 /** Wire the gear button (any element with [data-open-settings]) and the footer strip. */
-export function mountChrome() {
+export function mountChrome({ shouldPoll = () => true } = {}) {
   const settings = settingsDialog();
   document.querySelectorAll("[data-open-settings]").forEach((b) => b.addEventListener("click", () => settings.open()));
-  const status = statusStrip(() => settings.open());
+  const status = statusStrip(() => settings.open(), shouldPoll);
   return { settings, status };
 }

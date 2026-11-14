@@ -24,7 +24,7 @@ export function mountHero() {
 
   // Clockwise corners on the flat lens plane, not the curved frame outline.
   // Keep opposite edges nearly parallel instead of tapering the card to the rim.
-  const lensCorners = [[565, 280], [725, 263], [733, 366], [576, 383]];
+  const lensCorners = [[561, 286], [728, 251], [741, 352], [581, 386]];
   function alignCard() {
     if (!image.naturalWidth || !card.offsetWidth || !card.offsetHeight) return;
     const scale = image.offsetWidth / image.naturalWidth;

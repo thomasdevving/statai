@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | 01 | Foundation and simulator | PARTIAL | 2026-11-14 | 01.1–01.5 pass against BE-01 in **fake mode** (memory store, `ai_mode: fake`). 01.6 first real loop not run: needs the backend on real Gemini (BE-03.1). Webcam path built but not yet tried by a person with a real camera. Details below. |
 | 02 | Review page | NOT STARTED | | |
-| 03 | Demo monitor | NOT STARTED | | |
+| 03 | Demo monitor | PARTIAL | 2026-11-14 | WEB-03.1–03.5 implemented; 23 web tests pass; local fake-AI/memory browser verification below. WEB-03.6 needs a real iOS session; three-metre readability and physical wake-lock behaviour need a human. |
 | 04 | User evidence and pitch pack | NOT STARTED | | |
 | 05 | Demo ops and submission | PARTIAL | 2026-11-14 | 05.4 run sheet drafted (`pitch/run-sheet.md`, unknowns marked ⟨fill⟩, not yet used by a teammate). 05.6 secret scan and image check done (below); README and LICENSE not touched (need owners' agreement and Q-08d). Submission text drafted in `pitch/submission-draft.md`. 05.1, 05.2, 05.3, 05.5, 05.7, 05.8 need a human. |
 
@@ -42,9 +42,25 @@ Not verified: webcam capture with a real camera and a person; speech output by e
 
 User-requested Meta-inspired visual treatment implemented within `web/`: glass panels, white text and Manrope. The final hero copy is “Cook from the chef’s point of view.” A generated blue titanium material is confined to the hero; shared page backgrounds and tool cards keep their earlier styling.
 
-The final transparent PNG is an image-tool cutout of the user-identified floating-glasses photo, flipped horizontally toward the left-hand headline. The original crossed open temples are retained, with readable Ray-Ban lettering on the viewer-left lens. The final user-requested correction removes the band and centers the larger glasses, retaining cool blue-silver reflections. The generated sushi-rice thumbnail appears in a glowing illustrative card projected to four points on the flat lens plane, with nearly parallel edges rather than an exaggerated taper to the rim; a resize observer keeps it aligned. No person, product blending or duplicate frame layer is used. The simulator's actual lens renderer retains its black display background and status colours.
+The final transparent PNG is an image-tool cutout of the user-identified floating-glasses photo, flipped horizontally toward the left-hand headline. The original crossed open temples are retained, with readable Ray-Ban lettering on the viewer-left lens. The final user-requested correction removes the band and shifts the larger glasses left toward the hero centre, retaining cool blue-silver reflections. The recipe preview follows the sandwich fixture’s step 4, “Add fillings,” with a clearer tilt and restrained skew. A trial quality rerender did not increase resolution and reduced lens clarity, so the clearer existing cutout was retained. A generated sandwich-filling thumbnail appears in a glowing illustrative card projected to four points on the flat lens plane, with nearly parallel edges rather than an exaggerated taper to the rim; a resize observer keeps it aligned. No person, product blending or duplicate frame layer is used. The simulator's actual lens renderer retains its black display background and status colours.
 
-Observed in shared Chromium during the visual refresh: desktop home and simulator render; simulator links navigate; settings opens and closes; a narrow viewport stacks the hero and cards and keeps the simulator header and camera controls within the screen. Review and Monitor remain labelled Coming soon. Backend is not running in this environment: the existing API unreachable state remains visible. The final projected card was checked at desktop and narrow phone-sized widths. A numerical check confirms that the projective matrix maps all four card corners to the intended lens quadrilateral, including an affine rectangle case. The static server responds HTTP 200 at localhost:5173 in the cloud workspace. No cooking-session or real-camera verification was performed for this visual-only change.
+Observed in shared Chromium during the visual refresh: desktop home and simulator render; simulator links navigate; settings opens and closes; a narrow viewport stacks the hero and cards and keeps the simulator header and camera controls within the screen. Review remains labelled Coming soon; Monitor is linked after WEB-03 implementation. Backend is not running in this environment: the existing API unreachable state remains visible. The final projected card was checked at desktop and narrow phone-sized widths. A numerical check confirms that the projective matrix maps all four card corners to the intended lens quadrilateral, including an affine rectangle case. The static server responds HTTP 200 at localhost:5173 in the cloud workspace. No cooking-session or real-camera verification was performed for this visual-only change.
+
+## WEB-03 verification (2026-11-14, fake mode)
+
+Implemented `monitor/` using the existing session/monitor API, shared settings, shared lens renderer and status strip. One-second feed polling never overlaps; discovery checks every five seconds, follows new sessions, respects a picker or URL pin, and pauses while hidden or playing backup video. Last good data stays visible on connection loss. The actual lens panel remains black and is explicitly labelled as a reconstruction. Frame URLs are changed only when `last_frame_at` changes, preserving signed query parameters.
+
+The local backend ran on port 8100 with `GHOSTCHEF_AI_FAKE=1`, `STORAGE=memory`, isolated data under `/tmp`, and the sandwich fixture. No Gemini, production database or physical glasses were used.
+
+- `node --test "web/tests/*.test.mjs"`: **23/23 pass**. Covers reconstruction precedence and expiration, stale-step results, LIVE/IDLE/OFFLINE/REPLAY boundaries, signed frame URL handling, session switching/pinning, no overlapping slow polls, and hidden/replay pause behaviour.
+- Shared Chromium: started the sandwich recipe in the simulator in another tab; the monitor attached automatically. Restarted the simulator and selected the recipe again; the monitor moved to the new session and cleared old frames/events.
+- Local API-driven watcher/check requests on the simulator session: `ok` watcher results, a `Filling piled up` warning, check fix, and check pass appeared in the feed/timeline. The warning/reference/fix lens reconstruction and portrait frames rendered correctly. The transient three-second pass window is covered by the unit tests; no screenshot timing measurement is claimed.
+- Stopped the local backend: the badge became OFFLINE, retaining the reference, wearer frame, lens card, timeline and metrics. Restarted the backend and simulator, then confirmed fresh attachment.
+- Backup playback: selected a local synthetic four-second MP4; the persistent `REPLAY — recorded …` badge stayed visible through playback and at the end, with the fake-AI banner retained. Native video-only fullscreen is removed in favour of document fullscreen controls so labels stay in the page.
+- Desktop/laptop view fits one screen; portrait media is uncropped on black. `?clean=1` and H hide/show details; B opens backup. Fullscreen request is wired to F but was not observed entering fullscreen in the managed browser. Wake Lock is optional and denial is handled; actual sleep prevention is not verified.
+- Homepage Monitor card now opens the monitor. Simulator recipe buttons wrap the longer sandwich title.
+
+Pending: actual iOS/glasses session (WEB-03.6), observed end-to-end delay on hardware, comparison with the iPhone lens preview, readability from three metres, Safari, and real camera use. Batch remains PARTIAL until those acceptance checks are run.
 
 ## Submission
 
@@ -111,4 +127,4 @@ Backup recording: none yet.
 
 ## Needs from other tracks
 
-- —
+- WEB-03.6: iOS owner to run one real session while the monitor is attached; compare the reconstructed lens to the phone preview and record observed delay/mismatches. A human should also check the monitor from three metres away.

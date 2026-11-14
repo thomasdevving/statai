@@ -384,3 +384,7 @@
   .panel-head h2 { font-size: 17px; }
   .segmented button { padding-inline: 10px; font-size: 13px; }
 }
+
+/* The sandwich lesson title wraps inside the picker at laptop widths. */
+.picker-list .btn { white-space: normal; gap: 12px; }
+.picker-list .btn small { flex: none; }

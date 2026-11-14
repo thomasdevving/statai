@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#06162c">
+<title>Echo · Demo monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/ui.css">
+<link rel="stylesheet" href="../shared/lens.css">
+<link rel="stylesheet" href="monitor.css">
+</head>
+<body class="monitor-page">
+<div class="fake-banner" id="fake-banner" role="status" hidden>FAKE AI — development mode</div>
+<header class="monitor-header">
+  <a class="brand" href="../"><span class="brand-mark" aria-hidden="true"></span>Echo <span class="brand-page">Monitor</span></a>
+  <div class="session-heading"><h1 id="recipe-title">Waiting for a session</h1><p id="step-title">Start a cook-along in the simulator or iOS app.</p></div>
+  <div class="monitor-actions">
+    <span class="connection-badge" id="connection" data-state="waiting" role="status">WAITING</span>
+    <button class="btn btn-icon btn-ghost" id="fullscreen" aria-label="Full screen (F)" title="Full screen · F">⛶</button>
+    <button class="btn btn-icon btn-ghost" data-open-settings aria-label="Settings"></button>
+  </div>
+</header>
+<div class="operator-bar">
+  <label for="session-picker">Session <kbd>S</kbd></label>
+  <select class="input" id="session-picker"><option value="">Auto · newest active session</option></select>
+  <span class="connection-note" id="connection-note" role="status">Looking for an active session…</span>
+  <button class="btn btn-ghost" id="backup-open">Backup <kbd>B</kbd></button>
+  <button class="btn btn-ghost" id="details-toggle" aria-pressed="false">Hide details <kbd>H</kbd></button>
+</div>
+<main class="monitor">
+  <section class="views" aria-label="Session views">
+    <article class="feed-panel">
+      <header><h2>Chef’s reference</h2><span id="ref-step">Current step</span></header>
+      <div class="feed-image"><img id="reference-image" alt="Chef’s reference for the current step" hidden><p class="image-empty" id="reference-empty">The chef’s reference will appear here.</p></div>
+      <p class="reference-line" id="reference-line">Follow the chef’s method.</p>
+    </article>
+    <article class="feed-panel">
+      <header><h2>Wearer’s view</h2><span id="frame-age">No frame yet</span></header>
+      <div class="feed-image"><img id="wearer-image" alt="Latest frame from the wearer’s camera" hidden><p class="image-empty" id="wearer-empty">Waiting for the wearer’s first check or watcher frame.</p></div>
+      <p class="reference-line" id="watch-ticker">Waiting for watcher results.</p>
+    </article>
+    <article class="feed-panel lens-panel">
+      <header><h2>In the lens</h2><span>Reconstructed</span></header>
+      <div class="lens-space"><div id="monitor-lens"></div></div>
+      <p class="reconstruction-note">Reconstructed from session events · not a screen capture</p>
+    </article>
+  </section>
+  <section class="lower" id="lower" aria-label="Activity and session details">
+    <article class="timeline-panel">
+      <header><h2>Timeline</h2><span>Newest first · Helsinki time</span></header>
+      <ol id="timeline" class="event-list" tabindex="0" aria-label="Session events"><li class="timeline-empty">Session events will appear here.</li></ol>
+    </article>
+    <aside class="details-panel" id="details" aria-label="Session details">
+      <div class="latency-row"><div><span>Check · p50 / max</span><strong id="check-latency">— / —</strong><small id="check-count">0 checks</small></div><div><span>Watch · p50 / max</span><strong id="watch-latency">— / —</strong><small id="watch-count">0 watches</small></div></div>
+      <dl class="device-facts"><div><dt>Device</dt><dd id="device-label">—</dd></div><div><dt>Client</dt><dd id="client-label">—</dd></div><div><dt>AI / storage</dt><dd id="ai-storage">Checking…</dd></div></dl>
+    </aside>
+  </section>
+</main>
+<dialog class="backup-dialog settings-dialog" id="backup-dialog" aria-labelledby="backup-title">
+  <form method="dialog" id="backup-form">
+    <header><h2 id="backup-title">Play a backup recording</h2><button class="btn btn-icon btn-ghost" value="cancel" formnovalidate aria-label="Close backup">×</button></header>
+    <p>Choose a video from this computer. It stays on this device and is always labelled REPLAY.</p>
+    <div class="field"><label for="backup-file">Video file</label><input class="input" type="file" id="backup-file" accept="video/*" required></div>
+    <div class="field"><label for="backup-label">Recording label</label><input class="input" id="backup-label" maxlength="100" placeholder="Saturday rehearsal, 10:30" required></div>
+    <p class="backup-error" id="backup-error" role="status"></p>
+    <div class="settings-actions"><button class="btn btn-ghost" value="cancel" formnovalidate>Cancel</button><button class="btn btn-primary" value="play">Play recording</button></div>
+  </form>
+</dialog>
+<section class="replay" id="replay" aria-label="Backup recording" hidden>
+  <video id="backup-video" playsinline disablepictureinpicture></video>
+  <div class="replay-controls">
+    <button class="btn btn-light" id="backup-toggle" type="button">Pause</button>
+    <label class="visually-hidden" for="backup-seek">Seek recording</label><input id="backup-seek" type="range" min="0" max="100" step="0.1" value="0">
+    <span id="backup-time">0:00 / 0:00</span><button class="btn btn-ghost" id="backup-fullscreen" type="button">Full screen <kbd>F</kbd></button>
+  </div>
+  <div class="replay-heading"><span class="replay-badge" id="replay-label">REPLAY — recorded backup</span><button class="btn btn-light" id="backup-close">Return to monitor</button></div>
+  <p class="replay-message" id="replay-message" role="status"></p>
+</section>
+<script type="module" src="monitor.js"></script>
+</body>
+</html>

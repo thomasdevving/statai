@@ -19,7 +19,7 @@
 .hero-note .icon { width: 14px; height: 14px; }
 .hero-visual { min-width: 0; margin: 0 calc(-1 * clamp(24px, 5vw, 80px)) 0 -28px; }
 .product-stage { position: relative; width: 100%; aspect-ratio: 1.5; }
-.hero-glasses { width: 200%; max-width: none; height: auto; position: absolute; left: -51.4%; top: -12.75%; }
+.hero-glasses { width: 200%; max-width: none; height: auto; position: absolute; left: -58%; top: -12.75%; }
 .recipe-preview { position: absolute; left: 15%; top: 24.5%; width: 23%; transform: perspective(550px) rotateY(22deg) rotateZ(-9deg) skewY(-3deg); transform-origin: center; display: flex; align-items: stretch; gap: 5px; padding: 6px; border-radius: 8px; border: 1px solid #dcefffba; background: linear-gradient(135deg, #8588d495, #397caf8c); box-shadow: 0 0 16px #9be6ff66, 0 0 38px #69bbff45, 0 0 66px #b69cff22, inset 0 1px #ffffff88; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff; container-type: inline-size; }
 .recipe-preview::after { content: ""; position: absolute; top: calc(100% + 6px); left: calc(50% - 7px); width: 14px; height: 14px; border: 2px solid #a1e9ff; border-bottom-color: #c9a9ff; border-right-color: #b5bcff; border-radius: 50%; box-shadow: 0 0 12px #9be6ff99, 0 0 24px #b49eff55; }
 .recipe-preview > img { width: 29%; object-fit: cover; border-radius: 5px; }
