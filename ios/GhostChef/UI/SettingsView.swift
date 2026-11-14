@@ -92,30 +92,7 @@ struct SettingsView: View {
                     Text("Device checks for the Meta glasses, with simulated glasses for testing without hardware.")
                 }
 
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        LabeledContent("Alert confidence") {
-                            Text(settings.watchThreshold, format: .number.precision(.fractionLength(2)))
-                                .monospacedDigit()
-                        }
-                        Slider(value: $settings.watchThreshold, in: 0.5...0.95, step: 0.05) {
-                            Text("Alert confidence")
-                        } minimumValueLabel: {
-                            Text("0.5")
-                        } maximumValueLabel: {
-                            Text("0.95")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-                    if settings.watchThreshold != Settings.defaultWatchThreshold {
-                        Button("Reset to 0.70") { settings.watchThreshold = Settings.defaultWatchThreshold }
-                    }
-                } header: {
-                    Text("Watcher")
-                } footer: {
-                    Text("A mistake is shown only after two checks in a row agree at this confidence or higher.")
-                }
+                WatcherSettingsSection()
 
                 Section("About") {
                     LabeledContent("App version", value: Bundle.main.versionString)

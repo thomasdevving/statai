@@ -11,7 +11,8 @@ struct ImageRef: Equatable, Hashable, Sendable {
     let fileURL: URL
 }
 
-/// The "● watching" dot. The watcher itself arrives in IOS-04; until then it is `.off`.
+/// The "● watching" dot (IOS-04): green while the watcher sends, grey when paused or offline,
+/// hidden when the step has no `watch_fors` or the watcher is switched off.
 enum WatchIndicator: String, Equatable, Sendable {
     case active, paused, offline, off
 }
@@ -31,6 +32,10 @@ struct StepCard: Equatable, Sendable {
 
     /// "3/8": the step counter as the display spec writes it.
     var counter: String { "\(idx)/\(total)" }
+
+    func with(watching: WatchIndicator) -> StepCard {
+        StepCard(idx: idx, total: total, title: title, keyLine: keyLine, refImage: refImage, watching: watching)
+    }
 }
 
 enum LensScreen: Equatable, Sendable {

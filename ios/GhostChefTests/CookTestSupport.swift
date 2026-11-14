@@ -13,12 +13,15 @@ final class TestClock: CookClock, @unchecked Sendable {
     }
 
     private let lock = NSLock()
-    private var now: Duration = .zero
+    private var elapsed: Duration = .zero
+    /// What `now` reads at `elapsed == 0`.
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
     private var sleepers: [Sleeper] = []
     private var cancelled: Set<Int> = []
     private var nextID = 0
 
     var pendingCount: Int { lock.withLock { sleepers.count } }
+    var now: Date { start.addingTimeInterval(lock.withLock { elapsed }.timeInterval) }
 
     func sleep(for duration: Duration) async throws {
         let id = lock.withLock {
@@ -29,7 +32,7 @@ final class TestClock: CookClock, @unchecked Sendable {
             try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, any Error>) in
                 let alreadyCancelled = lock.withLock {
                     if cancelled.contains(id) { return true }
-                    sleepers.append(Sleeper(id: id, deadline: now + duration, continuation: cont))
+                    sleepers.append(Sleeper(id: id, deadline: elapsed + duration, continuation: cont))
                     return false
                 }
                 if alreadyCancelled { cont.resume(throwing: CancellationError()) }
@@ -46,9 +49,9 @@ final class TestClock: CookClock, @unchecked Sendable {
 
     func advance(by duration: Duration) {
         let due = lock.withLock {
-            now += duration
-            let due = sleepers.filter { $0.deadline <= now }
-            sleepers.removeAll { $0.deadline <= now }
+            elapsed += duration
+            let due = sleepers.filter { $0.deadline <= elapsed }
+            sleepers.removeAll { $0.deadline <= elapsed }
             return due
         }
         due.forEach { $0.continuation.resume() }

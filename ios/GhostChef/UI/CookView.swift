@@ -6,8 +6,17 @@ struct CookView: View {
     let summary: RecipeSummary
 
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.scenePhase) private var scenePhase
     @State private var session: CookSession?
     @State private var cameraError: String?
+    /// Debug builds accept `-openWatcher` to open the watcher sheet, for readout screenshots.
+    @State private var showingWatcher = {
+        #if DEBUG
+            ProcessInfo.processInfo.arguments.contains("-openWatcher")
+        #else
+            false
+        #endif
+    }()
 
     var body: some View {
         Group {
@@ -21,6 +30,22 @@ struct CookView: View {
         }
         .navigationTitle(session?.recipe?.title ?? summary.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Watcher", systemImage: "eye") { showingWatcher = true }
+            }
+        }
+        .sheet(isPresented: $showingWatcher) {
+            WatcherSettingsSheet()
+        }
+        // Settings changes reach the running watcher without restarting the session (IOS-04.4).
+        .onChange(of: env.settings.watcherConfig) { _, _ in
+            session?.watcherSettingsDidChange()
+        }
+        // The watcher pauses while the app is in the background (API-CONTRACT §3.3).
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            session?.setAppActive(phase == .active)
+        }
         .task {
             guard session == nil else { return }
             let session = env.makeCookSession()

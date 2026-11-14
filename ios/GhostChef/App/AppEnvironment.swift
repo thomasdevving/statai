@@ -13,6 +13,8 @@ final class AppEnvironment {
     let speech: SystemSpeechOutput
     /// Step media on disk (IOS-03.5).
     let imageCache = ImageCache()
+    /// The last ten watcher results, shown in Settings for tuning (IOS-04.4).
+    let watchLog = WatchLog()
     @ObservationIgnored private let client: APIClient
     @ObservationIgnored private let mock: MockAPI
     @ObservationIgnored private var frameSources: [FrameSourceKind: any FrameSource] = [:]
@@ -48,9 +50,11 @@ final class AppEnvironment {
 
     /// A new cook-along wired to the current data source, frame source, and speech output.
     func makeCookSession() -> CookSession {
-        CookSession(
+        let settings = settings
+        return CookSession(
             api: api, frames: frameSource, speech: speech, cache: imageCache,
-            deviceLabel: "iPhone (\(settings.frameSource.label))")
+            deviceLabel: "iPhone (\(settings.frameSource.label))",
+            watchConfig: { settings.watcherConfig }, watchLog: watchLog)
     }
 
     static func preview(dataSource: Settings.DataSource = .fixture) -> AppEnvironment {

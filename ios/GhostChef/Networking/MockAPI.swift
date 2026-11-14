@@ -22,6 +22,13 @@ actor MockAPI: GhostChefAPI {
     /// When true, `/check` waits until `releaseChecks()` (tests of slow and stale responses).
     private var holdChecks = false
     private var heldChecks: [CheckedContinuation<Void, Never>] = []
+    /// When true, `/watch` waits until `releaseWatches()` (watcher overlap and interval tests).
+    private var holdWatches = false
+    private var heldWatches: [CheckedContinuation<Void, Never>] = []
+    /// `/watch` calls running right now, and the most ever seen at once (must stay ≤ 1).
+    private(set) var watchesInFlight = 0
+    private(set) var maxWatchesInFlight = 0
+    private var watchCountByStep: [String: Int] = [:]
     /// Artificial latency for previews, in seconds.
     var delay: Double
     /// With an empty script, answer like the backend's fake AI (`ghostchef_ai.fake`): per step,
@@ -57,6 +64,15 @@ actor MockAPI: GhostChefAPI {
         held.forEach { $0.resume() }
     }
     var heldCheckCount: Int { heldChecks.count }
+    func setHoldWatches(_ hold: Bool) { holdWatches = hold }
+    /// Lets every held `/watch` call answer.
+    func releaseWatches() {
+        let held = heldWatches
+        heldWatches = []
+        held.forEach { $0.resume() }
+    }
+    var heldWatchCount: Int { heldWatches.count }
+    var watchCallCount: Int { calls.filter { if case .watch = $0 { true } else { false } }.count }
 
     struct PostedEvent: Sendable, Equatable {
         var sessionID: String
@@ -170,16 +186,36 @@ actor MockAPI: GhostChefAPI {
         frame: Data, stepID: String, requestID: String, sessionID: String?, capturedAt: Date?
     ) async throws -> WatchResponse {
         calls.append(.watch(stepID: stepID, requestID: requestID))
+        watchesInFlight += 1
+        maxWatchesInFlight = max(maxWatchesInFlight, watchesInFlight)
+        defer { watchesInFlight -= 1 }
         await pause()
+        if holdWatches {
+            await withCheckedContinuation { heldWatches.append($0) }
+        }
         if !watchScript.isEmpty {
             var result = try watchScript.removeFirst().get()
             result.requestID = requestID
             result.stepID = stepID
             return result
         }
+        if let fake = fakeAIWatch(stepID: stepID, requestID: requestID) { return fake }
         return WatchResponse(
             requestID: requestID, stepID: stepID, status: .ok, mistakeID: nil, headline: "",
             fix: "", spoken: "", confidence: 0, latencyMs: Int(delay * 1000), model: "mock")
+    }
+
+    /// Mirrors `ghostchef_ai.fake.watch_frame`: per step, calls 1–3 `ok`, 4–6 `warn` with the step's
+    /// first watch-for at 0.9, repeating; `ok` for steps without watch-fors.
+    private func fakeAIWatch(stepID: String, requestID: String) -> WatchResponse? {
+        guard mimicFakeAI else { return nil }
+        let n = (watchCountByStep[stepID] ?? 0) + 1
+        watchCountByStep[stepID] = n
+        guard (n - 1) % 6 >= 3, let w = recipe.steps.first(where: { $0.id == stepID })?.watchFors.first
+        else { return nil }
+        return WatchResponse(
+            requestID: requestID, stepID: stepID, status: .warn, mistakeID: w.id, headline: w.headline,
+            fix: w.fix, spoken: w.spoken, confidence: 0.9, latencyMs: Int(delay * 1000), model: "mock")
     }
 
     func liveToken(recipeID: String, sessionID: String?) async throws -> LiveTokenResponse {

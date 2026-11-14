@@ -3,9 +3,10 @@ import Observation
 
 /// The cook-along state machine (IOS-03.2). Produces `lens`; renderers only draw it.
 /// Every dependency is injected so the whole loop runs in unit tests without a device.
+/// Owns the proactive watcher (IOS-04) and decides when it may run (`watchGate`).
 @MainActor
 @Observable
-final class CookSession {
+final class CookSession: WatcherHost {
     enum Phase: Equatable {
         case idle
         /// Downloading the recipe's media before the first card (IOS-03.5).
@@ -20,6 +21,8 @@ final class CookSession {
         static let unsureReturn = Duration.seconds(4)
         static let noticeReturn = Duration.seconds(3)
         static let checkRetryDelay = Duration.seconds(1)
+        /// A proactive warning with no input dismisses itself (API-CONTRACT §3.3).
+        static let warningAutoDismiss = Duration.seconds(12)
     }
 
     enum Notice {
@@ -31,19 +34,29 @@ final class CookSession {
 
     // MARK: State
 
-    private(set) var phase: Phase = .idle
+    private(set) var phase: Phase = .idle {
+        didSet { if phase != oldValue { watcher.stateDidChange() } }
+    }
     private(set) var recipe: Recipe?
     /// 0-based index into `recipe.steps`.
     private(set) var stepIndex = 0
-    private(set) var lens: LensScreen = .notice("Choose a recipe")
+    private(set) var lens: LensScreen = .notice("Choose a recipe") {
+        didSet { if lens != oldValue { watcher.stateDidChange() } }
+    }
     private(set) var sessionID: String?
     /// The most recent `/check` request id (API-CONTRACT §3.4). Nil when none is pending.
     private(set) var latestCheckRequestID: String?
     /// The last applied check, for the operator's latency readout.
     private(set) var lastCheck: CheckResponse?
     private(set) var prefetchReport: ImageCache.Report?
-    /// Driven by the watcher in IOS-04; `.offline` after a network error until the next success.
+    /// Driven by the watcher (IOS-04); `.offline` after a network error until the next success.
     private(set) var watchIndicator: WatchIndicator = .off
+    /// The `mistake_id` of the proactive warning on screen, if any.
+    private(set) var activeWarningID: String?
+    /// False while the app is in the background (a watcher pause condition).
+    private(set) var isAppActive = true
+    /// True while the user talks to Gemini Live (IOS-05 sets it; a watcher pause condition).
+    private(set) var isTalking = false
 
     var isActive: Bool { phase == .cooking }
     var isDone: Bool { if case .done = lens { true } else { false } }
@@ -60,6 +73,7 @@ final class CookSession {
     @ObservationIgnored private let clock: any CookClock
     @ObservationIgnored private let cache: ImageCache
     @ObservationIgnored private let deviceLabel: String?
+    @ObservationIgnored let watcher: WatcherLoop
 
     @ObservationIgnored private var pendingCheck: Task<Void, Never>?
     @ObservationIgnored private var screenTimer: Task<Void, Never>?
@@ -69,7 +83,9 @@ final class CookSession {
     init(
         api: any GhostChefAPI, frames: any FrameSource, speech: any SpeechOutput,
         clock: any CookClock = SystemCookClock(), cache: ImageCache = ImageCache(),
-        deviceLabel: String? = nil
+        deviceLabel: String? = nil,
+        watchConfig: @escaping @MainActor () -> WatcherConfig = { .disabled },
+        watchLog: WatchLog? = nil
     ) {
         self.api = api
         self.frames = frames
@@ -77,6 +93,8 @@ final class CookSession {
         self.clock = clock
         self.cache = cache
         self.deviceLabel = deviceLabel
+        watcher = WatcherLoop(api: api, frames: frames, clock: clock, config: watchConfig, log: watchLog)
+        watcher.host = self
     }
 
     // MARK: Start / stop
@@ -129,6 +147,7 @@ final class CookSession {
     /// Leaving the cook-along: stop timers and speech, close the session on the server.
     func stop() {
         cancelTimers()
+        watcher.stop()
         startTask?.cancel()
         speech.stop()
         endSessionInBackground()
@@ -149,8 +168,11 @@ final class CookSession {
         }
         guard !Task.isCancelled else { return }
         stepIndex = 0
+        activeWarningID = nil
+        watcher.stepDidChange()
         phase = .cooking
         showStep()
+        watcher.start()
         speakLens(priority: .info)
     }
 
@@ -179,6 +201,8 @@ final class CookSession {
             goToStep(stepIndex - 1, via: via)
         case (.dismiss, .step):
             return
+        case (.dismiss, .fix(_, _, _, true)):
+            dismissWarning()
         case (.dismiss, _):
             showStep()
         case (.showMe, _):
@@ -196,6 +220,8 @@ final class CookSession {
     private func startCheck() {
         guard let step = currentStep, let card = currentCard() else { return }
         cancelTimers()
+        // "I fixed it, look now": a check from a proactive warning replaces it.
+        activeWarningID = nil
         lens = .checking(card)
         let requestID = newRequestID()
         latestCheckRequestID = requestID
@@ -237,7 +263,7 @@ final class CookSession {
                 }
                 log("check failed: \(error.localizedDescription)")
                 if error.isNetwork, case .network(_, let timedOut) = error, !timedOut {
-                    watchIndicator = .offline
+                    watcher.noteNetwork(reachable: false)
                     showNotice(Notice.noConnection)
                 } else {
                     showNotice(Notice.cantCheck)
@@ -271,7 +297,7 @@ final class CookSession {
         else { return }
         latestCheckRequestID = nil
         lastCheck = response
-        if watchIndicator == .offline { watchIndicator = .off }
+        watcher.noteNetwork(reachable: true)
 
         switch response.verdict {
         case .pass:
@@ -325,6 +351,8 @@ final class CookSession {
         let from = stepIndex
         cancelTimers()
         stepIndex = index
+        activeWarningID = nil
+        watcher.stepDidChange()
         showStep()
         if index != from {
             postEvent(
@@ -343,6 +371,8 @@ final class CookSession {
 
     private func finish() {
         cancelTimers()
+        activeWarningID = nil
+        watcher.stop()
         lens = .done(nil)
         guard let sessionID, !sessionEnded else {
             speakLens(priority: .info)
@@ -375,6 +405,73 @@ final class CookSession {
         return StepCard(
             idx: step.idx, total: recipe.steps.count, title: step.title, keyLine: step.keyLine,
             refImage: cache.imageRef(stepID: step.id), watching: watchIndicator)
+    }
+
+    // MARK: Watcher (IOS-04)
+
+    /// App moved to / from the background (a watcher pause condition).
+    func setAppActive(_ active: Bool) {
+        guard active != isAppActive else { return }
+        isAppActive = active
+        watcher.stateDidChange()
+    }
+
+    /// Gemini Live is listening or answering (IOS-05 calls this; a watcher pause condition).
+    func setTalking(_ talking: Bool) {
+        guard talking != isTalking else { return }
+        isTalking = talking
+        watcher.stateDidChange()
+    }
+
+    /// Watcher on/off, threshold or interval changed in Settings: applies on the next tick.
+    func watcherSettingsDidChange() {
+        watcher.stateDidChange()
+    }
+
+    /// The watcher sends only while the plain step card is showing (API-CONTRACT §3.3).
+    var watchGate: WatchGate {
+        guard phase == .cooking, let step = currentStep, !isDone else { return .inactive }
+        guard !step.watchFors.isEmpty else { return .off }
+        guard case .step = lens, latestCheckRequestID == nil, isAppActive, !isTalking else { return .paused }
+        return .open(stepID: step.id, sessionID: sessionID)
+    }
+
+    func watcher(didChangeIndicator indicator: WatchIndicator) {
+        watchIndicator = indicator
+        // Only the plain step card is redrawn: other screens may have a timer keyed to their value.
+        if case .step(let card) = lens, card.watching != indicator {
+            lens = .step(card.with(watching: indicator))
+        }
+    }
+
+    func watcher(didAlert response: WatchResponse) {
+        guard case .step = lens, let step = currentStep,
+            response.stepID.lowercased() == step.id.lowercased(),
+            let mistakeID = response.mistakeID, let card = currentCard()
+        else { return }
+        // Fill in from the step's own watch-for if the server left a string empty.
+        let known = step.watchFors.first { $0.id == mistakeID }
+        let headline = response.headline.isEmpty ? (known?.headline ?? "Watch out") : response.headline
+        let fix = response.fix.isEmpty ? (known?.fix ?? "") : response.fix
+        let spoken = response.spoken.isEmpty ? (known?.spoken ?? "") : response.spoken
+        cancelTimers()
+        activeWarningID = mistakeID
+        let screen = LensScreen.fix(card, headline: headline, fix: fix, proactive: true)
+        lens = screen
+        speak(spoken, fallback: screen)
+        postEvent(.warningShown, stepID: step.id, payload: ["mistake_id": .string(mistakeID)])
+        schedule(after: Timing.warningAutoDismiss) { session in
+            session.dismissWarning()
+        }
+    }
+
+    /// `dismiss` on a proactive warning, or 12 s without input: back to the step, mute the id.
+    private func dismissWarning() {
+        guard case .fix(_, _, _, true) = lens, let mistakeID = activeWarningID else { return }
+        activeWarningID = nil
+        watcher.dismissed(mistakeID: mistakeID)
+        postEvent(.warningDismissed, stepID: currentStep?.id, payload: ["mistake_id": .string(mistakeID)])
+        showStep()
     }
 
     // MARK: Helpers
