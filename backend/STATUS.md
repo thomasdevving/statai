@@ -32,7 +32,7 @@ The demo key is shared privately, never written here.
 | Endpoint group | Implemented | Tested | Notes |
 |---|---|---|---|
 | `/health` | yes | yes | Without `ghostchef_ai` installed `ai_mode` would be `unavailable` (not a contract value; broken setup only) |
-| Recipes and steps (§2) | yes | yes | Supabase mode: signed upload URL + `resumable_endpoint` (`https://trfaijfrgfyrjvhocqif.storage.supabase.co/storage/v1/upload/resumable`); a simple `PUT` to it was run and worked (TUS not tested). Memory mode: upload via `PUT /local-upload` (`resumable_endpoint: null`). BE-06: `/process` runs the real job (download, size check, probe, `extract_recipe`, ffmpeg stills and clips); `PATCH /steps` re-extracts the still when `timestamp_s` changes (except on a recipe with no source video, such as the seed: stored, not re-extracted). `DELETE` of the seeded recipe needs `?force=true` (else `409 recipe_not_ready`). `/health` has an extra `ffmpeg` field. Publishing an already-published recipe returns 200 |
+| Recipes and steps (§2) | yes | yes | Supabase mode: signed upload URL + `resumable_endpoint` (`https://trfaijfrgfyrjvhocqif.storage.supabase.co/storage/v1/upload/resumable/sign`, fixed in the full check below); simple `PUT` and TUS with the iOS headers both run and work. Memory mode: upload via `PUT /local-upload` (`resumable_endpoint: null`). BE-06: `/process` runs the real job (download, size check, probe, `extract_recipe`, ffmpeg stills and clips); `PATCH /steps` re-extracts the still when `timestamp_s` changes (except on a recipe with no source video, such as the seed: stored, not re-extracted). `DELETE` of the seeded recipe needs `?force=true` (else `409 recipe_not_ready`). `/health` has an extra `ffmpeg` field. Publishing an already-published recipe returns 200 |
 | `/check`, `/watch` (§3) | yes | yes | BE-03 complete: 413/415/422 validation, downscaling, 504 budget, `/watch` one in flight per session → 429. Guard-level 401/413 and framework-level 422s carry `request_id: null` (the body is not parsed yet at that point) |
 | Sessions, events, monitor (§4) | yes | yes | BE-05: `active=true` = unfinished **and** started in the last 3 h. `session_end` is idempotent (a repeat returns the first event id). `steps_passed_first_try` ignores `check_unsure`. The monitor's last frame, result and latency live in process memory and are lost on restart. Session, title and steps are cached for 3 s |
 | `/live-token` (§5) | yes | yes (fake) | Unpublished recipe → `409 recipe_not_ready`. One token per `session_id` every 3 s → `429 quota_exhausted` (retryable); a failed mint does not hold the window. The config is cached per recipe + content hash; the token is never cached. Real token: works locally and on production (deployment `fc21d115`, smoke 200) |
@@ -60,6 +60,8 @@ The demo key is shared privately, never written here.
 | 2026-11-14 | Supabase production project, re-seed only (no smoke): `STORAGE=supabase scripts/seed.py --publish --replace` after AI `cf93919` (fixture step 2: spread both slices) | exit 0. Recipe "Ham and cheese sandwich", 6 steps, published. Step 2 row read back from Supabase matches the fixture ("Spread" / "Thin layer, right to every edge"), ref image present. Old seed sessions and frames deleted by `--replace` | — | — |
 | 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `0a5f8498` = commit `4892cc7` (BE-06 code + re-seeded sandwich fixture), default fixture frame, `--fast`, without `--allow-live-errors` | exit 0, every status as expected; `/health` reports `"ffmpeg":true` | 1254 / 1667 (n=2) | 792 / 1346 (n=6) |
 | 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `0a5f8498` (BE-06 code), default fixture frame, `--fast`, after the BE-07.1 load run | OK, every status as expected | 962 / 1012 (n=2) | 717 / 845 (n=6) |
+| 2026-11-14 | `http://127.0.0.1:8050` (fake, memory), full check | OK, every status as expected | 750 / 751 (n=2) | 300 / 301 (n=6) |
+| 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `1befa7f0`, full check, default fixture frame, `--fast` | OK, every status as expected; `/live-token` 200 | 1130 / 1448 (n=2) | 693 / 785 (n=6) |
 | 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `1befa7f0` = commit `f023c9e` (BE-07 code), default fixture frame, `--fast` | OK, every status as expected. CORS preflight now lists `X-Fault` (new code live); `dev-key` → 401; startup log has no fault-injection warning; Railway variables contain no `FAULT_INJECT*` | 1076 / 1305 (n=2) | 839 / 1017 (n=6) |
 Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not Gemini.
 
@@ -130,7 +132,7 @@ Design notes:
 - **Re-seeding:** run `STORAGE=supabase python scripts/seed.py --publish --replace` again whenever AI announces a new fixture (real stills after AI-03.5).
 
 Not verified / known limits:
-- TUS resumable upload is untested; only the simple `PUT` was run.
+- ~~TUS resumable upload is untested~~ Tested in the full check (2026-11-14): it failed until the endpoint got its `/sign` suffix; now works.
 - On the free plan the global upload limit may be below the bucket's 500 MB. A large-video upload has not been tried.
 - **Signed URLs in a browser:** the smoke script and the tests fetched them with httpx (200 `image/jpeg`). They were not opened in a browser by hand.
 - **Rows in the table editor:** rows and frames were confirmed by SQL counts, not looked at in the dashboard UI.
@@ -343,12 +345,23 @@ Still open (owner, BE-07.6):
 1. Rehearse emergency mode on the hotspot with a phone and the iOS app (needs IOS-01.2: local-network permission + ATS exception).
 2. Tag the demo commit, tell the team the hash, record it here with a final smoke run with a real frame.
 
+## Full check (2026-11-14, after BE-07)
+
+Whole-track check against the docs, run in this session and seen:
+- `main` at `60dafdc`: nothing in `backend/`, `ai/` or `docs/` changed since the deployed commit `f023c9e` (only `backend/STATUS.md`), so production runs the current code. `/health` on production → `gemini` / `supabase` / `ffmpeg: true`.
+- `ruff check .` clean; `pytest -q` → 274 passed, 5 skipped. `RUN_SUPABASE_TESTS=1` Supabase tests (live project) → 5 passed, including the new TUS test.
+- Smoke: local fake/memory OK; production OK (table above). Supabase security advisor: only the intended "RLS enabled, no policy" INFO ×4; performance advisor: none.
+- **Bug found and fixed: TUS upload never worked.** `resumable_endpoint` pointed at `/storage/v1/upload/resumable`. With the iOS headers (`x-signature` = upload token, no JWT) Supabase answers `400 "Invalid Compact JWS"`; the signed-token path is `/storage/v1/upload/resumable/sign` (create 201, patch 204). iOS would have failed TUS twice and fallen back to a single `PUT` every time. Fixed in `app/store/supabase_store.py::resumable_endpoint_for`; new live test `test_signed_resumable_upload_with_ios_headers`. **Not yet deployed to production.**
+- **First real ingestion run (BE-06 gap closed except for real footage):** local server with production config (`STORAGE=supabase`, real Gemini). Input: a generated 60 s 1280×720 `testsrc2` video with one caption per step ("Step 1 - Lay out two slices of bread" … "Step 6 - Cut diagonally"), sine-tone audio, 19.4 MB, step marks every 10 s. Not a chef video. Flow: `POST /recipes` → TUS in 4 × 6 MB chunks with the iOS headers (7.2 s) → `/process` 202 (second call 409) → **`review` after 54 s** (download from live Supabase, real `extract_recipe`, ffmpeg) → 6 steps with titles matching the captions, every `ref_image_url` 200 `image/jpeg` and `clip_url` 200 `video/mp4` (4 s) → `PATCH /steps` `timestamp_s=5` → 200 with a new still → publish 200 → `/live-token` for the ingested recipe 200 (`gemini-3.8-live`, `locked: true`) → `DELETE` 204, then 404. Transcript empty and `watch_fors` empty on every step: expected for a test pattern with no speech or food. Server log: no errors, no key or JWT strings. Supabase afterwards: no `videos` objects, `media` back to the 6 seed stills.
+- Still open: BE-06.5 (real chef take from the glasses), BE-07.6 (hotspot rehearsal, freeze tag), a labelled mistake frame (AI-03).
+
 ## Needs from other tracks
 
 - **AI (D-19):** the sandwich fixture is in and seeded on production. Still needed: real reference stills and narration from the expert take (AI-03.5); tell the backend owner so production is re-seeded.
 - ~~**AI (AI-05):** `mint_live_token` missing~~ Resolved: AI-05 is on `main` (`96e105e`) and a real token was minted through the backend locally on 2026-11-14. Production redeployed (`fc21d115`) and smoke passed without `--allow-live-errors`.
 - **AI (AI-03):** a few labelled dev frames, including at least one mistake, so that `/check` → `fix` with the right `mistake_id` can be shown end to end. BE-03 used two Commons photos without mistakes.
 - **Docs (§9, additive, low priority):** proposal to add an optional `errors: {code: count}` to the `/sessions/{id}/monitor` response (BE-05 can expose the per-session counts BE-03 now collects). The backend owner must agree first.
+- **Docs (example only, from the full check):** API-CONTRACT §2 shows `resumable_endpoint` as `…/storage/v1/upload/resumable`; the working value is `…/storage/v1/upload/resumable/sign`. Field and semantics unchanged; the example needs updating by the owner.
 - **Docs (§9, additive, from BE-06):** the contract does not yet list (1) the `ffmpeg: true|false` field on `GET /health`, (2) `DELETE /recipes/{id}?force=true` and the `409 recipe_not_ready` returned for the seeded demo recipe without it, (3) clips capped at 6 s by BE-06 while §2 says `clip_url` is 3–5 s. Needs a contract changelog entry by the owner.
 - **AI (AI-03.1):** the expert sandwich take, so BE-06.5 (real ingestion run, a human looking at the stills) can be done.
 - **Web (WEB-02):** the review page can now be tested end to end against a local server (memory store): upload, poll to `review`, re-pick a frame with `PATCH /steps`, publish.

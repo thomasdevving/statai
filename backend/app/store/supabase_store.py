@@ -180,17 +180,21 @@ def _describe(exc: BaseException) -> str:
 
 
 def resumable_endpoint_for(supabase_url: str) -> str:
-    """https://<ref>.supabase.co -> https://<ref>.storage.supabase.co/storage/v1/upload/resumable.
+    """https://<ref>.supabase.co -> https://<ref>.storage.supabase.co/storage/v1/upload/resumable/sign.
 
     Supabase's resumable-upload guide recommends the direct storage hostname. Any other host
     (custom domain, local stack) falls back to the API URL itself.
+
+    The ``/sign`` suffix is required: clients authenticate TUS with the signed upload token in
+    ``x-signature`` and send no JWT. Plain ``/upload/resumable`` expects an ``Authorization``
+    JWT and answers 400 "Invalid Compact JWS" to a signed-token request (seen 2026-11-14).
     """
     parsed = urlparse(supabase_url)
     host = parsed.hostname or ""
     if host.endswith(".supabase.co") and host.count(".") == 2:
         ref = host.split(".", 1)[0]
-        return f"https://{ref}.storage.supabase.co/storage/v1/upload/resumable"
-    return f"{supabase_url.rstrip('/')}/storage/v1/upload/resumable"
+        return f"https://{ref}.storage.supabase.co/storage/v1/upload/resumable/sign"
+    return f"{supabase_url.rstrip('/')}/storage/v1/upload/resumable/sign"
 
 
 class SupabaseStore:

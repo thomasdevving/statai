@@ -12,11 +12,11 @@ from app.store.supabase_store import resumable_endpoint_for
 def test_resumable_endpoint_uses_direct_storage_host():
     assert (
         resumable_endpoint_for("https://abcdef.supabase.co")
-        == "https://abcdef.storage.supabase.co/storage/v1/upload/resumable"
+        == "https://abcdef.storage.supabase.co/storage/v1/upload/resumable/sign"
     )
     assert (
         resumable_endpoint_for("http://localhost:54321/")
-        == "http://localhost:54321/storage/v1/upload/resumable"
+        == "http://localhost:54321/storage/v1/upload/resumable/sign"
     )
 
 

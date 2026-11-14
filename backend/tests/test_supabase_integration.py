@@ -150,7 +150,9 @@ async def test_signed_upload_round_trip(store_and_recipe):
     path = f"{rid}/source.mp4"
     up = await store.signed_upload("videos", path)
     assert up["upload_token"] and up["upload_url"].startswith(_settings.supabase_url)
-    assert up["resumable_endpoint"].endswith(".storage.supabase.co/storage/v1/upload/resumable")
+    assert up["resumable_endpoint"].endswith(
+        ".storage.supabase.co/storage/v1/upload/resumable/sign"
+    )
 
     r = httpx.put(
         up["upload_url"], content=TINY_MP4, headers={"Content-Type": "video/mp4"}, timeout=60
@@ -164,6 +166,46 @@ async def test_signed_upload_round_trip(store_and_recipe):
         other["upload_url"], content=b"text", headers={"Content-Type": "text/plain"}, timeout=60
     )
     assert r.status_code >= 400
+
+
+async def test_signed_resumable_upload_with_ios_headers(store_and_recipe):
+    """TUS exactly as ios/GhostChef/Chef/ChefUploader.swift sends it: x-signature, no JWT."""
+    import base64
+
+    store, rid = store_and_recipe
+    path = f"{rid}/source.mp4"
+    up = await store.signed_upload("videos", path)
+
+    def b64(s: str) -> str:
+        return base64.b64encode(s.encode()).decode()
+
+    tus = {"Tus-Resumable": "1.0.0", "x-signature": up["upload_token"]}
+    meta = ",".join(
+        f"{k} {b64(v)}"
+        for k, v in [("bucketName", "videos"), ("objectName", path), ("contentType", "video/mp4")]
+    )
+    with httpx.Client(timeout=60) as c:
+        r = c.post(
+            up["resumable_endpoint"],
+            headers={**tus, "Upload-Length": str(len(TINY_MP4)), "Upload-Metadata": meta,
+                     "x-upsert": "true"},
+        )
+        assert r.status_code == 201, (r.status_code, r.text[:200])
+        location = httpx.URL(up["resumable_endpoint"]).join(r.headers["Location"])
+        r = c.head(location, headers=tus)
+        assert r.status_code in (200, 204) and r.headers.get("Upload-Offset") == "0"
+        r = c.patch(
+            location,
+            headers={
+                **tus,
+                "Upload-Offset": "0",
+                "Content-Type": "application/offset+octet-stream",
+            },
+            content=TINY_MP4,
+        )
+        assert r.status_code == 204, (r.status_code, r.text[:200])
+        assert r.headers["Upload-Offset"] == str(len(TINY_MP4))
+    assert await store.blob_exists("videos", path)
 
 
 async def test_started_before_and_delete_session(store_and_recipe):
