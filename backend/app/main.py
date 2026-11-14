@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -24,8 +25,30 @@ from app.seed import seed_fixture
 log = logging.getLogger("ghostchef")
 
 
+DEFAULT_DEMO_KEY = "dev-key"
+
+
+def check_deploy_settings() -> None:
+    """Fail closed on a public deployment still using the public default demo key.
+
+    Railway injects RAILWAY_ENVIRONMENT_* variables into every deployment; locally they are absent.
+    """
+    on_railway = any(
+        os.environ.get(v)
+        for v in ("RAILWAY_ENVIRONMENT", "RAILWAY_ENVIRONMENT_NAME", "RAILWAY_ENVIRONMENT_ID")
+    )
+    if on_railway:
+        key = get_settings().demo_api_key.get_secret_value()
+        if not key.strip() or key == DEFAULT_DEMO_KEY:
+            raise RuntimeError(
+                "DEMO_API_KEY is unset or the default 'dev-key' on Railway: set a long random "
+                "DEMO_API_KEY in the service variables"
+            )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    check_deploy_settings()
     settings = get_settings()
     store = get_store()
     if settings.storage == "memory":

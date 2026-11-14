@@ -9,7 +9,7 @@
 | 01 | Skeleton and full API on memory + fake AI | DONE (fake) | 2026-11-14 | Every §2–§5 endpoint on the memory store + fake AI (AI-01 `815f2a2`). See below. |
 | 02 | Supabase schema, storage, seed | DONE (fake) | 2026-11-14 | `STORAGE=supabase` works: migration applied, `SupabaseStore`, `scripts/seed.py`, smoke exit 0 against Supabase. AI still fake. See BE-02 notes. |
 | 03 | Check and watch, production-grade | DONE | 2026-11-14 | Real Gemini through `/check` and `/watch` (AI-04 `429b19a`). JPEG validation + downscale, ref-image cache, budgets, `/watch` in-flight guard, background frame/event persistence, latest-frame route, JSON call logs. Real-photo verdicts were checked by reading them only: no labelled mistake frame exists yet (AI-03). See BE-03 notes. |
-| 04 | Deploy to Railway + emergency mode | NOT STARTED | | |
+| 04 | Deploy to Railway + emergency mode | PARTIAL | 2026-11-14 | Files done and verified locally: Dockerfile (built + run here), `railway.json`, README deploy and emergency sections, `scripts/emergency.sh`/`.ps1`. **Not yet done (human):** the Railway deploy (BE-04.3) and the hotspot rehearsal (BE-04.4). See BE-04 notes. |
 | 05 | Live token, monitor, session summary | NOT STARTED | | |
 | 06 | Ingestion pipeline with ffmpeg | NOT STARTED | | |
 | 07 | Hardening and end-to-end | NOT STARTED | | |
@@ -23,7 +23,7 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 | Owner's laptop on the LAN | `http://192.168.200.152:8000` (when the owner runs it; IP may change) | `fake` | `memory` | 2026-11-14 |
 | Owner's laptop, Supabase store (local test only) | `http://localhost:8001` (started for BE-02 verification, then stopped) | `fake` | `supabase` | 2026-11-14 |
 | Production (Railway) | — | — | — | — |
-| Emergency laptop (hotspot) | — | — | — | — |
+| Emergency laptop (hotspot) | `scripts/emergency.sh` prints `http://<lan-ip>:8000`. **NOT REHEARSED** on a hotspot with a phone | `gemini` | `memory` | — |
 
 The demo key is shared privately, never written here.
 
@@ -47,6 +47,10 @@ The demo key is shared privately, never written here.
 | 2026-11-14 | same, real photo B, `--watch-n 10` | as above | 1699 / 2080 (n=2) | 943 / 1472 (n=10) |
 | 2026-11-14 | same, BE-03.7 run: photo A to check, B to watch, `--watch-n 36`, real 2.5 s spacing, 2 min 8 s | 38 calls, **0 errors**; `/live-token` 503 as above | 1170 / 1316 (n=2) | 900 / 1526 (n=36) |
 | 2026-11-14 | same, after the review fixes, `--watch-n 4 --fast` | every check/watch 200 | 1775 / 2093 (n=2) | 1000 / 1110 (n=4) |
+| 2026-11-14 | Docker image on `localhost:8010` (fake, memory), `--fast` | exit 0, every status as expected | 750 / 751 (n=2) | 300 / 301 (n=6) |
+| 2026-11-14 | Docker image on `localhost:8011` with **production config** (`STORAGE=supabase`, `GHOSTCHEF_AI_FAKE=0`), default fixture frame, `--fast` | every check/watch 200; only failure `/live-token` 503 (AI-05, see Needs) | 1562 / 1969 (n=2) | 1000 / 1426 (n=6) |
+| 2026-11-14 | `scripts/emergency.sh` on this laptop, reached via its LAN address `http://192.168.1.244:8020` from the same laptop (gemini, memory), `--fast` | every check/watch 200; `/live-token` 503 as above | 1662 / 1748 (n=2) | 932 / 1065 (n=6) |
+| — | Production (Railway) | **not run: not deployed yet** | | |
 
 Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not Gemini.
 
@@ -55,7 +59,7 @@ Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not
 | Service | Project name | Owner | Region / plan |
 |---|---|---|---|
 | Supabase | Echo (`trfaijfrgfyrjvhocqif`) | Stelios | eu-north-1, created 2026-11-14; `migrations/001_init.sql` applied 2026-11-14 |
-| Railway | — | — | — |
+| Railway | — (not created yet) | Stelios | — |
 
 ## Recovery tests (BE-07)
 
@@ -178,8 +182,41 @@ Not verified / known limits:
 - Not run against `STORAGE=supabase` with real AI in this batch; the store code paths are unchanged from BE-02.
 - Not tried from another device on the LAN (the server was bound to `127.0.0.1`).
 
+## BE-04 notes (2026-11-14)
+
+Run in this session and seen:
+- **BE-04.1 Dockerfile.**
+  - From the repo root, `docker build -f backend/Dockerfile -t ghostchef-backend .` succeeded (Docker 29.9.3, image 680 MB).
+  - `docker run -p 8010:8000 -e DEMO_API_KEY=dev-key ghostchef-backend`: `/health` → `ai_mode: fake`, `storage: memory`; `/app/` → 200; smoke exit 0.
+  - Inside the container: process runs as uid 10001 (`app`); `ffmpeg` present; no `.env` file anywhere in the image; command line shows `--workers 1`; with `-e PORT=9123` it answered on 9123.
+  - Same image with production-style variables (Supabase + real Gemini, keys passed from a temporary env file that was deleted afterwards): `/health` → `gemini` / `supabase`, smoke as in the table above.
+- **BE-04.2.** `railway.json` is valid JSON with the fields from Railway's config-as-code reference (Dockerfile builder, `dockerfilePath`, healthcheck `/health`, `ON_FAILURE`). README → "Deploying (Railway)" has the dashboard steps.
+  - **Caveat:** Railway's docs (read 2026-11-14) mark config-as-code as deprecated: it works for legacy services and only until 2026-12-01. The README therefore also has every setting entered in the dashboard, plus `RAILWAY_DOCKERFILE_PATH=backend/Dockerfile`.
+  - Railway's successor is IaC (`.railway/railway.ts` at the repo root), which is outside `backend/` and needs a TypeScript SDK. Not done; not needed for the hackathon.
+  - Railway only reads a `.dockerignore` at the build-context root; `backend/Dockerfile.dockerignore` applies to local BuildKit builds. Railway builds from git (no `.env`, `.venv` or `.data` there), and the Dockerfile copies only named backend paths, so nothing secret can reach the image either way.
+- **BE-04.3 Deploy: NOT DONE.** Needs the owner to create the Railway project, set the variables and deploy. No production URL exists yet.
+- **BE-04.4 Emergency mode.** `scripts/emergency.sh` ran on this laptop: memory store, real Gemini, fixture seeded at startup, LAN address printed (container bridges filtered out). Smoke through the LAN address passed (table above). With no `GEMINI_API_KEY` anywhere it refuses to start (exit 1). `emergency.ps1` was written but **not run** (no Windows machine here).
+  - Emergency laptop: **NOT REHEARSED**. No phone, no hotspot, and the app was not pointed at it.
+- **BE-04.5 Decision: manual production deploys.** Automatic deploys on `main` are to be switched off. Four tracks push to `main`, and a broken push from any of them would break everyone's phone testing and the demo. Release = `pytest -q` + local smoke on the commit, then Railway → Cmd/Ctrl+K → "Deploy Latest Commit", then `/health` + smoke against production (README → "Keeping production current").
+- **Security review** (security-tester): no high findings and no secret leakage. It confirmed the image contents, the non-root user, and that `--forwarded-allow-ips='*'` is harmless here (no decision depends on the client IP). Three findings were fixed:
+  - **Fail-open default key.** The server now refuses to start on Railway (any `RAILWAY_ENVIRONMENT*` variable set) when `DEMO_API_KEY` is empty or `dev-key` (`app/main.py: check_deploy_settings`, tests in `tests/test_deploy_settings.py`). Checked in the container: with the default key, startup failed and uvicorn exited; with a real key, `/health` returned 200. The emergency scripts also refuse `dev-key` with real Gemini (bash run and seen: exit 1).
+  - **`emergency.ps1` + `PUBLIC_BASE_URL`.** In PowerShell, assigning `""` deletes the variable, so the value in `.env` could win. The script now sets a single space, which the backend treats as unset.
+  - **`.env` parsing in both scripts.** Inline ` # comments` are now stripped, and quoted values are taken from inside the quotes (bash checked on 5 cases).
+  - The security-tester re-checked all three fixes: clean pass, no new findings.
+- **Owner action:** the local `backend/.env` still has `DEMO_API_KEY=dev-key`, so `emergency.sh` will refuse to start until a private key is set there. That key must be the same one the apps are configured with.
+- `ruff check .` clean; `pytest -q` 113 passed, 3 skipped.
+
+To finish BE-04 (owner):
+1. Follow README → "Deploying (Railway)".
+2. `curl https://<domain>/health` should show `gemini` / `supabase`.
+3. Run the smoke script with a real frame.
+4. Open `/app/` on a phone.
+5. Fill "Where the API is", "Last smoke run" and the Railway account row.
+6. Rehearse emergency mode on a hotspot with the phone and fill its row.
+
 ## Needs from other tracks
 
 - **AI (AI-05):** with `GHOSTCHEF_AI_FAKE=0`, `GET /live-token` returns `503 model_unavailable` ("mint_live_token is not implemented yet"). The fake switch is process-wide, so a backend running real check/watch has no working Live token until AI-05 lands. This affects anyone demoing voice against a real-AI backend.
 - **AI (AI-03):** a few labelled dev frames, including at least one mistake, so that `/check` → `fix` with the right `mistake_id` can be shown end to end. BE-03 used two Commons photos without mistakes.
 - **Docs (§9, additive, low priority):** proposal to add an optional `errors: {code: count}` to the `/sessions/{id}/monitor` response (BE-05 can expose the per-session counts BE-03 now collects). The backend owner must agree first.
+- **iOS (IOS-01.2):** emergency mode serves plain `http://<lan-ip>:8000`. The app needs local-network permission and an App Transport Security exception for HTTP to reach it (see README → "Emergency mode").

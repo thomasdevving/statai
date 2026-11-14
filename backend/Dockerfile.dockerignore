@@ -1,0 +1,19 @@
+# Read by BuildKit for `docker build -f backend/Dockerfile .` (context = repository root).
+.git
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/*.egg-info
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+**/.DS_Store
+ai/footage
+ai/eval/frames/raw
+ios
+backend/.data
+backend/tmp

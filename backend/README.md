@@ -85,6 +85,100 @@ Every variable is read in `app/config.py` and listed in `.env.example`.
 | `WEB_DIR` | `../web` | Static web app, mounted at `/app/` when the directory exists |
 | `PUBLIC_BASE_URL` | derived from the request | Used to build local file URLs in memory mode |
 
+## Docker image
+
+The image needs `backend/`, `ai/` and `web/`, so the **build context is the repository root**:
+
+```bash
+docker build -f backend/Dockerfile -t ghostchef-backend .                 # from the repo root
+docker run -p 8000:8000 -e DEMO_API_KEY=dev-key ghostchef-backend         # memory + fake AI
+```
+
+`python:3.12-slim` + `ffmpeg`, runs as a non-root user with **one** uvicorn worker (session state is in process memory, so never scale it out), listens on `$PORT` (default 8000). Inside the image: `GHOSTCHEF_FIXTURE_DIR=/srv/ai/fixtures`, `WEB_DIR=/srv/web`, `DATA_DIR=/srv/data`. `backend/Dockerfile.dockerignore` keeps `.env`, `.venv`, `.git`, `ios/`, footage and `backend/.data` out of a local build context; the Dockerfile also copies only the backend paths it needs.
+
+## Deploying (Railway)
+
+**Note on `railway.json`.** Railway now calls config-as-code files deprecated. Its docs (read 2026-11-14) say they keep working only for *legacy* services, and only until **2026-12-01**. A service created today may ignore `backend/railway.json`, so step 2 sets the same values in the dashboard as well. Setting them in both places does no harm.
+
+1. **Create the service.** In Railway: New Project → Deploy from GitHub repo → this repository, branch `main`.
+   - Root directory: leave empty, so the repository root is used. The image needs `ai/` and `web/`.
+   - Settings → Config-as-code / Railway config file: `backend/railway.json`, if the field is offered.
+2. **Set the build and deploy settings in the dashboard.** These match `railway.json`.
+   - Variable `RAILWAY_DOCKERFILE_PATH=backend/Dockerfile`. This is Railway's documented way to use a Dockerfile that is not at the root.
+   - Settings → Deploy:
+     - Healthcheck path `/health`
+     - Healthcheck timeout 120
+     - Restart policy "On failure", max retries 10
+   - Leave the start command empty. The Dockerfile's `CMD` starts uvicorn on `$PORT`.
+3. **Set the variables** (Variables tab). Never commit them.
+
+   | Variable | Value |
+   |---|---|
+   | `DEMO_API_KEY` | required: the server refuses to start on Railway with an empty key or `dev-key`. A new long random string: `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+   | `STORAGE` | `supabase` |
+   | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | from the Supabase project (service role key) |
+   | `GHOSTCHEF_AI_FAKE` | `0` |
+   | `GEMINI_API_KEY` | the event key |
+   | `GHOSTCHEF_MODEL_VIDEO` / `_CHECK` / `_WATCH` / `_LIVE` | from `ai/STATUS.md` → "Gemini account facts". On 2026-11-14 these were `gemini-3.5-flash` / `gemini-3.5-flash-lite` / `gemini-3.5-flash-lite` / `gemini-3.8-live`. Re-check before you deploy |
+   | `CORS_ORIGINS` | `https://<your-domain>.up.railway.app,http://localhost:5173` (fill in after step 4) |
+   | `RAILWAY_DOCKERFILE_PATH` | `backend/Dockerfile` (step 2) |
+
+4. **Get a public URL.** Settings → Networking → Generate Domain. If Railway asks for a target port, enter the port the app logs. It listens on Railway's `PORT`, so normally you accept the default. Then go back and finish `CORS_ORIGINS`.
+5. **Keep it at one replica.** Settings → Deploy → Replicas = 1, and no multi-region setup.
+6. **Deploy and watch the build log.** The build should print that it uses `backend/Dockerfile`. If it says Railpack instead, `RAILWAY_DOCKERFILE_PATH` was not picked up, so fix it and redeploy. Then verify:
+
+   ```bash
+   curl https://<domain>/health        # expect "ai_mode":"gemini","storage":"supabase"
+   python scripts/smoke.py --base https://<domain> --key <demo key> --frame <real frame.jpg>
+   ```
+
+   Then open `https://<domain>/app/` on a phone.
+7. **Share the URL and the new demo key privately** with the team, never in the repo. Record the URL and the smoke run in `STATUS.md`.
+
+Supabase needs no seeding for production if `scripts/seed.py --publish --replace` has already run against the same project (BE-02). Run it again whenever AI announces a new fixture.
+
+### Keeping production current
+
+Production deploys are **manual** (decided in BE-04.5, see `STATUS.md`). After step 1, turn off automatic deploys for `main` in the service settings ("Disable"). To release:
+
+1. Run `pytest -q` and the local smoke script on the commit.
+2. In the Railway dashboard, press `Cmd/Ctrl + K` → **Deploy Latest Commit**.
+3. Run `curl /health` and the smoke script against production.
+
+If a deploy breaks, use Railway's redeploy on the previous deployment to roll back.
+
+## Emergency mode (laptop on a phone hotspot)
+
+Use this when the venue Wi-Fi or Railway fails. It runs the same server on a laptop, with `STORAGE=memory`, real Gemini, and the fixture recipe seeded at startup.
+
+```bash
+backend/scripts/emergency.sh            # macOS / Linux   (--fake to rehearse without Gemini)
+backend\scripts\emergency.ps1           # Windows         (-Fake, -Port 8001)
+```
+
+**Before you run it**, check the laptop is ready:
+- The backend venv is set up, as in [Setup](#setup).
+- `backend/.env` holds `GEMINI_API_KEY` and a private `DEMO_API_KEY`. With real Gemini the script refuses the public default `dev-key`. The `GHOSTCHEF_MODEL_*` values are optional.
+- Values in `.env` are plain `KEY=value` lines. Quotes and trailing ` # comments` are handled.
+
+**What the script does:**
+- Binds to `0.0.0.0:8000`.
+- Prints the laptop's LAN addresses (`http://<ip>:8000`). Type one of them into the app's server setting, with the same demo key.
+- Never prints a key.
+
+**Steps:**
+1. Turn on the phone's hotspot.
+2. Join it from the laptop.
+3. Run the script.
+4. Point the app at the printed address.
+5. Run one check.
+
+**Limits:**
+- **Plain HTTP on a LAN address.** Browsers allow the camera only on HTTPS or `localhost`. The web simulator's camera therefore works only on the laptop itself (`http://localhost:8000/app/`), not from a phone or another laptop. Photo upload still works.
+- **The iOS app** needs local-network permission and an App Transport Security exception to reach an `http://` address (task IOS-01.2, iOS owner).
+- **Memory store.** Recipes recorded in production are not here, only the seeded fixture recipe. Everything is lost when the process stops.
+- On Windows, allow Python through the firewall for private networks.
+
 ## Batches
 
 Run in order. One Claude session per batch. Kickoff prompt: [../docs/PLAN.md §7](../docs/PLAN.md#7-working-with-claude-on-each-laptop).
