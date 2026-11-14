@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echo · Three circle segments</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/ui.css">
+<style>
+.brand-kit { width: min(1120px,100%); margin: 0 auto; padding: 56px 28px 80px; }
+.brand-kit > p { color: var(--text-dim); max-width: 58ch; margin-top: 22px; font-size: 15px; line-height: 1.8; }
+.brand-kit h1 { font-size: clamp(38px,6vw,66px); font-weight: 500; letter-spacing: -.055em; }
+.marks { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; margin-top: 44px; }
+.mark { padding: 28px; border: 1px solid var(--line); border-radius: 22px; background: #cce3ff08; }
+.mark > img { width: 100%; height: 130px; object-fit: contain; margin-bottom: 36px; }
+.mark h2 { font-size: 20px; font-weight: 500; }
+.mark p { font-size: 13px; line-height: 1.7; color: var(--text-dim); margin-top: 12px; }
+.mark a { display: inline-block; font-size: 12px; margin: 22px 14px 0 0; }
+.mark-badge { display: inline-block; margin-bottom: 18px; color: #b0ddff; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+@media(max-width:760px) { .marks { grid-template-columns: 1fr; } .mark > img { max-width: 220px; margin-inline: auto; } }
+</style>
+</head>
+<body>
+<header class="topbar"><a class="brand" href="../" aria-label="Echo home"><img class="brand-symbol" src="../assets/logos/echo-ripple-mark.svg" width="32" height="32" alt=""><span class="brand-word">echo</span></a><nav class="topnav" aria-label="Main"><a href="../">Back to Echo</a><button class="btn btn-icon btn-ghost" data-open-settings aria-label="Settings"></button></nav></header>
+<main class="brand-kit">
+<h1>Three parts.<br>One echo.</h1><p>Three minimal directions built from open circle segments. The nested ripple is the website’s current mark. Each version is available as a scalable SVG, with a separate symbol for small sizes.</p>
+<div class="marks">
+<article class="mark"><img src="../assets/logos/echo-ripple.svg" width="182" height="64" alt="Echo logo with three concentric open circular arcs"><span class="mark-badge">01 · Used on the site</span><h2>Ripple</h2><p>Three concentric arcs. A reference, a response, and the idea of a lesson carried forward.</p><a href="../assets/logos/echo-ripple.svg" download>Download logo ↗</a><a href="../assets/logos/echo-ripple-mark.svg" download>Symbol ↗</a></article>
+<article class="mark"><img src="../assets/logos/echo-circle.svg" width="182" height="64" alt="Echo logo with one circle divided into three arcs"><span class="mark-badge">02 · Alternative</span><h2>Circle</h2><p>One open ring, divided into three equal parts. Quiet, balanced and compact.</p><a href="../assets/logos/echo-circle.svg" download>Download logo ↗</a><a href="../assets/logos/echo-circle-mark.svg" download>Symbol ↗</a></article>
+<article class="mark"><img src="../assets/logos/echo-wave.svg" width="182" height="64" alt="Echo logo with three nested half-circle arcs"><span class="mark-badge">03 · Alternative</span><h2>Wave</h2><p>Three nested half circles. A simple expression of sound, repetition and spoken guidance.</p><a href="../assets/logos/echo-wave.svg" download>Download logo ↗</a><a href="../assets/logos/echo-wave-mark.svg" download>Symbol ↗</a></article>
+</div>
+</main>
+<script type="module">
+import {mountChrome} from '../shared/chrome.js'; import {icon} from '../shared/icons.js';
+document.querySelector('[data-open-settings]').innerHTML=icon('gear',{size:21}); mountChrome();
+</script>
+</body>
+</html>

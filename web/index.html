@@ -14,7 +14,7 @@
 </head>
 <body class="home-page">
 <header class="topbar">
-  <a class="brand" href="./" aria-label="Echo home"><span class="brand-mark" aria-hidden="true"></span>echo<span class="brand-period">.</span></a>
+  <a class="brand" href="./" aria-label="Echo home"><img class="brand-symbol" src="assets/logos/echo-ripple-mark.svg" width="32" height="32" alt=""><span class="brand-word">echo</span></a>
   <nav class="topnav" aria-label="Main">
     <a href="#tools">Explore the tools</a>
     <a href="sim/">Simulator <span data-icon="arrowRight"></span></a>
@@ -35,47 +35,66 @@
     </div>
     <figure class="hero-visual" aria-label="Centered floating black smart glasses angled toward the headline, with a recipe preview aligned to the lens">
       <div class="product-stage">
-        <img class="hero-glasses" src="assets/smart-glasses.png" width="1736" height="906" alt="The supplied floating glasses photo cut out and flipped toward the headline, with cool blue-silver reflections and a readable Ray-Ban mark on the left lens" fetchpriority="high">
-        <div class="recipe-preview" aria-label="Example instruction: step 4, add sandwich fillings in one even layer">
-          <img src="assets/sandwich-step.webp" width="64" height="76" alt="Ham and cheese in an even layer on sandwich bread">
-          <div><span class="recipe-kicker">STEP 04 · SANDWICH</span><strong>Add fillings</strong><p>One even layer,<br>edge to edge.</p></div>
-        </div>
+        <img class="hero-glasses" src="assets/hero-glasses-scene.svg" width="1736" height="906" alt="Floating Echo smart glasses with a fixed, angled recipe card: Step 4, Add fillings. One even layer, edge to edge." fetchpriority="high">
       </div>
       <figcaption><span class="caption-line" aria-hidden="true"></span>The next step. Right in your lens.<span class="preview-label">ILLUSTRATIVE PREVIEW</span></figcaption>
     </figure>
   </section>
+  <section class="how-section" id="how-it-works" aria-labelledby="how-title">
+    <div class="section-heading" data-reveal>
+      <div><p class="eyebrow">THE CHEF’S METHOD. YOUR OWN HANDS.</p><h2 id="how-title">A lesson that follows your side of the board.</h2></div>
+      <p>Reference-led guidance,<br>one visible step at a time.</p>
+    </div>
+    <ol class="workflow">
+      <li data-reveal><span class="workflow-number">01</span><h3>See what the chef means.</h3><p>Each lesson pairs short instructions with reference frames and visible success criteria. You follow a specific method, with the next step close at hand.</p></li>
+      <li data-reveal><span class="workflow-number">02</span><h3>Check. Adjust. Keep going.</h3><p>Compare your camera view with the current step. Get a pass, a specific correction, or “can’t tell” when the board isn’t clear. The watcher looks for the lesson’s known mistakes between checks.</p></li>
+      <li data-reveal><span class="workflow-number">03</span><h3>Ask about the lesson.</h3><p>The voice flow uses the lesson’s instructions and narration as context for spoken questions. Hands-free controls and the glasses experience are being integrated and tested on iOS.</p></li>
+    </ol>
+    <div class="feedback-story" data-reveal>
+      <div class="feedback-copy"><p class="eyebrow">FEEDBACK YOU CAN ACT ON</p><h3>A small correction.<br>A clearer next step.</h3><p>Echo focuses on what a camera can show: coverage, placement and alignment. For the sandwich lesson, that means spotting filling piled in the middle and guiding it toward the edges.</p></div>
+      <div class="feedback-examples" aria-label="Illustrative feedback examples">
+        <p class="example-label">EXAMPLE FEEDBACK</p>
+        <div class="feedback-example" data-tone="fix"><span data-icon="warn"></span><div><strong>Filling piled up</strong><p>Spread it to the edges.</p></div></div>
+        <div class="feedback-example" data-tone="unsure"><span data-icon="question"></span><div><strong>Can’t tell</strong><p>Show the board clearly.</p></div></div>
+      </div>
+    </div>
+  </section>
   <section class="tool-section" id="tools" aria-labelledby="tools-title">
-    <div class="section-heading">
+    <div class="section-heading" data-reveal>
       <div><p class="eyebrow">BEYOND THE LENS</p><h2 id="tools-title">One kitchen. Every perspective.</h2></div>
       <p>For the cook, the chef,<br>and everyone following along.</p>
     </div>
     <ul class="tools">
-      <li><a class="tool tool-available" href="sim/">
+      <li data-reveal><a class="tool tool-available" href="sim/">
         <div class="tool-top"><span class="tool-icon" data-icon="camera"></span><span class="tool-badge"><span aria-hidden="true"></span>Ready to explore</span></div>
-        <div class="tool-copy"><h3>Simulator</h3><p>A kitchen, wherever you are. Try the cook-along with your webcam or a photo, one step at a time.</p></div>
+        <div class="tool-copy"><h3>Simulator</h3><p>Try the six-step sandwich lesson with your webcam or an uploaded photo. Follow the reference cards, ask for a check, and try the watcher and spoken results.</p></div>
         <div class="tool-bottom"><span>Try the experience</span><span class="tool-go" data-icon="arrowRight"></span></div>
       </a></li>
-      <li><div class="tool" aria-disabled="true">
+      <li data-reveal><div class="tool" aria-disabled="true">
         <div class="tool-top"><span class="tool-icon" data-icon="upload"></span><span class="tool-badge tool-badge-later">Coming soon</span></div>
-        <div class="tool-copy"><h3>Review</h3><p>Your recipe, your finishing touches. Review and refine what you recorded before sharing it.</p></div>
+        <div class="tool-copy"><h3>Review</h3><p>A planned workspace for chefs to review extracted steps, correct instructions and choose reference frames before publishing a recorded lesson.</p></div>
         <div class="tool-bottom"><span>Made for the chef</span><span class="tool-number">02</span></div>
       </div></li>
-      <li><a class="tool tool-available" href="monitor/">
+      <li data-reveal><a class="tool tool-available" href="monitor/">
         <div class="tool-top"><span class="tool-icon" data-icon="eye"></span><span class="tool-badge"><span aria-hidden="true"></span>Ready to follow</span></div>
-        <div class="tool-copy"><h3>Monitor</h3><p>A seat at the table for everyone. Follow the cook’s point of view, from the first step to the last.</p></div>
+        <div class="tool-copy"><h3>Monitor</h3><p>See the chef’s reference, the latest camera frame, a reconstructed lens card and the session timeline, with measured latency and clear live/replay labels.</p></div>
         <div class="tool-bottom"><span>Open the monitor</span><span class="tool-go" data-icon="arrowRight"></span></div>
       </a></li>
     </ul>
   </section>
-  <div class="home-signoff"><span>echo.</span><p>A little closer to the craft.</p><span>Built at Junction 2026</span></div>
+  <aside class="project-note" aria-labelledby="project-note-title" data-reveal>
+    <div><p class="eyebrow">BUILT AT JUNCTION 2026</p><h2 id="project-note-title">A working prototype, with an honest next step.</h2></div>
+    <p>The browser simulator and demo monitor are available now. The current lesson is a ham and cheese sandwich, using a hand-written fixture and placeholder reference images. Chef recording and review are still in progress; end-to-end use on physical glasses remains to be validated. The status strip always shows which backend and AI mode you’re using.</p>
+  </aside>
+  <div class="home-signoff"><a class="brand footer-brand" href="./" aria-label="Echo home"><img class="brand-symbol" src="assets/logos/echo-ripple-mark.svg" width="28" height="28" alt=""><span class="brand-word">echo</span></a><p>A little closer to the craft.</p><a href="brand/">Explore the Echo marks <span aria-hidden="true">↗</span></a></div>
 </main>
 <script type="module">
+  import { mountMotion } from "./motion.js";
   import { mountChrome } from "./shared/chrome.js";
-  import { mountHero } from "./hero.js";
   import { icon } from "./shared/icons.js";
   document.querySelector("[data-open-settings]").innerHTML = icon("gear", { size: 21 });
   document.querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = icon(el.dataset.icon, { size: 22 })));
-  mountHero();
+  mountMotion();
   mountChrome();
 </script>
 </body>

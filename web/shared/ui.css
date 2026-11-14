@@ -457,3 +457,10 @@ kbd {
   .tool, .panel { background: #102c4b; }
   .settings-dialog { background: #0c2343; }
 }
+
+/* Echo identity: three open circle segments with a clean wordmark. */
+.brand-symbol { flex: none; width: 26px; height: 26px; object-fit: contain; }
+.brand-word { font-weight: 500; letter-spacing: -.055em; }
+@media (max-width: 420px) { .brand-symbol { width: 22px; height: 22px; } }
+
+.brand:has(.brand-symbol) { gap: 9px; }
