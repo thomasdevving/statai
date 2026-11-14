@@ -64,6 +64,23 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(isOn: Binding(get: { !settings.speechMuted }, set: { settings.speechMuted = !$0 })) {
+                        Label("Speak Results", systemImage: "speaker.wave.2")
+                    }
+                    Button {
+                        env.speech.playChime()
+                        env.speech.speak("Too much rice. Spread thinner, two centimetres free.", priority: .result)
+                    } label: {
+                        Label("Test Voice", systemImage: "play.circle")
+                    }
+                    .disabled(settings.speechMuted)
+                } header: {
+                    Text("Voice")
+                } footer: {
+                    Text("Check results, step changes and the pass chime are spoken on the phone. Plays even with the ring switch on silent.")
+                }
+
+                Section {
                     NavigationLink {
                         GlassesLabView()
                     } label: {

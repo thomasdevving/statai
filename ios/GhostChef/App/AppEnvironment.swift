@@ -9,13 +9,18 @@ final class AppEnvironment {
     let settings: Settings
     /// Meta Wearables SDK: registration, devices, session, Glasses Lab proofs (IOS-02).
     let glasses = GlassesManager()
+    /// On-device speech + chime for results (IOS-03.4); follows the mute toggle in Settings.
+    let speech: SystemSpeechOutput
+    /// Step media on disk (IOS-03.5).
+    let imageCache = ImageCache()
     @ObservationIgnored private let client: APIClient
     @ObservationIgnored private let mock: MockAPI
     @ObservationIgnored private var frameSources: [FrameSourceKind: any FrameSource] = [:]
 
-    init(settings: Settings = Settings(), session: URLSession = .shared, mock: MockAPI = .fixture()) {
+    init(settings: Settings = Settings(), session: URLSession = .shared, mock: MockAPI = .fixture(delay: 0.8, mimicFakeAI: true)) {
         self.settings = settings
         self.mock = mock
+        self.speech = SystemSpeechOutput(isMuted: { [settings] in settings.speechMuted })
         self.client = APIClient(session: session) {
             Settings.apiConfig(defaults: .standard, bundle: .main)
         }
@@ -41,10 +46,17 @@ final class AppEnvironment {
         return made
     }
 
+    /// A new cook-along wired to the current data source, frame source, and speech output.
+    func makeCookSession() -> CookSession {
+        CookSession(
+            api: api, frames: frameSource, speech: speech, cache: imageCache,
+            deviceLabel: "iPhone (\(settings.frameSource.label))")
+    }
+
     static func preview(dataSource: Settings.DataSource = .fixture) -> AppEnvironment {
         let defaults = UserDefaults(suiteName: "preview") ?? .standard
         let settings = Settings(defaults: defaults)
         settings.dataSource = dataSource
-        return AppEnvironment(settings: settings, mock: .fixture(delay: 0.4))
+        return AppEnvironment(settings: settings, mock: .fixture(delay: 0.4, mimicFakeAI: true))
     }
 }

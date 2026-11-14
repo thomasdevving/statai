@@ -25,6 +25,7 @@ final class Settings {
         static let dataSource = "settings.dataSource"
         static let frameSource = "settings.frameSource"
         static let watchThreshold = "settings.watchThreshold"
+        static let speechMuted = "settings.speechMuted"
     }
 
     /// API-CONTRACT §3.3 default.
@@ -40,6 +41,8 @@ final class Settings {
         didSet { defaults.set(frameSource.rawValue, forKey: Key.frameSource) }
     }
     var watchThreshold: Double { didSet { defaults.set(watchThreshold, forKey: Key.watchThreshold) } }
+    /// Silences on-device speech and the pass chime (IOS-03.4).
+    var speechMuted: Bool { didSet { defaults.set(speechMuted, forKey: Key.speechMuted) } }
 
     init(defaults: UserDefaults = .standard, bundle: Bundle = .main) {
         self.defaults = defaults
@@ -53,6 +56,7 @@ final class Settings {
             ?? FrameSourceKind.selectable.last ?? .phoneCamera
         watchThreshold =
             defaults.object(forKey: Key.watchThreshold) as? Double ?? Self.defaultWatchThreshold
+        speechMuted = defaults.bool(forKey: Key.speechMuted)
     }
 
     var apiConfig: APIConfig { Self.apiConfig(defaults: defaults, bundle: bundle) }
