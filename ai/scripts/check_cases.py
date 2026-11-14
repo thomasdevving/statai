@@ -4,7 +4,7 @@ Usage (from ai/):
 
     python scripts/check_cases.py                       # validate eval/cases.csv, print counts
     python scripts/check_cases.py --require-minimum     # also fail if below the AI-03.4 minimum
-    python scripts/check_cases.py --scaffold --step 3 --labeller AK --device "iPhone 15 (stand-in)"
+    python scripts/check_cases.py --scaffold --step 4 --labeller AK --device "iPhone 15 (stand-in)"
         # append one unlabelled row per frame in eval/frames/{dev,heldout}/ not yet listed
 
 Columns: case_id,file,step_idx,split,label,mistake_id,labeller,source_device,notes
@@ -174,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--recipe", type=Path, default=AI_DIR / "fixtures" / "sushi_recipe.json")
     p.add_argument("--require-minimum", action="store_true")
     p.add_argument("--scaffold", action="store_true")
-    p.add_argument("--step", type=int, default=3)
+    p.add_argument("--step", type=int, default=4)
     p.add_argument("--labeller", default="")
     p.add_argument("--device", default="")
     args = p.parse_args(argv)

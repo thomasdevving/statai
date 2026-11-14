@@ -71,8 +71,8 @@ async def check_frame(
             verdict="unsure",
             mistake_id=None,
             headline="Can't tell",
-            fix="Look straight down at mat",
-            spoken="I can't see the mat clearly. Look straight down at it and check again.",
+            fix="Look straight down at board",
+            spoken="I can't see the board clearly. Look straight down at it and check again.",
             confidence=0.3,
             model=MODEL,
         )

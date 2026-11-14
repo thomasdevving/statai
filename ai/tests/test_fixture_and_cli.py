@@ -9,18 +9,21 @@ from PIL import Image
 
 
 def test_fixture_shape(recipe):
-    assert recipe.title == "Maki roll"
-    assert [s.idx for s in recipe.steps] == [1, 2, 3, 4, 5, 6]
-    s3 = recipe.step(3)
-    w = s3.watch_for("rice_too_thick")
+    # The sandwich lesson (docs/DECISIONS-AND-RISKS.md D-19); strings as in API-CONTRACT §2.
+    assert recipe.title == "Ham and cheese sandwich"
+    assert [s.title for s in recipe.steps] == [
+        "Lay out bread", "Spread", "Add lettuce", "Add fillings", "Close", "Cut"]
+    s4 = recipe.step(4)
+    assert s4.key_line == "One even layer, edge to edge"
+    w = s4.watch_for("filling_piled_center")
     assert w is not None
-    assert w.headline == "Too much rice"
-    assert w.fix == "Spread thinner, 2cm nori free"
-    assert w.spoken == ("There's a bit too much rice — spread it thinner and leave two "
-                        "centimetres of nori at the top.")
-    assert s3.watch_for("rice_covers_top_edge") is not None
-    assert recipe.step(4).watch_for("too_much_filling") is not None
-    assert not recipe.step(2).watch_fors and not recipe.step(6).watch_fors
+    assert w.headline == "Filling piled up"
+    assert w.fix == "Spread it to the edges"
+    assert w.spoken == ("The filling is all in the middle — spread it out so it reaches the "
+                        "edges of the bread.")
+    assert recipe.step(2).watch_for("spread_misses_edges") is not None
+    assert not recipe.step(3).watch_fors and not recipe.step(6).watch_fors
+    assert "spread it right to the edges so every bite has flavour" in recipe.transcript
     assert recipe.transcript.startswith("[PLACEHOLDER NARRATION")
     assert 150 <= len(recipe.transcript.split()) <= 300
     times = [s.timestamp_s for s in recipe.steps]
@@ -43,10 +46,10 @@ def _cli(*args, fake="1", **extra_env):
 
 
 def test_cli_check_and_watch():
-    r = _cli("check", "--step", "3", "--frame", "fixtures/images/step-3.jpg")
+    r = _cli("check", "--step", "4", "--frame", "fixtures/images/step-4.jpg")
     assert r.returncode == 0, r.stderr
     assert json.loads(r.stdout)["verdict"] == "fix"
-    r = _cli("watch", "--step", "3", "--frame", "fixtures/images/step-3.jpg")
+    r = _cli("watch", "--step", "4", "--frame", "fixtures/images/step-4.jpg")
     assert r.returncode == 0, r.stderr
     assert json.loads(r.stdout)["status"] == "ok"
 
@@ -61,7 +64,7 @@ def test_cli_models_and_live_config():
 @pytest.mark.parametrize("cmd", ["check", "watch"])
 def test_cli_real_mode_without_key_is_a_clear_error(cmd):
     # An empty GEMINI_API_KEY is not overridden by ai/.env, so this never reaches the network.
-    r = _cli(cmd, "--step", "3", "--frame", "fixtures/images/step-3.jpg", fake="0",
+    r = _cli(cmd, "--step", "4", "--frame", "fixtures/images/step-4.jpg", fake="0",
              GEMINI_API_KEY="", GHOSTCHEF_PROVIDER="gemini")
     assert r.returncode == 2
     assert "GEMINI_API_KEY is not set" in r.stderr
@@ -69,7 +72,7 @@ def test_cli_real_mode_without_key_is_a_clear_error(cmd):
 
 
 def test_cli_watch_step_without_watch_fors_needs_no_key():
-    r = _cli("watch", "--step", "2", "--frame", "fixtures/images/step-2.jpg", fake="0",
+    r = _cli("watch", "--step", "3", "--frame", "fixtures/images/step-3.jpg", fake="0",
              GEMINI_API_KEY="", GHOSTCHEF_PROVIDER="gemini")
     assert r.returncode == 0, r.stderr
     out = json.loads(r.stdout)

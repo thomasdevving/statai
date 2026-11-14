@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("mode", choices=["cases", "frames"])
     p.add_argument("folder", nargs="?", help="frames mode: folder of JPEGs")
     p.add_argument("--cases-csv", type=Path, default=AI_DIR / "eval" / "cases.csv")
-    p.add_argument("--step", type=int, default=3, help="frames mode: step index")
+    p.add_argument("--step", type=int, default=4, help="frames mode: step index")
     p.add_argument("--rotate", type=int, default=0, help="degrees counter-clockwise, e.g. 180")
     p.add_argument("--no-ref", action="store_true", help="check without the reference image")
     p.add_argument("--check-sizes", type=int, nargs="*", default=[1280, 768])

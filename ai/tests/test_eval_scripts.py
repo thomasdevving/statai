@@ -84,7 +84,7 @@ def _make_eval(tmp_path, rows, frames=()):
     return path
 
 
-def _row(cid, split, name, label, mistake="", step="3"):
+def _row(cid, split, name, label, mistake="", step="4"):
     return {"case_id": cid, "file": f"frames/{split}/{name}", "step_idx": step, "split": split,
             "label": label, "mistake_id": mistake, "labeller": "AK", "source_device": "phone"}
 
@@ -93,10 +93,10 @@ def test_valid_set_and_counts(tmp_path):
     frames = [("dev", f"{i}.jpg") for i in range(8)] + [("heldout", f"h{i}.jpg")
                                                          for i in range(8)]
     labels = ["pass"] * 3 + ["fix"] * 3 + ["unsure"] * 2
-    rows = [_row(f"c{i}", "dev", f"{i}.jpg", lab, "rice_too_thick" if lab == "fix" else "")
+    rows = [_row(f"c{i}", "dev", f"{i}.jpg", lab, "filling_piled_center" if lab == "fix" else "")
             for i, lab in enumerate(labels)]
     rows += [_row(f"h{i}", "heldout", f"h{i}.jpg", lab,
-                  "rice_covers_top_edge" if lab == "fix" else "")
+                  "filling_piled_center" if lab == "fix" else "")
              for i, lab in enumerate(labels)]
     path = _make_eval(tmp_path, rows, frames)
     errors, warnings, counts, unlabelled, _ = cc.validate(path, tmp_path, WATCH)
@@ -109,9 +109,9 @@ def test_valid_set_and_counts(tmp_path):
 @pytest.mark.parametrize("row,frames,needle", [
     (_row("c1", "dev", "x.jpg", "pass"), [], "file not found"),
     (_row("c1", "dev", "x.jpg", "maybe"), [("dev", "x.jpg")], "label must be"),
-    (_row("c1", "dev", "x.jpg", "pass", "rice_too_thick"), [("dev", "x.jpg")],
+    (_row("c1", "dev", "x.jpg", "pass", "filling_piled_center"), [("dev", "x.jpg")],
      "only allowed when label is fix"),
-    (_row("c1", "dev", "x.jpg", "fix", "burnt_rice"), [("dev", "x.jpg")], "not a watch_for"),
+    (_row("c1", "dev", "x.jpg", "fix", "burnt_toast"), [("dev", "x.jpg")], "not a watch_for"),
     (_row("c1", "dev", "x.jpg", "pass", step="9"), [("dev", "x.jpg")], "not in the fixture"),
     (_row("c1", "dev", "x.jpg", ""), [("dev", "x.jpg")], "no label"),
     ({**_row("c1", "dev", "x.jpg", "pass"), "split": "heldout"}, [("dev", "x.jpg")],
