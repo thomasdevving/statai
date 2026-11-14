@@ -123,7 +123,7 @@ async def test_model(model: str, repeats: int) -> dict:
         res, ms, err = await _timed(client.image_json(
             model=model, schema=SAME_SCHEMA, schema_name="same_check", timeout_s=20,
             prompt="Are IMAGE A and IMAGE B exactly the same picture?",
-            images=[("IMAGE A:", a), ("IMAGE B:", b)], max_output_tokens=20))
+            images=[("IMAGE A:", a), ("IMAGE B:", b)], max_output_tokens=60))
         if err:
             out["two_image"].append(f"{label}: ERROR {err}")
         else:
@@ -169,7 +169,7 @@ async def run_tests(models: list[str], repeats: int) -> None:
         print(f"  {m}: {n} calls, {i} in, {o} out")
     if provider() == "gemini":
         print("\nGemini-only tests (video, Live, Live function call, ephemeral token): "
-              "NOT IMPLEMENTED in this script yet — remaining AI-02 work once a key exists.")
+              "run scripts/gemini_smoke.py.")
     else:
         print("\nNot testable on the OpenAI stand-in: video with timestamps, Gemini Live, "
               "Live function calls, ephemeral tokens (Gemini-only).")

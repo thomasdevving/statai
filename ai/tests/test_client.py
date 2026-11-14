@@ -189,3 +189,75 @@ async def test_openai_non_json_is_invalid(monkeypatch):
     _stub(monkeypatch, StubCompletions(text="not json"))
     with pytest.raises(AIInvalidOutput):
         await _call()
+
+
+# ---------------------------------------------------------------- Gemini path, stubbed
+
+class StubGemini:
+    def __init__(self, text='{"has_text": true}', finish="STOP", reject_levels=()):
+        self.text, self.finish, self.reject_levels, self.configs = text, finish, \
+            set(reject_levels), []
+
+    async def generate_content(self, *, model, contents, config):
+        self.configs.append(config)
+        tc = config.thinking_config
+        if tc is not None and tc.thinking_level.name in self.reject_levels:
+            raise ClientError(400, f"Thinking level {tc.thinking_level.name} is not supported "
+                                   "for this model. Please retry with other thinking level.")
+        return SimpleNamespace(
+            text=self.text,
+            candidates=[SimpleNamespace(finish_reason=SimpleNamespace(name=self.finish))],
+            usage_metadata=SimpleNamespace(prompt_token_count=50, candidates_token_count=5,
+                                           thoughts_token_count=2),
+        )
+
+
+def _stub_gemini(monkeypatch, stub):
+    monkeypatch.setenv("GHOSTCHEF_PROVIDER", "gemini")
+    client._gemini_no_thinking_cfg.clear()
+    client._gemini_thinking_level.clear()
+    fake = SimpleNamespace(aio=SimpleNamespace(models=stub))
+    monkeypatch.setattr(client, "gemini_client", lambda *a, **k: fake)
+
+
+async def test_gemini_requests_minimal_thinking(monkeypatch):
+    stub = StubGemini()
+    _stub_gemini(monkeypatch, stub)
+    res = await _call()
+    assert res.data == {"has_text": True}
+    cfg = stub.configs[0]
+    assert cfg.thinking_config.thinking_level.name == "MINIMAL"
+    assert cfg.response_json_schema == SCHEMA
+    assert client.usage.by_model["m"] == [1, 50, 7]  # thinking tokens count as output
+
+
+async def test_gemini_steps_down_to_low_thinking(monkeypatch):
+    stub = StubGemini(reject_levels={"MINIMAL"})
+    _stub_gemini(monkeypatch, stub)
+    assert (await _call()).data == {"has_text": True}
+    assert stub.configs[-1].thinking_config.thinking_level.name == "LOW"
+    assert client.usage.calls == 1  # the rejected request is not counted
+    await _call()  # learned: goes straight to LOW
+    assert len(stub.configs) == 3
+    assert stub.configs[-1].thinking_config.thinking_level.name == "LOW"
+
+
+async def test_gemini_drops_thinking_when_no_level_accepted(monkeypatch):
+    stub = StubGemini(reject_levels={"MINIMAL", "LOW"})
+    _stub_gemini(monkeypatch, stub)
+    assert (await _call()).data == {"has_text": True}
+    assert stub.configs[-1].thinking_config is None
+    assert client.usage.calls == 1
+    await _call()  # learned: no thinking config at all
+    assert len(stub.configs) == 4
+
+
+@pytest.mark.parametrize("text,finish,needle", [
+    ('{"has_', "MAX_TOKENS", "cut off"),
+    ("", "STOP", "empty answer"),
+    ("not json", "STOP", "did not match"),
+])
+async def test_gemini_bad_outputs_are_invalid(monkeypatch, text, finish, needle):
+    _stub_gemini(monkeypatch, StubGemini(text=text, finish=finish))
+    with pytest.raises(AIInvalidOutput, match=needle):
+        await _call()

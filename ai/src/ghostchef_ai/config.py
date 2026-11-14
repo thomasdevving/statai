@@ -10,11 +10,12 @@ from dotenv import load_dotenv
 # Load ai/.env or ./.env if present, never overriding variables already set.
 load_dotenv(override=False)
 
-# Gemini: PLACEHOLDERS, not verified against our key. Taken from the public models page on
-# 2026-11-13 (docs/EVENT-CONTEXT.md §5). AI-02 verifies the real choice in ai/STATUS.md.
+# Gemini: chosen by the AI-02 smoke tests on 2026-11-14 with the team's key (ai/STATUS.md).
+# check uses the fast lite model for now: gemini-3.8-flash was overloaded (503) during the test
+# and gemini-3.6-flash took ~11 s. AI-04 revisits check with real frames.
 _GEMINI_MODELS = {
-    "video": "gemini-3.8-flash",
-    "check": "gemini-3.8-flash",
+    "video": "gemini-3.5-flash",
+    "check": "gemini-3.5-flash-lite",
     "watch": "gemini-3.5-flash-lite",
     "live": "gemini-3.8-live",
 }

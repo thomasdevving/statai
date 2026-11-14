@@ -236,9 +236,16 @@ async def _openai_image_json(model, prompt, images, schema, schema_name, timeout
     return ImageJsonResult(data, getattr(resp, "model", model), in_tok, out_tok)
 
 
+# Thinking levels to try, lightest first; None = send no thinking config. A model that rejects
+# a level (unbilled 400, e.g. "Thinking level MINIMAL is not supported") moves to the next one.
+_GEMINI_THINKING_ORDER = ("MINIMAL", "LOW", None)
+_gemini_thinking_level: dict[str, str | None] = {}
+# Kept for tests and callers that only need "does this model reject thinking config".
+_gemini_no_thinking_cfg: set[str] = set()
+
+
 async def _gemini_image_json(model, prompt, images, schema, timeout_s, max_output_tokens,
                              low_detail) -> ImageJsonResult:
-    """UNTESTED against the live API until a Gemini key exists (ai/STATUS.md)."""
     from google.genai import types
 
     parts: list[Any] = []
@@ -246,24 +253,57 @@ async def _gemini_image_json(model, prompt, images, schema, timeout_s, max_outpu
         parts.append(label)
         parts.append(types.Part.from_bytes(data=jpeg, mime_type="image/jpeg"))
     parts.append(prompt)
-    config = types.GenerateContentConfig(
-        temperature=0,
-        max_output_tokens=max_output_tokens,
-        response_mime_type="application/json",
-        response_json_schema=schema,
-        media_resolution=(types.MediaResolution.MEDIA_RESOLUTION_LOW if low_detail
-                          else types.MediaResolution.MEDIA_RESOLUTION_MEDIUM),
-    )
-    resp = await call_with_budget(
-        gemini_client().aio.models.generate_content(model=model, contents=parts, config=config),
-        timeout_s,
-    )
+
+    def config(level: str | None) -> types.GenerateContentConfig:
+        return types.GenerateContentConfig(
+            temperature=0,
+            max_output_tokens=max_output_tokens,
+            response_mime_type="application/json",
+            response_json_schema=schema,
+            media_resolution=(types.MediaResolution.MEDIA_RESOLUTION_LOW if low_detail
+                              else types.MediaResolution.MEDIA_RESOLUTION_MEDIUM),
+            # Thinking tokens count against max_output_tokens; keep them light for latency.
+            thinking_config=(types.ThinkingConfig(thinking_level=getattr(types.ThinkingLevel,
+                                                                         level))
+                             if level else None),
+        )
+
+    aio = gemini_client().aio.models
+    if model in _gemini_no_thinking_cfg:
+        levels = [None]
+    elif model in _gemini_thinking_level:
+        levels = [_gemini_thinking_level[model]]
+    else:
+        levels = list(_GEMINI_THINKING_ORDER)
+    for i, level in enumerate(levels):
+        try:
+            resp = await call_with_budget(
+                aio.generate_content(model=model, contents=parts, config=config(level)),
+                timeout_s)
+            _gemini_thinking_level[model] = level
+            break
+        except AIUnavailable as exc:
+            last = i == len(levels) - 1
+            if last or level is None or "thinking" not in str(exc).lower():
+                raise
+            usage.calls -= 1  # a rejected request is not billed
+            if levels[i + 1] is None:
+                _gemini_no_thinking_cfg.add(model)
     meta = getattr(resp, "usage_metadata", None)
     in_tok = getattr(meta, "prompt_token_count", 0) or 0
-    out_tok = getattr(meta, "candidates_token_count", 0) or 0
+    out_tok = (getattr(meta, "candidates_token_count", 0) or 0) + (
+        getattr(meta, "thoughts_token_count", 0) or 0)
     usage.add(model, in_tok, out_tok)
+    cands = getattr(resp, "candidates", None) or []
+    finish = getattr(getattr(cands[0], "finish_reason", None), "name", "") if cands else ""
+    if finish == "MAX_TOKENS":
+        raise AIInvalidOutput(f"{model}: output cut off at {max_output_tokens} tokens "
+                              f"(thinking tokens count against this limit)")
+    text = resp.text or ""
+    if not text.strip():
+        raise AIInvalidOutput(f"{model}: empty answer (finish reason {finish or 'unknown'})")
     try:
-        data = json.loads(resp.text or "")
+        data = json.loads(text)
     except json.JSONDecodeError as exc:
         raise map_error(exc) from exc
     return ImageJsonResult(data, model, in_tok, out_tok)
