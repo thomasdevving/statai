@@ -114,9 +114,18 @@ class Store(Protocol):
     async def get_session(self, session_id: str) -> Session | None: ...
     async def update_session(self, session_id: str, **fields: Any) -> Session | None: ...
     async def list_sessions(
-        self, *, active: bool | None = None, limit: int = 20, recipe_id: str | None = None
+        self,
+        *,
+        active: bool | None = None,
+        limit: int = 20,
+        recipe_id: str | None = None,
+        started_before: datetime | None = None,
     ) -> list[Session]:
-        """Most recent first."""
+        """Most recent first. started_before keeps only sessions started strictly earlier."""
+        ...
+
+    async def delete_session(self, session_id: str) -> bool:
+        """Deletes the session and its events (rows only; frames are blobs)."""
         ...
 
     async def append_event(self, event: Event) -> Event: ...

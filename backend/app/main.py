@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app import ai
 from app.auth import require_demo_key
 from app.config import get_settings
 from app.deps import get_store
@@ -42,10 +43,18 @@ def check_deploy_settings() -> None:
     )
     if on_railway:
         key = get_settings().demo_api_key.get_secret_value()
-        if not key.strip() or key == DEFAULT_DEMO_KEY:
+        if not key.strip() or key.strip() == DEFAULT_DEMO_KEY:
             raise RuntimeError(
                 "DEMO_API_KEY is unset or the default 'dev-key' on Railway: set a long random "
                 "DEMO_API_KEY in the service variables"
+            )
+    settings = get_settings()
+    if settings.storage == "supabase" and ai.ai_mode() == "gemini":
+        key = settings.demo_api_key.get_secret_value()
+        if not key.strip() or key.strip() == DEFAULT_DEMO_KEY:
+            raise RuntimeError(
+                "DEMO_API_KEY is unset or the default 'dev-key' with STORAGE=supabase and the "
+                "real AI (GHOSTCHEF_AI_FAKE=0): set a long random DEMO_API_KEY"
             )
 
 
@@ -61,6 +70,12 @@ async def _startup_sweep(store: Store) -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     check_deploy_settings()
     settings = get_settings()
+    if settings.fault_injection_on:
+        log.warning(
+            "FAULT INJECTION IS ENABLED (FAULT_INJECT=%r): requests with 'X-Fault: 1' get a "
+            "fake model failure. Never leave this on for the demo.",
+            settings.fault_inject,
+        )
     store = get_store()
     if settings.storage == "memory":
         await seed_fixture(store)
@@ -93,7 +108,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=origins,
         allow_methods=["*"],
-        allow_headers=["X-Demo-Key", "Content-Type"],
+        allow_headers=["X-Demo-Key", "Content-Type", "X-Fault"],
     )
 
     @app.middleware("http")

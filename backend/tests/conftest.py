@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 os.environ.setdefault("GHOSTCHEF_AI_FAKE", "1")
 os.environ.setdefault("GHOSTCHEF_AI_FAKE_DELAY", "0")
 
-from app import ai, metrics  # noqa: E402
+from app import ai, faults, metrics  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.deps import reset_store  # noqa: E402
 
@@ -90,6 +90,9 @@ def _env(tmp_path, monkeypatch) -> Iterator[None]:
     get_settings.cache_clear()
     reset_store()
     metrics.reset()
+    faults.reset()
+    monkeypatch.delenv("FAULT_INJECT", raising=False)
+    monkeypatch.delenv("FAULT_INJECT_ENABLED", raising=False)
     if ai.available():
         from ghostchef_ai import fake
 

@@ -10,7 +10,7 @@ from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 
-from app import ai, metrics, refcache
+from app import ai, faults, metrics, refcache
 from app.config import Settings, get_settings
 from app.deps import get_store
 from app.errors import ApiError, status_of
@@ -119,6 +119,14 @@ async def _handle(
         ctx["session_id"] = sid
         step_uuid = parse_uuid(_required(step_id, "step_id"), "step_id")
 
+        # After the ids (so the 429 carries request_id), before the in-flight claim, the store
+        # and the frame: nothing is read, decoded or called while the quota recovers.
+        if endpoint == "watch" and faults.watch_cooldown_active():
+            ctx["cooldown"] = True
+            raise ApiError(
+                429, "quota_exhausted", "watch paused while the model quota recovers", True, rid
+            )
+
         if endpoint == "watch" and sid is not None:
             if sid in _watch_inflight:
                 raise ApiError(429, "quota_exhausted", "watch already in flight", True, rid)
@@ -145,12 +153,21 @@ async def _handle(
         if endpoint == "check":
             ref = await refcache.get_ref_image(store, step)
             budget = settings.check_budget_s
-            call = g.check_frame(data, spec, ref, timeout_s=budget)
         else:
+            ref = None
             budget = settings.watch_budget_s
-            call = g.watch_frame(data, spec, timeout_s=budget)
         t0 = time.perf_counter()
-        result = await _with_budget(call, budget, rid)
+        try:
+            faults.raise_if_injected(request, settings, g)
+            if endpoint == "check":
+                call = g.check_frame(data, spec, ref, timeout_s=budget)
+            else:
+                call = g.watch_frame(data, spec, timeout_s=budget)
+            result = await _with_budget(call, budget, rid)
+        except g.AIQuotaError:
+            if endpoint == "watch":
+                faults.start_watch_cooldown()
+            raise
         latency_ms = round((time.perf_counter() - t0) * 1000)
 
         common = {

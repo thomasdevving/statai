@@ -12,7 +12,7 @@
 | 04 | Deploy to Railway + emergency mode | DONE | 2026-11-14 / `b72ce2d` | Production runs on Railway with `gemini` + `supabase`; smoke against production passed. Emergency laptop mode is **NOT REHEARSED** on a hotspot. Automatic deploys are off (owner). See BE-04 notes. |
 | 05 | Live token, monitor, session summary | DONE | 2026-11-14 / `ab84dc8`, production `fc21d115` | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) and, since AI-05 reached `main` (`96e105e`), mints a **real token locally** (2026-11-14: 200, `gemini-3.8-live`, `v1beta`, `locked: true`). Production redeployed at `b9b01bb` (deployment `fc21d115`); production smoke without `--allow-live-errors` exit 0 with `/live-token` 200. Deployed to production (`c151ee6`), production smoke exit 0 (with `--allow-live-errors`). See BE-05 notes. |
 | 06 | Ingestion pipeline with ffmpeg | PARTIAL | 2026-11-14 / `7a864cd`, production `0a5f8498` | BE-06.1–06.4 done and tested on fake AI + memory store with generated `testsrc` videos (ffmpeg 7.1.5). **BE-06.5 not run:** no chef video exists yet. Team decision (2026-11-14): build everything around generated video and the hand-written fixture now, and swap in the real take once it is recorded (then: BE-06.5 run, AI fixture update, production re-seed). Deployed to production (`0a5f8498`, commit `4892cc7`); production smoke exit 0 and `/health` shows `ffmpeg: true`. No ingestion has been run on production, so the Supabase streaming download is still tested only with a mocked HTTP layer. See BE-06 notes. |
-| 07 | Hardening and end-to-end | NOT STARTED | | |
+| 07 | Hardening and end-to-end | PARTIAL | 2026-11-14 | BE-07.1–07.5 done: watch quota cool-down, fault injection, security pass, recovery table (server rows), `cleanup.py`, `load_watch.py` run once on production. **BE-07.6 open** (owner): hotspot rehearsal, freeze tag, final smoke on the frozen commit. BE-07 code is **not deployed** yet; production still runs `0a5f8498` (BE-06). See BE-07 notes. |
 
 Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (defined in docs/PLAN.md §8).
 
@@ -59,6 +59,7 @@ The demo key is shared privately, never written here.
 | 2026-11-14 | `http://localhost:8040` (fake, memory), BE-06 code, `--fast` | exit 0, every status as expected; `/health` reports `"ffmpeg":true` | 750 / 751 (n=2) | 301 / 301 (n=6) |
 | 2026-11-14 | Supabase production project, re-seed only (no smoke): `STORAGE=supabase scripts/seed.py --publish --replace` after AI `cf93919` (fixture step 2: spread both slices) | exit 0. Recipe "Ham and cheese sandwich", 6 steps, published. Step 2 row read back from Supabase matches the fixture ("Spread" / "Thin layer, right to every edge"), ref image present. Old seed sessions and frames deleted by `--replace` | — | — |
 | 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `0a5f8498` = commit `4892cc7` (BE-06 code + re-seeded sandwich fixture), default fixture frame, `--fast`, without `--allow-live-errors` | exit 0, every status as expected; `/health` reports `"ffmpeg":true` | 1254 / 1667 (n=2) | 792 / 1346 (n=6) |
+| 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `0a5f8498` (BE-06 code), default fixture frame, `--fast`, after the BE-07.1 load run | OK, every status as expected | 962 / 1012 (n=2) | 717 / 845 (n=6) |
 Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not Gemini.
 
 ## Accounts (who holds them; no secrets here)
@@ -72,13 +73,15 @@ Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not
 
 | Test | Expected | Observed | Date |
 |---|---|---|---|
-| Model timeout forced | `504 model_timeout` | — | — |
-| Quota error forced | `429 quota_exhausted` | — | — |
-| Second `/watch` while one is in flight | `429`, retryable | — | — |
-| Oversized frame | `413` | — | — |
-| Non-JPEG frame | `415` | — | — |
-| Wrong demo key | `401` | — | — |
-| Supabase unreachable | `500 internal`, server stays up | — | — |
+| Model timeout forced | `504 model_timeout` | `FAULT_INJECT=timeout` + `X-Fault: 1`: `/check` and `/watch` → 504 `model_timeout`, `retryable: true`, request_id echoed; same requests without the header → 200. `CHECK_BUDGET_S=0.01` → `/check` 504 "model did not answer within 0.01 s" (with `WATCH_BUDGET_S=0.01` a fake-mode `/watch` still answered 200: the 0.5 s grace exceeds the 0.3 s fake delay) | 2026-11-14, local, fake AI, memory |
+| Quota error forced | `429 quota_exhausted` | `FAULT_INJECT=quota` + `X-Fault: 1`: `/check` and `/watch` → 429 `quota_exhausted`, retryable. The next `/watch` **without** the header → 429 "watch paused while the model quota recovers" (cool-down); `/check` without the header → 200 during the cool-down. `unavailable` → 503 `model_unavailable`. With `FAULT_INJECT_ENABLED` unset, `X-Fault: 1` is ignored (200) | 2026-11-14, local, fake AI, memory |
+| Second `/watch` while one is in flight | `429`, retryable | 4 parallel `/watch` on one session (fake delay 1.5 s): one 200, three 429 `quota_exhausted` "watch already in flight", retryable | 2026-11-14, local |
+| Oversized frame | `413` | `/check` 3 MB body → 413 `payload_too_large` at the guard (`request_id: null`, body not parsed yet, as documented); `/watch` 1.6 MB frame → 413 "frame is larger than 1.5 MB" with request_id | 2026-11-14, local |
+| Non-JPEG frame | `415` | PNG to `/check` and text to `/watch` → 415 `unsupported_media` "frame is not a readable JPEG" | 2026-11-14, local |
+| Wrong demo key | `401` | Local: wrong and missing key → 401 `unauthorized`. Production: `/recipes`, `/sessions`, `/live-token`, `/monitor` with no key and with `dev-key` → 401 | 2026-11-14, local + production |
+| Supabase unreachable | `500 internal`, server stays up | `STORAGE=supabase`, `SUPABASE_URL=http://127.0.0.1:9`: `/recipes`, `POST /sessions`, `/watch` → 500 `internal` "storage error"; server stayed up; startup sweep failure logged, boot not delayed. **Known limits:** each failing call takes ~7 s before the 500 (iOS client timeouts of 4 s / 10 s fire first), and `/health` stays 200 because it does not probe storage, so the phone will not show "Server unreachable" for a storage-only outage. No key appeared in the log | 2026-11-14, local, fake AI |
+
+Device-side recovery tests (EVALUATION §6: camera, glasses, airplane mode, backend stopped mid-check, app restart, Live drop, display) belong to iOS (`ios/STATUS.md`).
 
 ## BE-01 notes (2026-11-14)
 
@@ -306,6 +309,36 @@ Design notes:
 - **Review:** `PATCH /steps` keeps the source video in a local cache (10 min, at most 2 videos, purged on a timer and on shutdown) so several re-picks download once. A failed extraction leaves the old still and row untouched. A recipe with no source video (the seed) stores the new timestamp without re-extracting (owner's decision).
 - **Known, accepted:** a `/process` arriving at the exact moment a recipe crosses the 2-hour upload expiry can be marked `failed` briefly while its job runs (same race as before BE-06; the signed upload URL also expires at 2 h). Memory-mode still URLs do not change after a re-pick, so a browser may show the cached old image until reload.
 
+## BE-07 notes (2026-11-14)
+
+Run in this session and seen unless stated. The code was written by the implementor agent and reviewed by the security-tester agent (round 1: no high or medium findings, four lows; lows 1 and 3 fixed by me, re-verified clean; lows 2 and 4 accepted below). I re-ran every check myself.
+
+- **Verification:** `ruff check .` clean; `pytest -q` → 274 passed, 4 skipped. `RUN_SUPABASE_TESTS=1 pytest -q tests/test_supabase_integration.py` → 4 passed (live Supabase, includes the new `list_sessions(started_before)` / `delete_session`; each test cleans up). Production smoke: table above.
+- **BE-07.1 load check, run once against production** (deployment `0a5f8498`, real Gemini, Supabase), `load_watch.py --sessions 2 --minutes 3`, default fixture frame `ai/fixtures/images/step-3.jpg` (no real chef frame exists yet). Rate limits from `ai/STATUS.md`: watch/check model 30K RPM; the run sent ~104 calls.
+  - Client view: `/watch` 86 responses (85×200, 1 client `ReadTimeout`), **58 skipped ticks**, p50 / p90 / max 1473 / 5012 / 29800 ms; `/check` 18×200, p50 / p90 / max 2144 / 19056 / 21748 ms. **0 × 429, 0 × 5xx.** The script exited 1 because of the one transport error.
+  - Server view (Railway call logs, model time only): 103 calls all 200; `/watch` p50 / p90 / max 728 / 937 / 1188 ms, `/check` 1032 / 1443 / 1455 ms. Railway's proxy shows the long requests (9.8 s, 19–20 s, 28 s) arriving after gaps in which **both** sessions sent nothing, then one 499 (client closed).
+  - Cause, as far as measured: this laptop's network. A 60 s ping to 1.1.1.1 right after gave avg 1020 ms, max 3432 ms, 1.7 % loss (venue Wi-Fi). Server and model were fast throughout. Not proven: a server-side stall would look similar from the proxy log; to rule it out, repeat on a good network (not done; you asked for one production run).
+  - Consequence for the team: **no quota problem at two sessions.** The venue Wi-Fi, not the server, is the latency risk: rehearse on the hotspot (07.6) and expect the watcher's 4 s client timeout to fire on bad Wi-Fi.
+- **BE-07.2:** `app/faults.py`. Cool-down: an `AIQuotaError` from the `/watch` model call sets a 10 s monotonic deadline; inside it `/watch` answers 429 `quota_exhausted` (retryable, request_id echoed, call log `cooldown: true`) before the in-flight claim, frame decode and model. `/check` never blocked; a `/check` quota error does not start it. Fault injection: `FAULT_INJECT=timeout|quota|unavailable`, active only with `FAULT_INJECT_ENABLED=1` **and** header `X-Fault: 1`; covers `/check`, `/watch`, `/live-token` (a failed mint still frees the 3 s window). WARNING logged at startup when on. Not blocked on Railway by design; it is **not** set on production. Tests: `tests/test_be07_faults.py` (24).
+- **BE-07.3 security pass:**
+  - [x] Only `/health`, `/local-files/*`, `/local-upload/*` (memory mode only, upload token-checked), `/sessions/{id}/latest-frame.jpg` (token) and `/app/*` are open: `test_every_route_but_the_open_ones_needs_the_key` walks every route and method (no key, wrong key, empty key → 401) and `test_open_routes_are_exactly_the_documented_ones`; production probes above.
+  - [x] `DEMO_API_KEY` on production is not `dev-key`: `dev-key` → 401 on production. New refusal: the server will not start with an empty, `dev-key` or padded `" dev-key "` key when `STORAGE=supabase` and real AI (any host), in addition to the Railway rule. Tests in `tests/test_deploy_settings.py`. (Takes effect on production at the next deploy.)
+  - [x] `CORS_ORIGINS` on production is not `*`: preflight from `https://evil.example` → 400 "Disallowed CORS origin"; from the production origin → 200.
+  - [x] No path traversal in `/local-files`: 15 variants (`..`, `%2e%2e`, `%2F`, backslash, `%5C`, absolute, NUL, dotfiles, unknown bucket) → 404/422, symlink escape refused, a valid upload token cannot write another path (`tests/test_be07_security.py`).
+  - [x] Logs: production Railway log sample (all deploy logs filtered for token/key/sig/AIza/eyJ/sb_secret, and for `latest-frame`, `token=`, `X-Demo-Key`) shows only source lines naming variables, `?t=***` on latest-frame URLs, and the live-token line with recipe/model/locked/expiry. New safety net: every JSON log message and traceback goes through `redact()` (query secrets, `AIza…`, JWTs, the configured keys). Known gap (accepted): a header-style `apikey: value` or an unconfigured `sb_secret_…` in exception text is masked only if it equals a configured key.
+  - [x] Video limits: `videos` bucket read from `storage.buckets`: private, 524288000 bytes, `{video/mp4}`. Ingestion size check while streaming and `ffprobe` before `extract_recipe` (`app/jobs/ingest.py`, BE-06 tests). `PUT /local-upload` streams with a cap and refuses wrong/reused tokens (`tests/test_local_routes.py`).
+  - [x] Signed upload URL scoped: created one for `videos/<new id>/source.mp4` on the real project; the same token on another recipe's path, another file name, a `..` path and the `frames` bucket → 400 `InvalidSignature`; own path → 200. Test object removed.
+  - [x] `git log -p --all` scanned for `AIza…`, `sk-…`, JWTs, `sb_secret_`/`sb_publishable_`: only test placeholders (`sb_secret_x`, `sb_secret_dontlog`). The loose task grep only matches prose ("task-specific", `mask-image`).
+  - [x] Publishable (anon) key: `rest/v1` `recipes`, `steps`, `sessions`, `session_events` → `200 []`; insert → 401; storage `list` on all three buckets → `[]`; object GET → 400.
+- **BE-07.5:** `scripts/cleanup.py` (dry run unless `--yes`; sessions older than `--hours` with events and frames, blobs first; `failed` recipes via `purge_recipe`; the seeded recipe is never deleted, its old sessions are). Dry run on Supabase listed 4 sessions (all test data from today) and 0 failed recipes; **nothing deleted yet**: run `STORAGE=supabase python scripts/cleanup.py --hours 1 --yes` just before the final rehearsal. Memory mode: rows live only in the server process, so it cleans only stale `.data/frames/<session>` folders (dry run seen). `--yes` is covered by tests and the live Supabase test, not run by hand on production. Known limit: PostgREST caps one listing at 1000 rows, so a bigger backlog needs repeated runs.
+- **What footage and frames exist (for the consent and retention answer), Supabase production, 2026-11-14:** `videos`: 0 objects (no chef video has ever been uploaded). `media`: 6 objects, 281 kB, the fixture's reference stills (placeholder images, no people). `frames`: 2 objects, 96 kB, from a smoke run (the fixture image). The load run and smoke stored check frames too, all the same fixture image. Tables: 1 recipe (published seed), 4 sessions. No frame of a real person is stored yet. Frames are stored only for `/check` and `watch_warn`; deleting a recipe deletes its sessions and frames; `cleanup.py` removes old sessions.
+
+To finish BE-07 (owner, BE-07.6):
+1. Deploy the BE-07 commit to production (pin the commit as for BE-05/06), `/health`, smoke with a real frame. Make sure `FAULT_INJECT*` is not set.
+2. Run `cleanup.py --yes` before the final rehearsal.
+3. Rehearse emergency mode on the hotspot with a phone.
+4. Tag the demo commit, tell the team the hash, record it here with the last smoke run.
+
 ## Needs from other tracks
 
 - **AI (D-19):** the sandwich fixture is in and seeded on production. Still needed: real reference stills and narration from the expert take (AI-03.5); tell the backend owner so production is re-seeded.
@@ -315,4 +348,5 @@ Design notes:
 - **Docs (§9, additive, from BE-06):** the contract does not yet list (1) the `ffmpeg: true|false` field on `GET /health`, (2) `DELETE /recipes/{id}?force=true` and the `409 recipe_not_ready` returned for the seeded demo recipe without it, (3) clips capped at 6 s by BE-06 while §2 says `clip_url` is 3–5 s. Needs a contract changelog entry by the owner.
 - **AI (AI-03.1):** the expert sandwich take, so BE-06.5 (real ingestion run, a human looking at the stills) can be done.
 - **Web (WEB-02):** the review page can now be tested end to end against a local server (memory store): upload, poll to `review`, re-pick a frame with `PATCH /steps`, publish.
+- **iOS (IOS-07):** BE-07.1 showed long client-side stalls on the venue Wi-Fi (server and model fast). Please confirm the watcher's 4 s timeout + skip-tick behaviour and the check's 10 s timeout/retry are in place (ARCHITECTURE §6). Also: a storage-only outage gives `500 internal` after ~7 s while `/health` stays 200, so treat repeated 500s as "server problem" too.
 - **iOS (IOS-01.2):** emergency mode serves plain `http://<lan-ip>:8000`. The app needs local-network permission and an App Transport Security exception for HTTP to reach it (see README → "Emergency mode").

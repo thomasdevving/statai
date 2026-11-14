@@ -164,3 +164,23 @@ async def test_signed_upload_round_trip(store_and_recipe):
         other["upload_url"], content=b"text", headers={"Content-Type": "text/plain"}, timeout=60
     )
     assert r.status_code >= 400
+
+
+async def test_started_before_and_delete_session(store_and_recipe):
+    from datetime import timedelta
+
+    from app.store.base import utcnow
+
+    store, rid = store_and_recipe
+    await store.create_recipe(Recipe(id=rid, title="it-cleanup", status="review"))
+    old = await store.create_session(
+        Session(recipe_id=rid, client="web-sim", started_at=utcnow() - timedelta(hours=9))
+    )
+    new = await store.create_session(Session(recipe_id=rid, client="web-sim"))
+    await store.append_event(Event(session_id=old.id, kind="step_change"))
+    found = await store.list_sessions(recipe_id=rid, started_before=utcnow() - timedelta(hours=6))
+    assert [s.id for s in found] == [old.id]
+    assert await store.delete_session(old.id) is True
+    assert await store.delete_session(old.id) is False
+    assert await store.list_events(old.id) == []
+    assert await store.get_session(new.id) is not None

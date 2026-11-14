@@ -123,9 +123,16 @@ class MemoryStore:
         return copy.deepcopy(self._sessions[session_id])
 
     async def list_sessions(
-        self, *, active: bool | None = None, limit: int = 20, recipe_id: str | None = None
+        self,
+        *,
+        active: bool | None = None,
+        limit: int = 20,
+        recipe_id: str | None = None,
+        started_before: datetime | None = None,
     ) -> list[Session]:
         rows = list(self._sessions.values())
+        if started_before is not None:
+            rows = [s for s in rows if s.started_at < started_before]
         if active is True:
             rows = [s for s in rows if s.finished_at is None]
         elif active is False:
@@ -134,6 +141,12 @@ class MemoryStore:
             rows = [s for s in rows if s.recipe_id == recipe_id]
         rows.sort(key=lambda s: s.started_at, reverse=True)
         return [copy.deepcopy(s) for s in rows[: max(limit, 0)]]
+
+    async def delete_session(self, session_id: str) -> bool:
+        if self._sessions.pop(session_id, None) is None:
+            return False
+        self._events.pop(session_id, None)
+        return True
 
     async def append_event(self, event: Event) -> Event:
         if event.session_id not in self._sessions:

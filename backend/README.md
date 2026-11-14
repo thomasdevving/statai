@@ -93,6 +93,34 @@ Every variable is read in `app/config.py` and listed in `.env.example`.
 | `CORS_ORIGINS` | `*` | Comma-separated origins; restrict in production |
 | `WEB_DIR` | `../web` | Static web app, mounted at `/app/` when the directory exists |
 | `PUBLIC_BASE_URL` | derived from the request | Used to build local file URLs in memory mode |
+| `FAULT_INJECT` | empty | `timeout`, `quota` or `unavailable`: the failure to rehearse (see below). Anything else fails at startup |
+| `FAULT_INJECT_ENABLED` | empty | Must be exactly `1` for fault injection to do anything. **Never set in production for the demo** |
+
+### Startup refusals
+
+The server refuses to start (`check_deploy_settings`) with `DEMO_API_KEY` unset or `dev-key` on Railway, and also with `STORAGE=supabase` and the real AI (`GHOSTCHEF_AI_FAKE=0`) anywhere.
+
+### Quota cool-down (BE-07.2)
+
+When the model answers `/watch` with a quota error, the process stops calling the model for `/watch` for 10 s: every `/watch` in that window answers `429 quota_exhausted` (`retryable: true`, the client's `request_id`) immediately, with `"cooldown": true` in its call log line. The check runs after `request_id` / `step_id` parsing (so a malformed request still gets `422`) and before the in-flight claim, the frame and the model. Only a quota error from `/watch` starts it; `/check` is never blocked by it and a quota error from `/check` does not start it. The state is per process (one worker), kept in `app/faults.py` (`WATCH_COOLDOWN_S`).
+
+### Rehearsing failures (fault injection)
+
+With `FAULT_INJECT=timeout|quota|unavailable` **and** `FAULT_INJECT_ENABLED=1`, a `/check`, `/watch` or `/live-token` request that carries the header `X-Fault: 1` fails with that error instead of calling the model: `504 model_timeout`, `429 quota_exhausted` (on `/watch` this also starts the cool-down) or `503 model_unavailable`. Requests without the header are untouched. Without `FAULT_INJECT_ENABLED=1` the header is ignored. The server logs a WARNING at startup when it is enabled. `X-Fault` is in the CORS allowed headers so the web app can send it. It is deliberately **not** blocked on Railway (the recovery tests in BE-07.4 are run against the deployed server): switch it on for the test, remove both variables afterwards, and never during the demo.
+
+```bash
+FAULT_INJECT=quota FAULT_INJECT_ENABLED=1 uvicorn app.main:app
+curl -H 'X-Demo-Key: dev-key' -H 'X-Fault: 1' -F step_id=... -F request_id=$(uuidgen) -F frame=@f.jpg localhost:8000/watch
+```
+
+## Scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/seed.py` | Seed the demo recipe (see above) |
+| `scripts/smoke.py` | End-to-end smoke test of every endpoint |
+| `scripts/load_watch.py` | Watcher-cadence load check (BE-07.1): `--sessions 2 --minutes 3 --frame x.jpg`. Per session: a `/watch` on a fixed 2.5 s grid (a tick is skipped and counted if the previous `/watch` of that session is still running), a `/check` every 20 s, then `session_end`. Prints status counts, error codes, p50 / p90 / max client latency, 429s and skipped ticks; exits 1 on any 5xx or transport error. It sends real frames: against production with real Gemini it spends quota, run it once and not right before the demo |
+| `scripts/cleanup.py` | Data hygiene (BE-07.5): `--hours 6` (default), dry run unless `--yes`. Deletes sessions older than N hours with their events and `frames/<session>/` blobs, and `failed` recipes (blobs first). Never deletes the seeded recipe; its old sessions are cleaned. With `STORAGE=supabase` it works on the real project (put the service key in `backend/.env`). With `STORAGE=memory` the rows live only inside the running server, so the script can only remove stale `DATA_DIR/frames/<session>` folders and says so |
 
 ## Docker image
 

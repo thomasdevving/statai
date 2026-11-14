@@ -16,9 +16,10 @@ import time
 from collections import OrderedDict
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
-from app import ai
+from app import ai, faults
+from app.config import Settings, get_settings
 from app.deps import get_store
 from app.errors import ApiError
 from app.schemas import LiveConfigOut, LiveTokenOut
@@ -102,6 +103,8 @@ def reset() -> None:
 
 @router.get("/live-token", response_model=LiveTokenOut)
 async def live_token(
+    request: Request,
+    settings: Annotated[Settings, Depends(get_settings)],
     store: Annotated[Store, Depends(get_store)],
     recipe_id: Annotated[str, Query()],
     session_id: Annotated[str | None, Query()] = None,
@@ -116,6 +119,7 @@ async def live_token(
     if session is not None:
         stamp = _claim_guard(session.id)
     try:
+        faults.raise_if_injected(request, settings, ai.get())
         token = await ai.get().mint_live_token(config)
     except BaseException:
         # A failed mint (Gemini error, timeout) does not hold the window: the client's

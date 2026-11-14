@@ -12,7 +12,7 @@ import httpx
 import pytest
 from PIL import Image
 
-from app import metrics, refcache
+from app import faults, metrics, refcache
 from app.config import get_settings
 from app.deps import get_store
 from app.media import images
@@ -434,7 +434,8 @@ def test_quota_error_on_watch_gives_429(client, auth, monkeypatch):
     assert r.status_code == 429
     assert r.json()["error"]["code"] == "quota_exhausted"
     assert r.json()["error"]["retryable"] is True
-    # flag cleared after an error too
+    # flag cleared after an error too (the BE-07 cool-down would otherwise hold the next watch)
+    faults.reset()
     monkeypatch.undo()
     monkeypatch.setenv("DEMO_API_KEY", KEY)
     get_settings.cache_clear()

@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     signed_url_ttl_s: int = Field(default=7200, gt=0)
     max_video_mb: int = Field(default=500, gt=0)
     cors_origins: str = "*"
+    # Failure rehearsal (BE-07.2): active only with FAULT_INJECT_ENABLED=1 and a request header.
+    fault_inject: Literal["", "timeout", "quota", "unavailable"] = ""
+    fault_inject_enabled: str = ""
     web_dir: Path = Path("../web")
     public_base_url: str | None = None
 
@@ -43,12 +46,21 @@ class Settings(BaseSettings):
             return None
         return v
 
+    @field_validator("fault_inject", mode="before")
+    @classmethod
+    def _fault_normalised(cls, v: object) -> object:
+        return v.strip() if isinstance(v, str) else v
+
     @field_validator("supabase_service_key", "gemini_api_key", mode="before")
     @classmethod
     def _empty_secret_to_none(cls, v: object) -> object:
         if isinstance(v, str) and not v.strip():
             return None
         return v
+
+    @property
+    def fault_injection_on(self) -> bool:
+        return self.fault_inject_enabled.strip() == "1"
 
     @property
     def cors_origin_list(self) -> list[str]:

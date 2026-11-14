@@ -16,7 +16,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import fields as dc_fields
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, TypeVar
 from urllib.parse import urlparse
@@ -381,7 +381,12 @@ class SupabaseStore:
         return _session(rows[0]) if rows else None
 
     async def list_sessions(
-        self, *, active: bool | None = None, limit: int = 20, recipe_id: str | None = None
+        self,
+        *,
+        active: bool | None = None,
+        limit: int = 20,
+        recipe_id: str | None = None,
+        started_before: datetime | None = None,
     ) -> list[Session]:
         if limit <= 0 or (recipe_id is not None and not _is_uuid(recipe_id)):
             return []
@@ -394,10 +399,24 @@ class SupabaseStore:
                 b = b.not_.is_("finished_at", "null")
             if recipe_id is not None:
                 b = b.eq("recipe_id", recipe_id)
+            if started_before is not None:
+                # "Z", not "+00:00": a plus sign in a query string can be read as a space.
+                cutoff = started_before.astimezone(UTC).isoformat().replace("+00:00", "Z")
+                b = b.lt("started_at", cutoff)
             # PostgREST caps a response at its max-rows setting (1000 by default).
             return b.order("started_at", desc=True).limit(limit).execute().data
 
         return [_session(r) for r in await self._run("list_sessions", q)]
+
+    async def delete_session(self, session_id: str) -> bool:
+        """Rows only: the session's events go with `on delete cascade`."""
+        if not _is_uuid(session_id):
+            return False
+        rows = await self._run(
+            "delete_session",
+            lambda: self._table("sessions").delete().eq("id", session_id).execute().data,
+        )
+        return bool(rows)
 
     async def append_event(self, event: Event) -> Event:
         if not _is_uuid(event.session_id):

@@ -16,6 +16,42 @@ CALL_LOGGER = "ghostchef.calls"
 _call_log = logging.getLogger(CALL_LOGGER)
 
 _SECRET_QUERY = re.compile(r"([?&](?:t|token)=)[^&\s]*")
+# Safety net for every JSON log line (message and traceback): query secrets in any URL an
+# exception text may carry, Google API keys, and JWTs (Supabase keys and signed-URL tokens).
+_LINE_SECRETS = [
+    (
+        re.compile(
+            r"((?:[?&]t|(?:[?&]|\b)(?:token|signature|sig|apikey|api_key|key))=)[^&\s'\"]+",
+            re.I,
+        ),
+        r"\1***",
+    ),
+    (re.compile(r"AIza[0-9A-Za-z_-]{20,}"), "***"),
+    (re.compile(r"eyJ[0-9A-Za-z_-]{8,}\.[0-9A-Za-z_-]{8,}\.[0-9A-Za-z_-]{8,}"), "***"),
+]
+
+
+def _configured_secrets() -> list[str]:
+    from app.config import get_settings
+
+    try:
+        s = get_settings()
+        values = [
+            s.demo_api_key.get_secret_value(),
+            s.gemini_api_key.get_secret_value() if s.gemini_api_key else "",
+            s.supabase_service_key.get_secret_value() if s.supabase_service_key else "",
+        ]
+    except Exception:  # noqa: BLE001 - logging must never fail
+        return []
+    return [v for v in values if len(v) >= 8]
+
+
+def redact(text: str) -> str:
+    for pattern, repl in _LINE_SECRETS:
+        text = pattern.sub(repl, text)
+    for secret in _configured_secrets():
+        text = text.replace(secret, "***")
+    return text
 
 
 class JsonFormatter(logging.Formatter):
@@ -24,13 +60,13 @@ class JsonFormatter(logging.Formatter):
             "ts": datetime.fromtimestamp(record.created, UTC).isoformat(timespec="milliseconds"),
             "level": record.levelname,
             "logger": record.name,
-            "msg": record.getMessage(),
+            "msg": redact(record.getMessage()),
         }
         fields = getattr(record, "fields", None)
         if isinstance(fields, dict):
             line.update(fields)
         if record.exc_info:
-            line["exc"] = self.formatException(record.exc_info)
+            line["exc"] = redact(self.formatException(record.exc_info))
         return json.dumps(line, default=str)
 
 
