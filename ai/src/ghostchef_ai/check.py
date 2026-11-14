@@ -43,6 +43,7 @@ PASS_HEADLINE = "Looks right"
 PASS_SPOKEN = "That looks right. On to the next step."
 FIX_HEADLINE = "Not quite right"
 FIX_FIX = "Compare with the chef's photo"
+FIX_FIX_NO_REF = "Check the step's key line"
 UNSURE_HEADLINE = "Can't tell"
 UNSURE_FIX = "Hold still and look straight at it"
 UNSURE_SPOKEN = ("I can't tell from this view. Hold still, look straight at your work, and "
@@ -115,7 +116,8 @@ def _spoken_from(headline: str, fix: str) -> str:
     return ". ".join(parts) + "." if parts else ""
 
 
-def postprocess(raw: RawCheck, step: StepSpec, model: str) -> CheckResult:
+def postprocess(raw: RawCheck, step: StepSpec, model: str, *,
+                has_ref: bool = True) -> CheckResult:
     """Apply AI-04.2's post-processing rules, in the task's order."""
     verdict = raw.verdict
     headline, fix, spoken = raw.headline.strip(), raw.fix.strip(), raw.spoken.strip()
@@ -135,7 +137,7 @@ def postprocess(raw: RawCheck, step: StepSpec, model: str) -> CheckResult:
         spoken = spoken or PASS_SPOKEN
     elif verdict == "fix":
         headline = headline or FIX_HEADLINE
-        fix = fix or FIX_FIX
+        fix = fix or (FIX_FIX if has_ref else FIX_FIX_NO_REF)
     else:
         headline = headline or UNSURE_HEADLINE
         fix = fix or UNSURE_FIX
@@ -205,7 +207,7 @@ async def run_check(frame_jpeg: bytes, step: StepSpec, ref_image_jpeg: bytes | N
         except Exception as exc:  # noqa: BLE001 — includes asyncio.TimeoutError
             raise client.map_error(exc) from exc
     latency_ms = round((time.perf_counter() - start) * 1000)
-    result = postprocess(raw, step, model)
+    result = postprocess(raw, step, model, has_ref=ref_image_jpeg is not None)
     log.info("check_frame step=%s verdict=%s->%s mistake=%s conf=%.2f %d ms evidence=%r",
              step.idx, raw.verdict, result.verdict, result.mistake_id, result.confidence,
              latency_ms, raw.evidence)

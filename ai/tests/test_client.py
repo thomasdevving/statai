@@ -105,7 +105,7 @@ def test_provider_switch_and_defaults(monkeypatch):
     assert config.max_calls() == 300
     assert config.model_ids()["live"] == "unsupported-on-openai"
     monkeypatch.setenv("GHOSTCHEF_PROVIDER", "anthropic")
-    with pytest.raises(ValueError):
+    with pytest.raises(AIUnavailable):
         config.provider()
 
 
@@ -261,3 +261,13 @@ async def test_gemini_bad_outputs_are_invalid(monkeypatch, text, finish, needle)
     _stub_gemini(monkeypatch, StubGemini(text=text, finish=finish))
     with pytest.raises(AIInvalidOutput, match=needle):
         await _call()
+
+
+def test_server_side_504_is_a_timeout():
+    assert isinstance(client.map_error(ClientError(504, "DEADLINE_EXCEEDED")), AITimeout)
+
+
+def test_bad_max_calls_is_an_ai_error(monkeypatch):
+    monkeypatch.setenv("GHOSTCHEF_MAX_CALLS", "lots")
+    with pytest.raises(AIUnavailable, match="whole number"):
+        config.max_calls()

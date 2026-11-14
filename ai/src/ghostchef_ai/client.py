@@ -108,6 +108,8 @@ def map_error(exc: BaseException) -> AIError:
     ):
         return AIInvalidOutput(f"model output did not match the schema ({name}: {exc})"[:500])
     status = _status_of(exc)
+    if status == 504 or "DEADLINE_EXCEEDED" in str(exc):
+        return AITimeout(f"model timed out on the server ({name})")
     if status == 429 or name == "RateLimitError" or "RESOURCE_EXHAUSTED" in str(exc):
         return AIQuotaError(f"rate limit or quota exhausted ({name})")
     msg = str(exc).splitlines()[0][:300] if str(exc) else ""

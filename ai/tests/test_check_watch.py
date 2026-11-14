@@ -332,3 +332,12 @@ def test_render_rejects_wrong_keys():
         prompts.render("extract", TITLE_HINT="x")
     with pytest.raises(KeyError):
         prompts.render("extract", TITLE_HINT="x", STEP_MARKS="y", EXTRA="z")
+
+
+def test_default_fix_hint_does_not_mention_a_missing_reference(recipe):
+    s3 = recipe.step(3)  # no watch_fors, so the model's empty fix gets the default hint
+    with_ref = check.postprocess(check.RawCheck(verdict="fix", confidence=0.9), s3, "m")
+    no_ref = check.postprocess(check.RawCheck(verdict="fix", confidence=0.9), s3, "m",
+                               has_ref=False)
+    assert "chef's photo" in with_ref.fix
+    assert "photo" not in no_ref.fix and no_ref.fix == check.FIX_FIX_NO_REF

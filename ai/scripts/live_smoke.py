@@ -2,7 +2,7 @@
 
     python scripts/live_smoke.py                       # 1 attempt + protocol extras
     python scripts/live_smoke.py --attempts 5          # ratios for the silence rules
-    python scripts/live_smoke.py --question-wav footage/live-smoke/question-wet-hands-16k.wav
+    python scripts/live_smoke.py --question-wav footage/live-smoke/question-spread-edges-16k.wav
 
 Each attempt: build the config from the fixture, mint a real token with
 ghostchef_ai.mint_live_token (needs GEMINI_API_KEY, fake mode off), open the Live WebSocket with
@@ -41,6 +41,11 @@ from ghostchef_ai.live import LIVE_API_VERSION, SILENT_FUNCTIONS  # noqa: E402
 from ghostchef_ai.schemas import RecipeDraft  # noqa: E402
 
 load_env()
+
+# Demo beat 6 and the words a grounded answer uses (the placeholder narration says the spread
+# goes to the edges "so every bite has flavour and the filling has something to stick to").
+DEMO_QUESTION = "Why spread it to the edges?"
+GROUNDED_WORDS = ("flavour", "flavor", "bite", "stick")
 
 HOST = "wss://generativelanguage.googleapis.com"
 PATH = (f"/ws/google.ai.generativelanguage.{LIVE_API_VERSION}"
@@ -197,7 +202,8 @@ async def open_session(token: str, model: str, log_dir: Path, *, query: bool = F
     try:
         ws = await connect(url, additional_headers=headers, max_size=None)
     except Exception as exc:  # noqa: BLE001
-        return None, f"connect failed: {type(exc).__name__}: {str(exc)[:160]}", 0
+        detail = str(exc).replace(token, "<token>")[:160]  # the URL may hold the token
+        return None, f"connect failed: {type(exc).__name__}: {detail}", 0
     live = Live(ws, log_dir)
     await live.send({"setup": setup})
     try:
@@ -282,11 +288,12 @@ async def run_attempt(n: int, recipe: RecipeDraft, out: Path, rep: Report, wav: 
     rep.add(n, "[CONTEXT] turnComplete=false -> silence", silent(t) and not t.tool_calls,
             show(t))
 
-    await live.text("Why do I wet my hands?")
+    # The demo question (DEMO-AND-SUBMISSION §2 beat 6): answered from the chef's narration.
+    await live.text(DEMO_QUESTION)
     t = await live.collect(ANSWER_WAIT_S)
-    save_wav(d / "2-why-wet-hands.wav", bytes(t.audio))
-    grounded = "stick" in t.transcript.lower()
-    rep.add(n, "why wet hands -> grounded answer", bool(t.audio) and grounded and not t.tool_calls,
+    save_wav(d / "2-demo-question.wav", bytes(t.audio))
+    grounded = any(w in t.transcript.lower() for w in GROUNDED_WORDS)
+    rep.add(n, "demo question -> grounded answer", bool(t.audio) and grounded and not t.tool_calls,
             show(t))
 
     await live.text("Is this right?")
@@ -331,8 +338,11 @@ async def run_attempt(n: int, recipe: RecipeDraft, out: Path, rep: Report, wav: 
                                        ANSWER_WAIT_S)
         save_wav(d / "5-repeat.wav", bytes(after.audio))
         said = after.transcript.lower()
-        read = bool(after.audio) and any(w in said for w in (
-            "centimetre", "centimeter", "2 cm", "thin"))
+        # Read aloud = most of the instruction's longer words are in the transcript (works for
+        # any recipe; the old fixed keywords were sushi-specific).
+        words = {w.strip(".,;:!?'\"").lower() for w in s3.instruction.split() if len(w) > 4}
+        hits = sum(1 for w in words if w in said)
+        read = bool(after.audio) and bool(words) and hits >= max(1, len(words) // 2)
         rep.add(n, "instruction read aloud", read, show(after))
 
     await live.text("How long do I boil an egg?")
@@ -414,7 +424,7 @@ async def protocol_extras(n: int, token: str, model: str, handle: str | None, re
     detail = f"{why} in {ms:.0f} ms"
     ok = live is not None
     if live:
-        await live.text("Why do I wet my hands?")
+        await live.text(DEMO_QUESTION)
         t = await live.collect(ANSWER_WAIT_S)
         detail += f"; {show(t)}"
         ok = ok and bool(t.audio)

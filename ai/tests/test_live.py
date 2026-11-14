@@ -185,11 +185,13 @@ async def test_bad_token_name_is_rejected(stub, recipe):
     tokens = _FakeTokens()
 
     async def create(*, config):
-        return SimpleNamespace(name="weird/1", expire_time=None, new_session_expire_time=None)
+        return SimpleNamespace(name="secret-token-value", expire_time=None,
+                               new_session_expire_time=None)
     tokens.create = create
     stub(tokens)
-    with pytest.raises(gc.AIUnavailable, match="prefix"):
+    with pytest.raises(gc.AIUnavailable, match="name format") as info:
         await gc.mint_live_token(_cfg(recipe))
+    assert "secret-token-value" not in str(info.value)  # never echo a token
 
 
 async def test_missing_key_is_unavailable(monkeypatch, recipe):

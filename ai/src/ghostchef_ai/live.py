@@ -204,7 +204,8 @@ async def mint_live_token(live_config: LiveConfig) -> LiveToken:
         tok = await _create(partial_setup(live_config), now)
     name = getattr(tok, "name", None) or ""
     if not name.startswith("auth_tokens/"):
-        raise AIUnavailable(f"unexpected ephemeral token name prefix {name.split('/')[0]!r}")
+        # Never echo the value: it may be the token itself.
+        raise AIUnavailable("unexpected ephemeral token name format (expected auth_tokens/…)")
     return LiveToken(
         token=name,
         expires_at=_as_dt(getattr(tok, "expire_time", None), now + TOKEN_LIFETIME),

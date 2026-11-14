@@ -7,6 +7,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from ghostchef_ai.errors import AIUnavailable
+
 # The package itself reads no .env file on import (API-CONTRACT §7: environment variables
 # only). The old upward search let any program that imported the package pick up ai/.env,
 # i.e. a real key with fake mode off. Command-line entry points call load_env() explicitly.
@@ -55,7 +57,8 @@ def provider() -> str:
     """'gemini' (the product) or 'openai' (temporary dev stand-in). GHOSTCHEF_PROVIDER."""
     p = os.environ.get("GHOSTCHEF_PROVIDER", "gemini").strip().lower()
     if p not in _PROVIDERS:
-        raise ValueError(f"GHOSTCHEF_PROVIDER must be one of {sorted(_PROVIDERS)}, got {p!r}")
+        raise AIUnavailable(
+            f"GHOSTCHEF_PROVIDER must be one of {sorted(_PROVIDERS)}, got {p!r}")
     return p
 
 
@@ -70,7 +73,11 @@ def max_calls() -> int:
     """GHOSTCHEF_MAX_CALLS, else the provider default (OpenAI 300, Gemini unlimited)."""
     raw = os.environ.get("GHOSTCHEF_MAX_CALLS")
     if raw:
-        return max(0, int(raw))
+        try:
+            return max(0, int(raw))
+        except ValueError as exc:
+            raise AIUnavailable(
+                f"GHOSTCHEF_MAX_CALLS must be a whole number, got {raw!r}") from exc
     return _DEFAULT_MAX_CALLS[provider()]
 
 
