@@ -285,7 +285,7 @@ struct WatcherLoopTests {
         loop.stop()
     }
 
-    @Test func retryable429SkipsATickWithoutCountingAsAnError() async throws {
+    @Test func retryable429BacksOffTenSecondsWithoutCountingAsAnError() async throws {
         let busy = APIError(status: 429, code: .quotaExhausted, message: "busy", retryable: true)
         await api.enqueueWatch(.failure(busy), .failure(busy), .failure(busy), .failure(busy))
         loop.start()
@@ -293,6 +293,10 @@ struct WatcherLoopTests {
             await eventually("call \(n)") { await calls() == n }
             await waitForIntervalTimer()
             clock.advance(by: .milliseconds(2500))
+            await settle()
+            #expect(await calls() == n, "no call 2.5 s after a 429 (IOS-07.3: back off 10 s)")
+            await waitForIntervalTimer()
+            clock.advance(by: .milliseconds(7500))
         }
         await eventually("call 5") { await calls() == 5 }
         #expect(loop.pausedUntil == nil)

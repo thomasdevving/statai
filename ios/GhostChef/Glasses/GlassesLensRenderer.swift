@@ -21,6 +21,7 @@ final class GlassesLensRenderer {
     private var running = false
     private var failures = 0
     private(set) var gaveUp = false
+    private var lastDisplayState: String?
 
     static let maxFailures = 3
 
@@ -54,12 +55,21 @@ final class GlassesLensRenderer {
     /// Re-arms observation of `session.lens` after every change.
     private func observe() {
         guard running else { return }
+        var displayState = ""
         let screen = withObservationTracking {
             // Also redraw when the display (re)starts, e.g. it came up after the session did.
-            _ = glasses.displayState
+            displayState = glasses.displayState
             return session.lens
         } onChange: { [weak self] in
             Task { @MainActor in self?.observe() }
+        }
+        if displayState != lastDisplayState {
+            // A restarted display (glasses back after a drop-out, IOS-07.4) shows nothing until
+            // the current card is sent again, so forget what was sent; a recovered display may
+            // also be drawn to again.
+            lastDisplayState = displayState
+            throttle.reset()
+            if glasses.canDisplay { gaveUp = false; failures = 0 }
         }
         render(screen)
     }

@@ -78,6 +78,8 @@ final class CookSession: WatcherHost {
     @ObservationIgnored var voice: VoiceController? {
         didSet { voice?.host = self }
     }
+    /// The step a new session (and every restart) begins at, 1-based (IOS-07.6 "Start at step").
+    @ObservationIgnored var startStep: @MainActor () -> Int = { 1 }
     /// The screen to return to when a Live turn ends (IOS-05.4).
     @ObservationIgnored private var lensBeforeTalking: LensScreen?
 
@@ -175,13 +177,24 @@ final class CookSession: WatcherHost {
             log("POST /sessions failed: \(error.localizedDescription)")
         }
         guard !Task.isCancelled else { return }
-        stepIndex = 0
+        let start = min(max(startStep(), 1), recipe.steps.count) - 1
+        stepIndex = start
         activeWarningID = nil
         lensBeforeTalking = nil
         isTalking = false
         watcher.stepDidChange()
         phase = .cooking
         showStep()
+        if start > 0 {
+            // The monitor follows step_change events; tell it the demo starts mid-recipe.
+            postEvent(
+                .stepChange, stepID: recipe.steps[start].id,
+                payload: [
+                    "from_idx": .number(Double(recipe.steps[0].idx)),
+                    "to_idx": .number(Double(recipe.steps[start].idx)),
+                    "via": .string(InputVia.tap.rawValue),
+                ])
+        }
         watcher.start()
         speakLens(priority: .info)
         // IOS-05.4: after the first card is up, connect Live in the background.

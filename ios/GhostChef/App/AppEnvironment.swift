@@ -45,7 +45,7 @@ final class AppEnvironment {
     private(set) var cookFrameSourceKind: FrameSourceKind?
 
     var cookFrameSource: any FrameSource {
-        source(for: cookFrameSourceKind ?? settings.frameSource)
+        cookFrames ?? source(for: cookFrameSourceKind ?? settings.frameSource)
     }
 
     var isCookingOnGlasses: Bool { (cookFrameSourceKind ?? settings.frameSource) == .glasses }
@@ -67,7 +67,8 @@ final class AppEnvironment {
         let settings = settings
         let kind: FrameSourceKind = glasses.status.isReady ? .glasses : settings.frameSource
         cookFrameSourceKind = kind
-        let frameSource = source(for: kind)
+        let frameSource = SwitchableFrameSource(source(for: kind), kind: kind)
+        cookFrames = frameSource
         // Every result and step read-out goes through the arbiter so TTS and Live never overlap
         // (IOS-05.6).
         let arbitrated = ArbitratedSpeech(base: speech)
@@ -75,7 +76,9 @@ final class AppEnvironment {
             api: api, frames: frameSource, speech: arbitrated, cache: imageCache,
             deviceLabel: kind == .glasses ? "Glasses + iPhone" : "iPhone (\(kind.label))",
             watchConfig: { settings.watcherConfig }, watchLog: watchLog)
-        if settings.voiceEnabled {
+        session.startStep = { settings.demoStartStep }
+        // Display-only (speech muted): no Live voice either; the cook screen says so (IOS-07.2).
+        if settings.voiceEnabled, !settings.speechMuted {
             let speech = speech
             let voice = VoiceController(
                 api: api, audio: AudioIO(), ttsIsSpeaking: { speech.isSpeaking })
@@ -97,6 +100,20 @@ final class AppEnvironment {
     }
 
     let takeStore = TakeStore()
+
+    // MARK: Resilience (IOS-07)
+
+    /// One network path monitor for the app (offline banner).
+    let network = NetworkMonitor()
+    /// The running cook-along's camera, swappable mid-session (glasses ↔ phone camera).
+    private(set) var cookFrames: SwitchableFrameSource?
+
+    /// Moves the running cook-along to `kind` (e.g. "Continue with phone camera").
+    func switchCookFrames(to kind: FrameSourceKind) async throws {
+        guard let cookFrames else { return }
+        try await cookFrames.switchTo(source(for: kind), kind: kind)
+        cookFrameSourceKind = kind
+    }
 
     /// The review page for a processed take: `<API base>/app/review/` (WEB-02).
     var reviewPageURL: URL? {

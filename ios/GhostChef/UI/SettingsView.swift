@@ -124,8 +124,28 @@ struct SettingsView: View {
 
                 WatcherSettingsSection()
 
+                ServersSection()
+
+                Section {
+                    Stepper(value: $settings.demoStartStep, in: 1...12) {
+                        LabeledContent("Start at step", value: "\(settings.demoStartStep)")
+                    }
+                    Toggle(isOn: $settings.audioOnlyForced) {
+                        Label("Audio Only (speak every screen)", systemImage: "ear")
+                    }
+                    Toggle(isOn: $settings.operatorOverlay) {
+                        Label("Operator Overlay on Cook Screen", systemImage: "rectangle.and.text.magnifyingglass")
+                    }
+                    LabeledContent("Speech", value: settings.speechMuted ? "Muted: display only, no voice" : "On")
+                } header: {
+                    Text("Demo")
+                } footer: {
+                    Text("Restart Session is in the Demo menu on the cook screen and on the Done screen; it starts again at this step with a new session. The demo begins at step 4 (Add fillings). The screen stays awake while cooking. Before the demo: brightness up, Do Not Disturb on, phone on charge. Audio only happens by itself when the glasses have no working display.")
+                }
+
                 Section("About") {
                     LabeledContent("App version", value: Bundle.main.versionString)
+                    LabeledContent("Build", value: BuildLabel.current())
                     LabeledContent("API contract", value: "\(Health.supportedContractMajor).x")
                 }
             }
@@ -279,4 +299,45 @@ extension Bundle {
 
 #Preview {
     SettingsView().environment(AppEnvironment.preview())
+}
+
+/// IOS-07.3: switch between saved backends mid-session (Production / emergency Laptop). The
+/// Health panel re-checks the new server at once.
+private struct ServersSection: View {
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
+        @Bindable var settings = env.settings
+        Section {
+            ForEach($settings.savedServers) { $server in
+                VStack(alignment: .leading, spacing: 6) {
+                    Button {
+                        settings.use(server)
+                    } label: {
+                        HStack {
+                            Text(server.name).font(.body.weight(.semibold))
+                            Spacer()
+                            if settings.currentServer?.name == server.name {
+                                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                            }
+                        }
+                    }
+                    .disabled(server.validURL == nil)
+                    TextField("URL", text: $server.url)
+                        .font(.caption.monospaced())
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                    if server.validURL == nil {
+                        Text("Not a valid http(s) URL").font(.caption2).foregroundStyle(.red)
+                    }
+                }
+            }
+            Button("Reset to Defaults") { settings.savedServers = SavedServer.defaults }
+        } header: {
+            Text("Servers")
+        } footer: {
+            Text("Tap a server to use it. Set the laptop's address before the demo (the emergency backend on the hotspot).")
+        }
+    }
 }

@@ -93,6 +93,8 @@ final class WatcherLoop {
     enum Timing {
         /// After three errors in a row.
         static let errorPause = Duration.seconds(15)
+        /// API-CONTRACT §1.1: a 429 backs the watcher off 10 s (not an error, dot stays green).
+        static let busyBackoff = Duration.seconds(10)
     }
 
     struct Request: Sendable, Equatable {
@@ -110,6 +112,8 @@ final class WatcherLoop {
     private(set) var isCallInFlight = false
     /// Set after three errors in a row; the loop sends nothing until then.
     private(set) var pausedUntil: Date?
+    /// After a 429: no call before this (IOS-07.3).
+    private(set) var busyUntil: Date?
     /// Grey dot after any network failure (watch or check) until the next success.
     private(set) var isOffline = false
     var isRunning: Bool { task != nil }
@@ -193,6 +197,7 @@ final class WatcherLoop {
         wake = nil
         latestRequestID = nil
         pausedUntil = nil
+        busyUntil = nil
         refreshIndicator()
     }
 
@@ -243,6 +248,10 @@ final class WatcherLoop {
         guard case .open(let stepID, let sessionID) = effectiveGate(cfg) else { return .waitForChange }
         // The frame source has no change notification: look again after one interval.
         guard frames.isAvailable else { return .sleep(cfg.interval) }
+        if let until = busyUntil {
+            if now < until { return .sleep(Duration(timeInterval: until.timeIntervalSince(now))) }
+            busyUntil = nil
+        }
         if let last = lastCallEnded {
             let remaining = cfg.interval.timeInterval - now.timeIntervalSince(last)
             if remaining > 0.000_5 { return .sleep(Duration(timeInterval: remaining)) }
@@ -296,7 +305,8 @@ final class WatcherLoop {
         case .failure(let error):
             if error is CancellationError { return }
             if let apiError = error as? APIError, apiError.status == 429, apiError.isRetryable {
-                // Server says a call for this session is still running: skip this tick.
+                // Busy or out of quota: back off 10 s; not an error, the dot stays as it is.
+                busyUntil = now.addingTimeInterval(Timing.busyBackoff.timeInterval)
                 log?.record(.busy, roundTripMs: roundTripMs, detail: "429")
                 return
             }

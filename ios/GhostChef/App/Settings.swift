@@ -31,6 +31,10 @@ final class Settings {
         static let voiceEnabled = "settings.voiceEnabled"
         static let voiceMicMode = "settings.voiceMicMode"
         static let appMode = "settings.appMode"
+        static let audioOnlyForced = "settings.audioOnlyForced"
+        static let demoStartStep = "settings.demoStartStep"
+        static let operatorOverlay = "settings.operatorOverlay"
+        static let savedServers = "settings.savedServers"
     }
 
     /// IOS-08.1: the two modes on the first screen.
@@ -75,6 +79,16 @@ final class Settings {
     var voiceMicMode: VoiceMicMode { didSet { defaults.set(voiceMicMode.rawValue, forKey: Key.voiceMicMode) } }
     /// The last mode picked on the first screen (IOS-08.1); nil before the first pick.
     var lastAppMode: AppMode? { didSet { defaults.set(lastAppMode?.rawValue, forKey: Key.appMode) } }
+    /// IOS-07.1: speak every screen even when a display is available (rehearsing for Gen 2 glasses).
+    var audioOnlyForced: Bool { didSet { defaults.set(audioOnlyForced, forKey: Key.audioOnlyForced) } }
+    /// IOS-07.6: the step a new or restarted session begins at (the demo starts at 4, "Add fillings").
+    var demoStartStep: Int { didSet { defaults.set(demoStartStep, forKey: Key.demoStartStep) } }
+    /// IOS-07.6: operator readout on the phone's cook screen; never mirrored to the lens.
+    var operatorOverlay: Bool { didSet { defaults.set(operatorOverlay, forKey: Key.operatorOverlay) } }
+    /// IOS-07.3: servers to switch between mid-session ("Production", "Laptop").
+    var savedServers: [SavedServer] {
+        didSet { defaults.set(try? JSONEncoder().encode(savedServers), forKey: Key.savedServers) }
+    }
 
     init(defaults: UserDefaults = .standard, bundle: Bundle = .main) {
         self.defaults = defaults
@@ -94,6 +108,23 @@ final class Settings {
         voiceEnabled = defaults.object(forKey: Key.voiceEnabled) as? Bool ?? true
         voiceMicMode = defaults.string(forKey: Key.voiceMicMode).flatMap(VoiceMicMode.init) ?? .openMic
         lastAppMode = defaults.string(forKey: Key.appMode).flatMap(AppMode.init)
+        audioOnlyForced = defaults.bool(forKey: Key.audioOnlyForced)
+        demoStartStep = max(1, defaults.object(forKey: Key.demoStartStep) as? Int ?? 1)
+        operatorOverlay = defaults.bool(forKey: Key.operatorOverlay)
+        savedServers =
+            defaults.data(forKey: Key.savedServers).flatMap { try? JSONDecoder().decode([SavedServer].self, from: $0) }
+            ?? SavedServer.defaults
+    }
+
+    /// Switches the backend URL (the Health panel re-checks it at once).
+    func use(_ server: SavedServer) {
+        guard let url = server.validURL else { return }
+        baseURLString = url.absoluteString
+    }
+
+    /// The saved server the current URL points at, if any.
+    var currentServer: SavedServer? {
+        savedServers.first { $0.validURL?.absoluteString == baseURLString || $0.url == baseURLString }
     }
 
     /// What the watcher reads on every tick.

@@ -11,6 +11,8 @@ struct CookView: View {
     @State private var cameraError: String?
     /// Lens + inputs on the glasses (IOS-06.3, 06.4); nil when cooking on the phone camera.
     @State private var glassesLink: GlassesCookLink?
+    /// IOS-07: reachability, audio-only narration, glasses drop-outs.
+    @State private var resilience: CookResilience?
     /// Debug builds accept `-openWatcher` to open the watcher sheet, for readout screenshots.
     @State private var showingWatcher = {
         #if DEBUG
@@ -23,7 +25,7 @@ struct CookView: View {
     var body: some View {
         Group {
             if let session {
-                CookContent(session: session, cameraError: cameraError) {
+                CookContent(session: session, resilience: resilience, cameraError: cameraError) {
                     Task { await session.start(recipeID: summary.id) }
                 }
             } else {
@@ -36,6 +38,18 @@ struct CookView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Watcher", systemImage: "eye") { showingWatcher = true }
             }
+            // IOS-07.6: one tap back to the start step with a new session, at any time.
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu("Demo", systemImage: "theatermasks") {
+                    Button("Restart Session", systemImage: "arrow.counterclockwise") { session?.restart() }
+                        .disabled(session?.recipe == nil)
+                    Text("Starts at step \(env.settings.demoStartStep)")
+                }
+            }
+        }
+        // IOS-07.4: glasses drop-outs during a cook-along on the glasses.
+        .onChange(of: env.glasses.status) { old, new in
+            resilience?.glassesStatusChanged(from: old, to: new)
         }
         .sheet(isPresented: $showingWatcher) {
             WatcherSettingsSheet()
@@ -52,10 +66,14 @@ struct CookView: View {
             guard session == nil else { return }
             let session = env.makeCookSession()
             self.session = session
+            let resilience = CookResilience(env: env, session: session)
+            self.resilience = resilience
+            resilience.start()
             async let camera: Void = startCamera()
             await session.start(recipeID: summary.id)
             await camera
             startGlassesLinkIfNeeded(session)
+            resilience.link = glassesLink
             #if DEBUG
                 await Self.autoplayIfRequested(session)
             #endif
@@ -64,6 +82,7 @@ struct CookView: View {
             UIApplication.shared.isIdleTimerDisabled = active
         }
         .onDisappear {
+            resilience?.stop()
             session?.stop()
             env.cookFrameSource.stop()
             if let link = glassesLink {
@@ -114,6 +133,7 @@ struct CookView: View {
 
 private struct CookContent: View {
     let session: CookSession
+    let resilience: CookResilience?
     let cameraError: String?
     let retry: () -> Void
 
@@ -134,12 +154,16 @@ private struct CookContent: View {
                     }
                     .padding(.top, 60)
                 default:
+                    banners
                     statusRow
                     PhoneLensView(screen: session.lens)
                         .overlay(alignment: .bottom) { preparingOverlay }
                     HStack(alignment: .top, spacing: 12) {
                         cameraTile
                         OperatorControls(session: session)
+                    }
+                    if env.settings.operatorOverlay {
+                        OperatorOverlay(session: session, resilience: resilience)
                     }
                 }
             }
@@ -172,11 +196,41 @@ private struct CookContent: View {
             }
             if let voice = session.voice {
                 voiceChip(voice.status)
+            } else if env.settings.speechMuted, env.settings.voiceEnabled {
+                // IOS-07.2: display-only mode says so instead of a silent missing feature.
+                StatusChip(title: "Voice unavailable", systemImage: "mic.slash", tone: .neutral)
             }
             glassesChip(env.glasses.status)
+            if let mode = resilience?.outputMode, mode != .normal {
+                StatusChip(title: mode.label, systemImage: mode == .audioOnly ? "ear" : "speaker.slash", tone: .neutral)
+            }
             Spacer(minLength: 0)
         }
         .frame(minHeight: 28)
+    }
+
+    /// IOS-07.3 / 07.4: one-line banners on the phone only; the lens shows just the grey dot.
+    @ViewBuilder
+    private var banners: some View {
+        if !env.network.isOnline {
+            Banner(text: "Offline: cards and images still work; checks need the network.", systemImage: "wifi.slash")
+        } else if resilience?.reachability.isUnreachable == true {
+            Banner(text: "Backend unreachable (\(env.settings.currentServer?.name ?? env.settings.baseURLString)). Switch server in Settings.", systemImage: "server.rack")
+        }
+        if let reason = resilience?.glassesDropped {
+            VStack(alignment: .leading, spacing: 8) {
+                Banner(text: "Glasses disconnected (\(reason)). The session keeps its step.", systemImage: "eyeglasses")
+                if resilience?.usingPhoneFallback == false {
+                    Button("Continue with Phone Camera", systemImage: "iphone") {
+                        Task { await resilience?.continueWithPhoneCamera() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+        }
+        if let error = resilience?.switchError {
+            Banner(text: error, systemImage: "exclamationmark.triangle")
+        }
     }
 
     /// IOS-06.1: glasses state on the phone. Hidden when no glasses are involved at all.
@@ -241,7 +295,7 @@ private struct CookContent: View {
     private var cameraTile: some View {
         ZStack {
             Rectangle().fill(.quaternary)
-            if let phone = env.cookFrameSource as? PhoneCameraFrameSource, cameraError == nil {
+            if let phone = (env.cookFrames?.current ?? env.cookFrameSource) as? PhoneCameraFrameSource, cameraError == nil {
                 CameraPreview(session: phone.captureSession)
             } else if let cameraError {
                 VStack(spacing: 6) {
@@ -425,4 +479,69 @@ private struct TonalControlStyle: ButtonStyle {
                 stepCount: 6, createdAt: nil))
     }
     .environment(AppEnvironment.preview())
+}
+
+/// A one-line warning on the phone (IOS-07.3).
+private struct Banner: View {
+    let text: String
+    let systemImage: String
+
+    var body: some View {
+        Label(text, systemImage: systemImage)
+            .font(.footnote.weight(.semibold))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(Color.orange.opacity(0.15), in: .rect(cornerRadius: 12))
+            .foregroundStyle(.primary)
+    }
+}
+
+/// IOS-07.6: what the operator needs at a glance. Phone only; never sent to the lens.
+private struct OperatorOverlay: View {
+    let session: CookSession
+    let resilience: CookResilience?
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Operator").font(.caption.weight(.bold)).foregroundStyle(.secondary)
+            row("Build", BuildLabel.current())
+            row("Server", env.settings.currentServer?.name ?? env.settings.baseURLString)
+            row("Output", resilience?.outputMode.label ?? "—")
+            row("Glasses", env.glasses.status.label)
+            row("Frame age", frameAge)
+            row("Last check", session.lastCheck.map { "\($0.latencyMs.map { "\($0) ms" } ?? "—") · \($0.verdict.rawValue)" } ?? "—")
+            row("Voice", voiceText)
+            ForEach(env.watchLog.entries.suffix(3).reversed()) { entry in
+                row("Watch", "\(entry.outcome.rawValue) \(entry.mistakeID ?? "") \(entry.confidence.map { String(format: "%.2f", $0) } ?? "") · \(entry.roundTripMs) ms")
+            }
+        }
+        .font(.caption.monospacedDigit())
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
+    }
+
+    private var frameAge: String {
+        guard env.isCookingOnGlasses, let at = env.glasses.latestFrames.lastReceivedAt else { return "—" }
+        return String(format: "%.1f s", Date().timeIntervalSince(at))
+    }
+
+    private var voiceText: String {
+        switch session.voice?.status {
+        case nil: env.settings.speechMuted ? "unavailable (speech muted)" : "off"
+        case .off?: "off"
+        case .connecting?: "connecting"
+        case .ready?: "ready"
+        case .unavailable(let why)?: "unavailable: \(why)"
+        case .micDenied?: "mic denied"
+        }
+    }
+
+    private func row(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label).foregroundStyle(.secondary).frame(width: 74, alignment: .leading)
+            Text(value).lineLimit(2)
+        }
+    }
 }
