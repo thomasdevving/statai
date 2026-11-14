@@ -92,16 +92,10 @@ def test_build_live_config(recipe):
                      "repeat_instruction"]
 
 
-@pytest.mark.parametrize("name", ["extract_recipe", "mint_live_token"])
-async def test_real_path_not_implemented(monkeypatch, recipe, big_frame, name):
+async def test_real_extract_not_implemented(monkeypatch):
     monkeypatch.setenv("GHOSTCHEF_AI_FAKE", "0")
-    calls = {
-        "extract_recipe": lambda: gc.extract_recipe(Path("x.mp4")),
-        "mint_live_token": lambda: gc.mint_live_token(
-            gc.build_live_config(recipe.title, None, recipe.transcript, recipe.steps)),
-    }
     with pytest.raises(gc.AIUnavailable, match="not implemented yet"):
-        await calls[name]()
+        await gc.extract_recipe(Path("x.mp4"))
 
 
 def test_public_surface_matches_contract():

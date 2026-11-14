@@ -22,3 +22,7 @@ python scripts/check_cases.py --require-minimum
 ```
 
 Do not open the `heldout` frames while writing prompts (AI-04). Raw clips live in `ai/footage/` (gitignored) and on the team drive, never in git. Keep committed frames under ~30 MB.
+
+## Voice Q&A cases (`qa.csv`, AI-05.5)
+
+Columns `id,question,kind,expected`; `kind` is `in_lesson` (answerable from the chef's transcript) or `out_of_lesson` (the answer must start "The chef doesn't cover that in this lesson"). 10 + 5 rows. The row with `id` **`demo`** is the question for demo beat 6 ("Why do I wet my hands?"). **Built from the placeholder narration** in `fixtures/sushi_recipe.json` (no real chef take exists, team decision 2026-11-14): if a real transcript ever replaces it, re-check every `expected` and keep the demo question one the chef actually answers. Scoring happens in AI-07.
