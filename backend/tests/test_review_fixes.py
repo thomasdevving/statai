@@ -53,17 +53,17 @@ def test_json_body_cap(client, auth):
 @requires_ai
 @pytest.mark.parametrize("marks", ["[NaN]", "[Infinity]", "[1.0, Infinity]"])
 def test_step_marks_reject_non_finite(client, auth, marks):
-    body = '{"title": "Maki", "consent": true, "step_marks_s": ' + marks + "}"
+    body = '{"title": "Sandwich", "consent": true, "step_marks_s": ' + marks + "}"
     r = client.post("/recipes", content=body, headers={**auth, "Content-Type": "application/json"})
     assert r.status_code == 422
 
 
 @requires_ai
 def test_patch_step_rejects_non_finite_timestamp(client, auth):
-    from .helpers import STEP3
+    from .helpers import CHECKED_STEP
 
     r = client.patch(
-        f"/steps/{STEP3}",
+        f"/steps/{CHECKED_STEP}",
         content='{"timestamp_s": NaN}',
         headers={**auth, "Content-Type": "application/json"},
     )
@@ -79,7 +79,7 @@ async def test_concurrent_process_starts_one_job(app):
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
             created = (
-                await c.post("/recipes", headers=h, json={"title": "Maki", "consent": True})
+                await c.post("/recipes", headers=h, json={"title": "Sandwich", "consent": True})
             ).json()
             up = await c.put(created["upload_url"].replace("http://t", ""), content=tiny_mp4())
             assert up.status_code == 200
@@ -96,7 +96,9 @@ async def test_concurrent_process_starts_one_job(app):
 
 @requires_ai
 def test_delete_revokes_upload_token(client, auth):
-    created = client.post("/recipes", headers=auth, json={"title": "Maki", "consent": True}).json()
+    created = client.post(
+        "/recipes", headers=auth, json={"title": "Sandwich", "consent": True}
+    ).json()
     assert client.delete(f"/recipes/{created['recipe_id']}", headers=auth).status_code == 204
     assert client.put(created["upload_url"], content=tiny_mp4()).status_code == 403
 

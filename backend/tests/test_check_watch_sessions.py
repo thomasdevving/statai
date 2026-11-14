@@ -5,7 +5,19 @@ import uuid
 from app.seed import SEED_RECIPE_ID
 
 from .conftest import requires_ai
-from .helpers import STEP2, STEP3, big_jpeg, post_frame, rid, tiny_jpeg
+from .helpers import (
+    CHECKED_IDX,
+    CHECKED_STEP,
+    FIRST_MISTAKE_HEADLINE,
+    FIRST_MISTAKE_ID,
+    PLAIN_IDX,
+    PLAIN_STEP,
+    RECIPE_TITLE,
+    big_jpeg,
+    post_frame,
+    rid,
+    tiny_jpeg,
+)
 
 pytestmark = requires_ai
 
@@ -41,10 +53,10 @@ def test_check_sequence_fix_then_pass(client, auth):
     assert r.status_code == 200
     body = r.json()
     assert set(body) == CHECK_FIELDS
-    assert body["request_id"] == req and body["step_id"] == STEP3
+    assert body["request_id"] == req and body["step_id"] == CHECKED_STEP
     assert body["verdict"] == "fix"
-    assert body["mistake_id"] == "rice_too_thick"
-    assert body["headline"] == "Too much rice"
+    assert body["mistake_id"] == FIRST_MISTAKE_ID
+    assert body["headline"] == FIRST_MISTAKE_HEADLINE
     assert isinstance(body["latency_ms"], int) and body["latency_ms"] >= 0
     assert body["model"] == "fake"
     r = post_frame(client, auth, "check", big_jpeg())
@@ -66,7 +78,7 @@ def test_watch_sequence(client, auth):
         assert set(r.json()) == WATCH_FIELDS
         statuses.append(r.json()["status"])
     assert statuses == ["ok", "ok", "ok", "warn", "warn", "warn"]
-    assert r.json()["mistake_id"] == "rice_too_thick"
+    assert r.json()["mistake_id"] == FIRST_MISTAKE_ID
 
 
 def test_check_errors(client, auth):
@@ -77,7 +89,7 @@ def test_check_errors(client, auth):
     assert r.status_code == 404
     r = post_frame(client, auth, "check", big_jpeg(), request_id="nope")
     assert r.status_code == 422
-    r = client.post("/check", headers=auth, data={"step_id": STEP3, "request_id": rid()})
+    r = client.post("/check", headers=auth, data={"step_id": CHECKED_STEP, "request_id": rid()})
     assert r.status_code == 422
 
 
@@ -108,18 +120,18 @@ def test_ai_errors_map_to_envelope(client, auth, monkeypatch):
 
 def test_session_events_and_summary(client, auth):
     sid = _session(client, auth)
-    # step 3: fix, then pass -> not first try; one fix caught
+    # checked step: fix, then pass -> not first try; one fix caught
     assert post_frame(client, auth, "check", big_jpeg(), session_id=sid).json()["verdict"] == "fix"
     assert post_frame(client, auth, "check", big_jpeg(), session_id=sid).json()["verdict"] == "pass"
-    # step 2 (no watch_fors): unsure first (ignored), then pass -> first try
+    # plain step (no watch_fors): unsure first (ignored), then pass -> first try
     assert (
-        post_frame(client, auth, "check", tiny_jpeg(), step_id=STEP2, session_id=sid).json()[
+        post_frame(client, auth, "check", tiny_jpeg(), step_id=PLAIN_STEP, session_id=sid).json()[
             "verdict"
         ]
         == "unsure"
     )
     assert (
-        post_frame(client, auth, "check", big_jpeg(), step_id=STEP2, session_id=sid).json()[
+        post_frame(client, auth, "check", big_jpeg(), step_id=PLAIN_STEP, session_id=sid).json()[
             "verdict"
         ]
         == "pass"
@@ -129,7 +141,7 @@ def test_session_events_and_summary(client, auth):
     r = client.post(
         f"/sessions/{sid}/events",
         headers=auth,
-        json={"kind": "question", "payload": {"caption": "why wet hands"}},
+        json={"kind": "question", "payload": {"caption": "why spread to the edges"}},
     )
     assert r.status_code == 201 and set(r.json()) == {"event_id"}
     r = client.post(
@@ -137,8 +149,8 @@ def test_session_events_and_summary(client, auth):
         headers=auth,
         json={
             "kind": "step_change",
-            "step_id": STEP3,
-            "payload": {"from_idx": 2, "to_idx": 3, "via": "pinch"},
+            "step_id": CHECKED_STEP,
+            "payload": {"from_idx": PLAIN_IDX, "to_idx": CHECKED_IDX, "via": "pinch"},
         },
     )
     assert r.status_code == 201
@@ -218,7 +230,7 @@ def test_list_sessions(client, auth):
         "started_at",
         "finished_at",
     }
-    assert s["recipe_title"] == "Maki roll"
+    assert s["recipe_title"] == RECIPE_TITLE
     assert len(client.get("/sessions?limit=1", headers=auth).json()["sessions"]) == 1
     assert client.get("/sessions?limit=0", headers=auth).status_code == 422
 
@@ -233,7 +245,10 @@ def test_monitor(client, auth):
     client.post(
         f"/sessions/{sid}/events",
         headers=auth,
-        json={"kind": "step_change", "payload": {"from_idx": 1, "to_idx": 3, "via": "tap"}},
+        json={
+            "kind": "step_change",
+            "payload": {"from_idx": PLAIN_IDX, "to_idx": CHECKED_IDX, "via": "tap"},
+        },
     )
     post_frame(client, auth, "check", big_jpeg(), session_id=sid)
     post_frame(client, auth, "watch", big_jpeg(), session_id=sid)
@@ -249,8 +264,8 @@ def test_monitor(client, auth):
         "latency",
     }
     assert set(m["session"]) == {"id", "client", "device_label", "started_at", "finished_at"}
-    assert m["recipe_title"] == "Maki roll"
-    assert m["current_step"]["idx"] == 3
+    assert m["recipe_title"] == RECIPE_TITLE
+    assert m["current_step"]["idx"] == CHECKED_IDX
     assert m["last_result"]["source"] == "watch"
     assert m["last_result"]["body"]["status"] == "ok"
     assert client.get(m["last_frame_url"]).status_code == 200
@@ -291,7 +306,7 @@ def test_live_token(client, auth):
         "tools",
         "session_resumption",
     }
-    assert "Maki roll" in body["config"]["system_instruction"]
+    assert RECIPE_TITLE in body["config"]["system_instruction"]
     names = {f["name"] for t in body["config"]["tools"] for f in t["function_declarations"]}
     assert {"check_my_work", "next_step", "previous_step", "show_me", "repeat_instruction"} <= names
     assert client.get(f"/live-token?recipe_id={uuid.uuid4()}", headers=auth).status_code == 404

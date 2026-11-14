@@ -16,7 +16,7 @@ from app.routers.sessions import summarize
 from app.seed import SEED_RECIPE_ID, seed_step_id
 from app.store.base import Event, utcnow
 from tests.conftest import requires_ai
-from tests.helpers import STEP3, big_jpeg, post_frame
+from tests.helpers import CHECKED_STEP, RECIPE_TITLE, big_jpeg, post_frame
 
 pytestmark = requires_ai
 
@@ -139,7 +139,9 @@ def test_live_config_cached_token_not(client, auth, monkeypatch):
     assert (len(builds), len(mints)) == (1, 3)
 
     # A changed step changes the hash, so the config is rebuilt (and replaces the old entry).
-    r = client.patch(f"/steps/{STEP3}", headers=auth, json={"instruction": "Spread it thin."})
+    r = client.patch(
+        f"/steps/{CHECKED_STEP}", headers=auth, json={"instruction": "Spread it thin."}
+    )
     assert r.status_code == 200
     assert client.get(url, headers=auth).status_code == 200
     assert len(builds) == 2
@@ -323,7 +325,7 @@ def test_sessions_active_window(client, auth):
     )
     body = client.get("/sessions?active=true&limit=5", headers=auth).json()
     assert [s["id"] for s in body["sessions"]] == [fresh]
-    assert body["sessions"][0]["recipe_title"] == "Maki roll"
+    assert body["sessions"][0]["recipe_title"] == RECIPE_TITLE
     all_ids = [s["id"] for s in client.get("/sessions?limit=5", headers=auth).json()["sessions"]]
     assert set(all_ids) == {old, fresh, ended}
 
@@ -417,7 +419,7 @@ def test_summary_through_api(client, auth):
     sid = _session(client, auth)
     post_frame(client, auth, "check", big_jpeg(), session_id=sid)  # fake: fix
     post_frame(client, auth, "check", big_jpeg(), session_id=sid)  # fake: pass
-    _event(client, auth, sid, "question", payload={"caption": "how much rice"})
+    _event(client, auth, sid, "question", payload={"caption": "how much filling"})
     summary = client.get(f"/sessions/{sid}", headers=auth).json()["summary"]
     assert summary == {
         "steps_total": 6,

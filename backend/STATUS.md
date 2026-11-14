@@ -277,8 +277,16 @@ To finish BE-05 (owner):
 1. When AI-05 is on `main`: deploy it and run the production smoke **without** `--allow-live-errors`. Record `model` / `locked`.
 2. Tell web (WEB-03) that the monitor feed is complete. Tell iOS (IOS-05) that `/live-token` is wired, but the real token waits on AI-05.
 
+## Sandwich switch (D-19) notes (2026-11-14)
+
+- No production code was sushi-specific: `app/seed.py` and `scripts/seed.py` only read `ai/fixtures/sushi_recipe.json`, whose path stays the same under D-19.
+- Tests no longer hard-code the maki fixture. `tests/helpers.py` reads the fixture through `ghostchef_ai.fake.load_fixture()` and exposes `RECIPE_TITLE`, `CHECKED_IDX` / `CHECKED_STEP` (first step with `watch_fors`), `PLAIN_IDX` / `PLAIN_STEP` (first step without), `FIRST_MISTAKE_ID`, `FIRST_MISTAKE_HEADLINE`. `STEP3` / `STEP2` are gone.
+- Run on the owner's laptop: `pytest -q` → 143 passed, 3 skipped on the current (sushi) fixture, and the same with `GHOSTCHEF_FIXTURE_DIR` pointing at a draft six-step sandwich fixture in a scratch folder (placeholder images). `ruff check` clean.
+- **Not done yet:** re-seeding production. It waits for the AI track to push the real sandwich fixture and stills (`python scripts/seed.py` against Supabase, then check `GET /recipes/{id}` on production).
+
 ## Needs from other tracks
 
+- **AI (D-19):** push the sandwich fixture and real reference stills to `ai/fixtures/` (same path). The backend then re-seeds production; tests already follow whatever the fixture contains.
 - **AI (AI-05), still open after BE-05:** the backend handler is ready and only waits on `mint_live_token`. With `GHOSTCHEF_AI_FAKE=0`, `GET /live-token` returns `503 model_unavailable` ("mint_live_token is not implemented yet"). The fake switch is process-wide, so a backend running real check/watch has no working Live token until AI-05 lands. This affects anyone demoing voice against a real-AI backend.
 - **AI (AI-03):** a few labelled dev frames, including at least one mistake, so that `/check` → `fix` with the right `mistake_id` can be shown end to end. BE-03 used two Commons photos without mistakes.
 - **Docs (§9, additive, low priority):** proposal to add an optional `errors: {code: count}` to the `/sessions/{id}/monitor` response (BE-05 can expose the per-session counts BE-03 now collects). The backend owner must agree first.

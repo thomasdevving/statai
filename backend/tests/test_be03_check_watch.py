@@ -19,7 +19,7 @@ from app.media import images
 from app.seed import SEED_RECIPE_ID
 
 from .conftest import KEY, requires_ai
-from .helpers import STEP3, big_jpeg, post_frame, rid
+from .helpers import CHECKED_IDX, CHECKED_STEP, FIRST_MISTAKE_ID, big_jpeg, post_frame, rid
 
 pytestmark = requires_ai
 
@@ -268,7 +268,7 @@ def test_framework_errors_on_frame_routes_carry_request_id_when_known(client, au
 
 def test_missing_fields_still_echo_request_id(client, auth):
     req = rid()
-    r = client.post("/check", headers=auth, data={"step_id": STEP3, "request_id": req})
+    r = client.post("/check", headers=auth, data={"step_id": CHECKED_STEP, "request_id": req})
     assert r.status_code == 422
     assert r.json()["error"]["request_id"] == req
     r = client.post(
@@ -306,7 +306,9 @@ def test_two_checks_on_same_step_read_the_ref_blob_once(client, auth, monkeypatc
     refcache.clear()
     assert post_frame(client, auth, "check", big_jpeg()).status_code == 200
     assert post_frame(client, auth, "check", big_jpeg()).status_code == 200
-    assert [r for r in reads if r[0] == "media"] == [("media", f"{SEED_RECIPE_ID}/steps/3/ref.jpg")]
+    assert [r for r in reads if r[0] == "media"] == [
+        ("media", f"{SEED_RECIPE_ID}/steps/{CHECKED_IDX}/ref.jpg")
+    ]
 
 
 def test_ref_cache_invalidated_by_step_patch_and_recipe_delete(client, auth, monkeypatch):
@@ -330,7 +332,7 @@ def test_ref_cache_invalidated_by_step_patch_and_recipe_delete(client, auth, mon
     refcache.clear()
     post_frame(client, auth, "check", big_jpeg())
     assert len(refcache._cache) == 1
-    r = client.patch(f"/steps/{STEP3}", headers=auth, json={"key_line": "Thin even layer"})
+    r = client.patch(f"/steps/{CHECKED_STEP}", headers=auth, json={"key_line": "Thin even layer"})
     assert r.status_code == 200
     assert len(refcache._cache) == 0
 
@@ -478,7 +480,7 @@ async def test_second_watch_in_flight_gets_429(monkeypatch):
             return c.post(
                 "/watch",
                 headers=headers,
-                data={"step_id": STEP3, "request_id": req, "session_id": sid},
+                data={"step_id": CHECKED_STEP, "request_id": req, "session_id": sid},
                 files={"frame": ("f.jpg", frame, "image/jpeg")},
             )
 
@@ -500,7 +502,7 @@ async def test_second_watch_in_flight_gets_429(monkeypatch):
             c.post(
                 "/watch",
                 headers=headers,
-                data={"step_id": STEP3, "request_id": rid()},
+                data={"step_id": CHECKED_STEP, "request_id": rid()},
                 files={"frame": ("f.jpg", frame, "image/jpeg")},
             )
         )
@@ -508,7 +510,7 @@ async def test_second_watch_in_flight_gets_429(monkeypatch):
         b = await c.post(
             "/watch",
             headers=headers,
-            data={"step_id": STEP3, "request_id": rid()},
+            data={"step_id": CHECKED_STEP, "request_id": rid()},
             files={"frame": ("f.jpg", frame, "image/jpeg")},
         )
         assert b.status_code == 200 and (await a).status_code == 200
@@ -587,7 +589,7 @@ async def test_warn_stores_frame_and_event_ok_stores_neither(client, auth):
     ev = events[0]
     assert ev["request_id"] == reqs[3]
     assert ev["payload"]["frame_path"] == f"{sid}/{reqs[3]}.jpg"
-    assert ev["payload"]["status"] == "warn" and ev["payload"]["mistake_id"] == "rice_too_thick"
+    assert ev["payload"]["status"] == "warn" and ev["payload"]["mistake_id"] == FIRST_MISTAKE_ID
     assert await frames_in(sid) == [f"{reqs[3]}.jpg"]
     # metrics saw all four
     assert metrics.latency(sid)["n_watch"] == 4
@@ -666,7 +668,8 @@ def test_one_log_line_per_call(client, auth, caplog):
     assert len(lines) == 2
     ok, bad = lines
     assert ok["endpoint"] == "/check" and ok["session_id"] == sid and ok["request_id"] == req
-    assert ok["step_idx"] == 3 and ok["verdict"] == "fix" and ok["mistake_id"] == "rice_too_thick"
+    assert ok["step_idx"] == CHECKED_IDX
+    assert ok["verdict"] == "fix" and ok["mistake_id"] == FIRST_MISTAKE_ID
     assert ok["http_status"] == 200 and ok["model"] == "fake"
     assert isinstance(ok["latency_ms"], int) and isinstance(ok["confidence"], float)
     assert bad["endpoint"] == "/watch" and bad["http_status"] == 415
