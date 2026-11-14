@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 import ghostchef_ai as gc
-from ghostchef_ai import check, watch
+from ghostchef_ai import check, ingest, watch
 from ghostchef_ai.config import fixture_dir, is_fake
 from ghostchef_ai.schemas import RecipeDraft
 
@@ -54,9 +54,18 @@ async def _run(args: argparse.Namespace) -> None:
         else:
             _print(await gc.watch_frame(frame, step))
     elif args.cmd == "extract":
-        draft = await gc.extract_recipe(
-            Path(args.video), title_hint=args.title, step_marks_s=args.marks or None
-        )
+        if args.verbose and not is_fake():
+            out = await ingest.run_extract(Path(args.video), title_hint=args.title,
+                                           step_marks_s=args.marks or None)
+            print(json.dumps({"model": out.model, "upload_s": round(out.upload_s, 1),
+                              "generate_s": round(out.generate_s, 1),
+                              "attempts": out.attempts, "steps": len(out.draft.steps)}),
+                  file=sys.stderr)
+            draft = out.draft
+        else:
+            draft = await gc.extract_recipe(
+                Path(args.video), title_hint=args.title, step_marks_s=args.marks or None
+            )
         text = json.dumps(draft.model_dump(mode="json"), indent=2, ensure_ascii=False)
         if args.output:
             Path(args.output).write_text(text + "\n", encoding="utf-8")
@@ -90,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("-o", "--output")
     e.add_argument("--title")
     e.add_argument("--marks", type=float, nargs="*", help="step marks in seconds")
+    e.add_argument("-v", "--verbose", action="store_true",
+                   help="real mode: also print model, timings and attempts to stderr")
     lc = sub.add_parser("live-config", help="print the Gemini Live config for a recipe")
     lc.add_argument("--recipe")
     lc.add_argument("--chef")

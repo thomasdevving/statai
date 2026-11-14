@@ -92,10 +92,10 @@ def test_build_live_config(recipe):
                      "repeat_instruction"]
 
 
-async def test_real_extract_not_implemented(monkeypatch):
+async def test_real_extract_reports_missing_video(monkeypatch):
     monkeypatch.setenv("GHOSTCHEF_AI_FAKE", "0")
-    with pytest.raises(gc.AIUnavailable, match="not implemented yet"):
-        await gc.extract_recipe(Path("x.mp4"))
+    with pytest.raises(gc.AIUnavailable, match="video not found"):
+        await gc.extract_recipe(Path("no-such-video.mp4"))
 
 
 def test_public_surface_matches_contract():

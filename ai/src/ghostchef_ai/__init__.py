@@ -2,14 +2,14 @@
 
 Every async function dispatches per call: fake mode (GHOSTCHEF_AI_FAKE=1) -> ghostchef_ai.fake,
 otherwise the real implementation: check.check_frame and watch.watch_frame (AI-04),
-live.mint_live_token (AI-05). extract_recipe arrives in AI-06; until then it raises AIUnavailable.
+live.mint_live_token (AI-05), ingest.extract_recipe (AI-06).
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from ghostchef_ai import check, fake, watch
+from ghostchef_ai import check, fake, ingest, watch
 from ghostchef_ai.config import is_fake, model_ids
 from ghostchef_ai.errors import AIError, AIInvalidOutput, AIQuotaError, AITimeout, AIUnavailable
 from ghostchef_ai.live import build_live_config
@@ -32,10 +32,6 @@ __all__ = [
 ]
 
 
-def _not_yet(name: str) -> AIUnavailable:
-    return AIUnavailable(f"{name} is not implemented yet; set GHOSTCHEF_AI_FAKE=1")
-
-
 async def extract_recipe(
     video_path: Path, *, title_hint: str | None = None, step_marks_s: list[float] | None = None
 ) -> RecipeDraft:
@@ -43,7 +39,8 @@ async def extract_recipe(
         return await fake.extract_recipe(
             video_path, title_hint=title_hint, step_marks_s=step_marks_s
         )
-    raise _not_yet("extract_recipe")
+    return await ingest.extract_recipe(video_path, title_hint=title_hint,
+                                       step_marks_s=step_marks_s)
 
 
 async def check_frame(
