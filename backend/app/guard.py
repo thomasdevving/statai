@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import re
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -16,8 +17,12 @@ from app.config import get_settings
 
 OPEN_PREFIXES = ("/local-files/", "/local-upload/", "/app/")
 OPEN_EXACT = ("/health", "/app")
+# Authorised by its own per-session token (app/routers/latest_frame.py): <img> sends no header.
+OPEN_PATTERN = re.compile(r"^/sessions/[^/]+/latest-frame\.jpg$")
 FRAME_PATHS = ("/check", "/watch")
-MAX_FRAME_BODY = 8 * 1024 * 1024  # multipart frame; contract limits enforced in BE-03
+# Multipart frame: the 1.5 MB contract limit plus room for the form fields. The exact limits and
+# JPEG validation are in app/media/images.py.
+MAX_FRAME_BODY = 2 * 1024 * 1024
 MAX_JSON_BODY = 64 * 1024
 
 
@@ -47,7 +52,7 @@ class GuardMiddleware:
             await self.app(scope, receive, send)
             return
         path: str = scope.get("path", "")
-        if path in OPEN_EXACT or path.startswith(OPEN_PREFIXES):
+        if path in OPEN_EXACT or path.startswith(OPEN_PREFIXES) or OPEN_PATTERN.match(path):
             await self.app(scope, receive, send)
             return
 

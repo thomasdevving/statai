@@ -10,6 +10,7 @@ Never prints the demo key or the Live token.
 from __future__ import annotations
 
 import argparse
+import collections
 import re
 import statistics
 import sys
@@ -62,6 +63,14 @@ def main() -> int:
     ap.add_argument("--base", default="http://localhost:8000")
     ap.add_argument("--key", default="dev-key")
     ap.add_argument("--frame", type=Path, default=DEFAULT_FRAME, help="JPEG sent to check/watch")
+    ap.add_argument(
+        "--watch-frame", type=Path, default=None, help="JPEG sent to /watch (default: --frame)"
+    )
+    ap.add_argument(
+        "--allow-model-errors",
+        action="store_true",
+        help="real-condition run: count 429/503/504 from /check and /watch instead of failing",
+    )
     ap.add_argument("--watch-n", type=int, default=6)
     ap.add_argument("--fast", action="store_true", help="skip the 2.5 s sleep between /watch")
     args = ap.parse_args()
@@ -70,6 +79,11 @@ def main() -> int:
         print(f"frame not found: {args.frame}", file=sys.stderr)
         return 2
     frame = args.frame.read_bytes()
+    watch_path = args.watch_frame or args.frame
+    if not watch_path.is_file():
+        print(f"frame not found: {watch_path}", file=sys.stderr)
+        return 2
+    watch_frame = watch_path.read_bytes()
     s = Smoke(args.base, args.key)
 
     try:
@@ -114,13 +128,22 @@ def main() -> int:
 
         # 4. check twice, watch N times
         def frame_call(endpoint: str) -> None:
-            s.call(
+            n = len(s.failures)
+            r = s.call(
                 "POST",
                 f"/{endpoint}",
                 step=str(target["idx"]),
                 data={"step_id": target["id"], "request_id": str(uuid.uuid4()), "session_id": sid},
-                files={"frame": ("frame.jpg", frame, "image/jpeg")},
+                files={
+                    "frame": (
+                        "frame.jpg",
+                        frame if endpoint == "check" else watch_frame,
+                        "image/jpeg",
+                    )
+                },
             )
+            if args.allow_model_errors and r.status_code in (429, 503, 504):
+                del s.failures[n:]  # counted in the error table below, not a smoke failure
 
         for _ in range(2):
             frame_call("check")
@@ -154,6 +177,13 @@ def main() -> int:
                 f"{name:<12} n={len(lats):<3} p50={int(statistics.median(lats))} ms "
                 f"max={max(lats)} ms"
             )
+    errors = collections.Counter(
+        f"{e} {code} {outcome}" for _, e, code, _, outcome in s.rows if code >= 400
+    )
+    if errors:
+        print("\nerror responses:")
+        for name, n in sorted(errors.items()):
+            print(f"  {name}: {n}")
     if s.failures:
         print("\nFAILED:", file=sys.stderr)
         for f in s.failures:

@@ -8,6 +8,7 @@ from app import metrics
 from app.config import get_settings
 from app.deps import get_store
 from app.errors import not_found
+from app.routers.latest_frame import latest_frame_url
 from app.schemas import (
     EventCreate,
     EventCreated,
@@ -141,11 +142,9 @@ async def monitor(session_id: str, store: StoreDep) -> Monitor:
     last_frame_at = None
     last_result = None
     if m is not None:
-        if m.last_frame_path:
-            last_frame_url = await store.signed_url(
-                "frames", m.last_frame_path, get_settings().signed_url_ttl_s
-            )
-            last_frame_at = m.last_frame_at
+        if m.latest_frame is not None:
+            last_frame_url = latest_frame_url(session.id, get_settings().public_base_url)
+            last_frame_at = m.latest_frame.at
         if m.last_result:
             last_result = LastResult(**m.last_result)
 

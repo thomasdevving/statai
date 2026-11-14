@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app import ai
+from app import ai, metrics
 
 log = logging.getLogger("ghostchef.errors")
 
@@ -77,9 +77,31 @@ def _request_id(request: Request) -> str | None:
     return getattr(request.state, "request_id", None)
 
 
+FRAME_PATHS = ("/check", "/watch")
+
+
+def _note(request: Request, code: str) -> None:
+    """Counts /check and /watch errors by code (per session when one was given)."""
+    if request.url.path in FRAME_PATHS:
+        metrics.record_error(getattr(request.state, "session_id", None), code)
+
+
+def status_of(exc: BaseException) -> tuple[int, str]:
+    """The HTTP status and error code an exception ends up as (used for call logging)."""
+    if isinstance(exc, ApiError):
+        return exc.status, exc.code
+    if isinstance(exc, StarletteHTTPException):
+        return exc.status_code, _HTTP_CODES.get(exc.status_code, "error")
+    for exc_type, status, code, _ in _ai_error_mapping():
+        if isinstance(exc, exc_type):
+            return status, code
+    return 500, "internal"
+
+
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ApiError)
     async def _api_error(request: Request, exc: ApiError) -> JSONResponse:
+        _note(request, exc.code)
         return envelope(
             exc.status, exc.code, exc.message, exc.retryable, exc.request_id or _request_id(request)
         )
@@ -90,13 +112,21 @@ def install_error_handlers(app: FastAPI) -> None:
         for err in exc.errors()[:5]:
             loc = ".".join(str(x) for x in err.get("loc", ()) if x not in ("body", "query"))
             parts.append(f"{loc}: {err.get('msg', 'invalid')}" if loc else err.get("msg", ""))
-        return envelope(422, "validation_error", "; ".join(parts) or "invalid request")
+        _note(request, "validation_error")
+        return envelope(
+            422,
+            "validation_error",
+            "; ".join(parts) or "invalid request",
+            False,
+            _request_id(request),
+        )
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         code = _HTTP_CODES.get(exc.status_code, "internal" if exc.status_code >= 500 else "error")
         message = exc.detail if isinstance(exc.detail, str) else "request failed"
-        return envelope(exc.status_code, code, message)
+        _note(request, code)
+        return envelope(exc.status_code, code, message, False, _request_id(request))
 
     for exc_type, status, code, retryable in _ai_error_mapping():
 
@@ -104,6 +134,7 @@ def install_error_handlers(app: FastAPI) -> None:
             request: Request, exc: Exception, _s=status, _c=code, _r=retryable
         ) -> JSONResponse:
             log.warning("AI error %s: %s", type(exc).__name__, exc)
+            _note(request, _c)
             return envelope(_s, _c, str(exc) or _c, _r, _request_id(request))
 
         app.add_exception_handler(exc_type, _ai)
@@ -111,4 +142,5 @@ def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def _internal(request: Request, exc: Exception) -> JSONResponse:
         log.exception("unhandled error on %s %s", request.method, request.url.path)
+        _note(request, "internal")
         return envelope(500, "internal", "internal server error", True, _request_id(request))

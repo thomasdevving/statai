@@ -1,29 +1,44 @@
-"""Per-session latency ring buffers and the latest frame / result, for the monitor (§4).
+"""Per-session latency ring buffers, error counts, and the latest frame / result for the
+monitor (§4, BE-03.5).
 
 In-process state: fine for one server process, which is how the backend runs.
 """
 
 from __future__ import annotations
 
+import secrets
 import statistics
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
 RING = 500
 
+Source = Literal["check", "watch"]
+
+
+@dataclass
+class LatestFrame:
+    data: bytes
+    at: datetime
+    source: Source
+
 
 @dataclass
 class SessionMetrics:
     check_ms: deque[int] = field(default_factory=lambda: deque(maxlen=RING))
     watch_ms: deque[int] = field(default_factory=lambda: deque(maxlen=RING))
-    last_frame_path: str | None = None  # bucket "frames"
-    last_frame_at: datetime | None = None
+    errors: Counter[str] = field(default_factory=Counter)  # error code -> count
+    latest_frame: LatestFrame | None = None
+    # Authorises GET /sessions/{id}/latest-frame.jpg; only ever returned inside the monitor.
+    frame_token: str = field(default_factory=lambda: secrets.token_urlsafe(24))
     last_result: dict[str, Any] | None = None  # {source, at, body}
 
 
 _sessions: dict[str, SessionMetrics] = {}
+# Process-wide error counts by code for /check and /watch, with or without a session.
+errors_total: Counter[str] = Counter()
 
 
 def for_session(session_id: str) -> SessionMetrics:
@@ -34,20 +49,26 @@ def get(session_id: str) -> SessionMetrics | None:
     return _sessions.get(session_id)
 
 
+def set_latest_frame(session_id: str, data: bytes, at: datetime, source: Source) -> None:
+    for_session(session_id).latest_frame = LatestFrame(data=data, at=at, source=source)
+
+
 def record(
     session_id: str,
-    source: Literal["check", "watch"],
+    source: Source,
     latency_ms: int,
     body: dict[str, Any],
     at: datetime,
-    frame_path: str | None,
 ) -> None:
     m = for_session(session_id)
     (m.check_ms if source == "check" else m.watch_ms).append(latency_ms)
     m.last_result = {"source": source, "at": at, "body": body}
-    if frame_path:
-        m.last_frame_path = frame_path
-        m.last_frame_at = at
+
+
+def record_error(session_id: str | None, code: str) -> None:
+    errors_total[code] += 1
+    if session_id:
+        for_session(session_id).errors[code] += 1
 
 
 def latency(session_id: str) -> dict[str, int | None]:
@@ -72,3 +93,4 @@ def drop(session_id: str) -> None:
 
 def reset() -> None:
     _sessions.clear()
+    errors_total.clear()

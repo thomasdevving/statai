@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
+from app import refcache
 from app.store.base import Session, Store
 
 
@@ -22,6 +23,7 @@ async def purge_recipe(store: Store, recipe_id: str) -> list[Session] | None:
         store.delete_prefix("media", recipe_id),
         *(store.delete_prefix("frames", s.id) for s in sessions),
     )
+    refcache.invalidate_recipe(recipe_id)
     if not await store.delete_recipe(recipe_id):
         return None
     return sessions

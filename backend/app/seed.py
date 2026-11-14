@@ -8,7 +8,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from app import ai
+from app import ai, refcache
 from app.store.base import Recipe, RecipeStatus, Step, Store, utcnow
 
 log = logging.getLogger("ghostchef.seed")
@@ -80,6 +80,7 @@ async def write_fixture_recipe(
             step.ref_image_path = path
         steps.append(step)
     stored = await store.replace_steps(recipe.id, steps)
+    refcache.invalidate_recipe(recipe.id)
     recipe = await store.update_recipe(recipe.id, status=status) or recipe
     return recipe, stored
 

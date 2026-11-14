@@ -1,40 +1,52 @@
-"""POST /check and POST /watch (API-CONTRACT §3)."""
+"""POST /check and POST /watch (API-CONTRACT §3, BE-03)."""
 
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
+from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 
-from app import ai, metrics
+from app import ai, metrics, refcache
 from app.config import Settings, get_settings
 from app.deps import get_store
-from app.errors import ApiError
+from app.errors import ApiError, status_of
+from app.logs import log_call
+from app.media import images
 from app.schemas import CheckOut, WatchOut
 from app.store.base import Event, Store, utcnow
-from app.views import load_recipe, load_session, load_step, parse_uuid, step_spec
+from app.views import load_session, load_step, parse_uuid, step_spec
 
 router = APIRouter(tags=["check and watch"])
+log = logging.getLogger("ghostchef.frames")
 
 StoreDep = Annotated[Store, Depends(get_store)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
-# Hard ceiling on what we read into memory. The contract limits (1.5 MB / 200 KB) and JPEG
-# validation are enforced in BE-03.
-MAX_FRAME_BYTES = 8 * 1024 * 1024
-# Safety net on top of the budget ghostchef_ai enforces itself.
-BUDGET_GRACE_S = 1.0
+Endpoint = Literal["check", "watch"]
+
+# Safety net on top of the budget ghostchef_ai enforces itself (BE-03.4).
+BUDGET_GRACE_S = 0.5
+
+# Sessions with a /watch call running. Checked and claimed with no await in between, so two
+# overlapping calls for one session cannot both pass.
+_watch_inflight: set[str] = set()
 
 
-async def _read_frame(frame: UploadFile) -> bytes:
-    data = await frame.read(MAX_FRAME_BYTES + 1)
-    if len(data) > MAX_FRAME_BYTES:
-        raise ApiError(413, "payload_too_large", "frame is too large")
-    if not data:
-        raise ApiError(422, "validation_error", "frame is empty")
-    return data
+def _required(value: str | None, name: str) -> str:
+    if value is None or not value.strip():
+        raise ApiError(422, "validation_error", f"{name} is required")
+    return value
+
+
+async def _read_frame(frame: UploadFile | None) -> bytes:
+    if frame is None:
+        raise ApiError(422, "validation_error", "frame is required")
+    # Read one byte past the hard limit so validate_jpeg can answer 413.
+    return await frame.read(images.CHECK_MAX_BYTES + 1)
 
 
 async def _with_budget(coro: Any, budget_s: float, request_id: str) -> Any:
@@ -46,44 +58,160 @@ async def _with_budget(coro: Any, budget_s: float, request_id: str) -> Any:
         ) from None
 
 
-async def _record(
+async def _persist(
     store: Store,
     *,
     session_id: str,
-    source: Literal["check", "watch"],
-    kind: str | None,
+    kind: str,
     step_id: str,
     request_id: str,
     frame: bytes,
     body: dict[str, Any],
-    latency_ms: int,
+    at: datetime,
 ) -> None:
+    """Runs after the response is sent: storage latency never delays the wearer."""
+    payload = dict(body)
     frame_path = f"{session_id}/{request_id}.jpg"
-    await store.put_blob("frames", frame_path, frame, "image/jpeg")
-    at = utcnow()
-    if kind is not None:
+    try:
+        await store.put_blob("frames", frame_path, frame, "image/jpeg")
+        payload["frame_path"] = frame_path
+    except Exception:  # noqa: BLE001 - the event is still worth keeping without its frame
+        log.exception("storing frame for session %s failed", session_id)
+    try:
         await store.append_event(
             Event(
                 session_id=session_id,
                 kind=kind,
                 step_id=step_id,
                 request_id=request_id,
-                payload={**body, "frame_path": frame_path},
+                payload=payload,
                 created_at=at,
             )
         )
-    metrics.record(session_id, source, latency_ms, body, at, frame_path)
+    except Exception:  # noqa: BLE001 - background task: log, never crash
+        log.exception("recording %s event for session %s failed", kind, session_id)
 
 
-async def _common(
-    request: Request, store: Store, step_id: str, request_id: str, session_id: str | None
-):
-    request_id = parse_uuid(request_id, "request_id")
-    request.state.request_id = request_id
-    step = await load_step(store, step_id)
-    recipe = await load_recipe(store, step.recipe_id)
-    session = await load_session(store, session_id) if session_id else None
-    return request_id, step, recipe, session
+async def _handle(
+    endpoint: Endpoint,
+    request: Request,
+    store: Store,
+    settings: Settings,
+    background: BackgroundTasks,
+    frame: UploadFile | None,
+    step_id: str | None,
+    request_id: str | None,
+    session_id: str | None,
+) -> CheckOut | WatchOut:
+    ctx: dict[str, Any] = {
+        "endpoint": f"/{endpoint}",
+        "session_id": None,
+        "step_idx": None,
+        "request_id": None,
+    }
+    http_status = 500
+    claimed: str | None = None
+    try:
+        rid = parse_uuid(_required(request_id, "request_id"), "request_id")
+        request.state.request_id = rid
+        ctx["request_id"] = rid
+        sid = parse_uuid(session_id, "session_id") if session_id else None
+        request.state.session_id = sid
+        ctx["session_id"] = sid
+        step_uuid = parse_uuid(_required(step_id, "step_id"), "step_id")
+
+        if endpoint == "watch" and sid is not None:
+            if sid in _watch_inflight:
+                raise ApiError(429, "quota_exhausted", "watch already in flight", True, rid)
+            _watch_inflight.add(sid)
+            claimed = sid
+
+        raw = await _read_frame(frame)
+        if endpoint == "check":
+            data = await images.prepare_check_frame(raw)
+        else:
+            data = await images.prepare_watch_frame(raw)
+
+        step = await load_step(store, step_uuid)
+        ctx["step_idx"] = step.idx
+        session = await load_session(store, sid) if sid else None
+        if session is not None:
+            metrics.set_latest_frame(session.id, data, utcnow(), endpoint)
+
+        g = ai.get()
+        spec = step_spec(step)
+        if endpoint == "check":
+            ref = await refcache.get_ref_image(store, step)
+            budget = settings.check_budget_s
+            call = g.check_frame(data, spec, ref, timeout_s=budget)
+        else:
+            budget = settings.watch_budget_s
+            call = g.watch_frame(data, spec, timeout_s=budget)
+        t0 = time.perf_counter()
+        result = await _with_budget(call, budget, rid)
+        latency_ms = round((time.perf_counter() - t0) * 1000)
+
+        common = {
+            "request_id": rid,
+            "step_id": step.id,
+            "mistake_id": result.mistake_id,
+            "headline": result.headline,
+            "fix": result.fix,
+            "spoken": result.spoken,
+            "confidence": result.confidence,
+            "latency_ms": latency_ms,
+            "model": result.model,
+        }
+        out: CheckOut | WatchOut
+        if endpoint == "check":
+            out = CheckOut(verdict=result.verdict, **common)
+            ctx["verdict"] = out.verdict
+            kind: str | None = f"check_{out.verdict}"
+        else:
+            out = WatchOut(status=result.status, **common)
+            ctx["status"] = out.status
+            kind = "watch_warn" if out.status == "warn" else None
+        ctx.update(
+            mistake_id=out.mistake_id,
+            confidence=out.confidence,
+            latency_ms=latency_ms,
+            model=out.model,
+        )
+
+        if session is not None:
+            if await request.is_disconnected():
+                # Nobody will see this answer: no event, no stored frame, no monitor result.
+                ctx["disconnected"] = True
+            else:
+                at = utcnow()
+                body = out.model_dump(mode="json")
+                metrics.record(session.id, endpoint, latency_ms, body, at)
+                if kind is not None:
+                    background.add_task(
+                        _persist,
+                        store,
+                        session_id=session.id,
+                        kind=kind,
+                        step_id=step.id,
+                        request_id=rid,
+                        frame=data,
+                        body=body,
+                        at=at,
+                    )
+        http_status = 200
+        return out
+    except asyncio.CancelledError:
+        http_status = 499  # client went away (nginx convention); nothing is recorded
+        raise
+    except Exception as exc:
+        http_status, code = status_of(exc)
+        ctx["error"] = code
+        raise
+    finally:
+        if claimed is not None:
+            _watch_inflight.discard(claimed)
+        ctx["http_status"] = http_status
+        log_call(ctx)
 
 
 @router.post("/check", response_model=CheckOut)
@@ -91,51 +219,18 @@ async def check(
     request: Request,
     store: StoreDep,
     settings: SettingsDep,
-    frame: Annotated[UploadFile, File()],
-    step_id: Annotated[str, Form()],
-    request_id: Annotated[str, Form()],
+    background: BackgroundTasks,
+    frame: Annotated[UploadFile | None, File()] = None,
+    step_id: Annotated[str | None, Form()] = None,
+    request_id: Annotated[str | None, Form()] = None,
     session_id: Annotated[str | None, Form()] = None,
     captured_at: Annotated[str | None, Form()] = None,
-) -> CheckOut:
-    request_id, step, _recipe, session = await _common(
-        request, store, step_id, request_id, session_id
+) -> CheckOut | WatchOut:
+    # Every field is optional at the framework level and checked in _handle, so that every
+    # error response can carry the client's request_id (BE-03.4).
+    return await _handle(
+        "check", request, store, settings, background, frame, step_id, request_id, session_id
     )
-    data = await _read_frame(frame)
-    ref = await store.get_blob("media", step.ref_image_path) if step.ref_image_path else None
-    g = ai.get()
-    spec = step_spec(step)
-    t0 = time.perf_counter()
-    result = await _with_budget(
-        g.check_frame(data, spec, ref, timeout_s=settings.check_budget_s),
-        settings.check_budget_s,
-        request_id,
-    )
-    latency_ms = round((time.perf_counter() - t0) * 1000)
-    out = CheckOut(
-        request_id=request_id,
-        step_id=step.id,
-        verdict=result.verdict,
-        mistake_id=result.mistake_id,
-        headline=result.headline,
-        fix=result.fix,
-        spoken=result.spoken,
-        confidence=result.confidence,
-        latency_ms=latency_ms,
-        model=result.model,
-    )
-    if session is not None:
-        await _record(
-            store,
-            session_id=session.id,
-            source="check",
-            kind=f"check_{out.verdict}",
-            step_id=step.id,
-            request_id=request_id,
-            frame=data,
-            body=out.model_dump(mode="json"),
-            latency_ms=latency_ms,
-        )
-    return out
 
 
 @router.post("/watch", response_model=WatchOut)
@@ -143,47 +238,13 @@ async def watch(
     request: Request,
     store: StoreDep,
     settings: SettingsDep,
-    frame: Annotated[UploadFile, File()],
-    step_id: Annotated[str, Form()],
-    request_id: Annotated[str, Form()],
+    background: BackgroundTasks,
+    frame: Annotated[UploadFile | None, File()] = None,
+    step_id: Annotated[str | None, Form()] = None,
+    request_id: Annotated[str | None, Form()] = None,
     session_id: Annotated[str | None, Form()] = None,
     captured_at: Annotated[str | None, Form()] = None,
-) -> WatchOut:
-    request_id, step, _recipe, session = await _common(
-        request, store, step_id, request_id, session_id
+) -> CheckOut | WatchOut:
+    return await _handle(
+        "watch", request, store, settings, background, frame, step_id, request_id, session_id
     )
-    data = await _read_frame(frame)
-    g = ai.get()
-    spec = step_spec(step)
-    t0 = time.perf_counter()
-    result = await _with_budget(
-        g.watch_frame(data, spec, timeout_s=settings.watch_budget_s),
-        settings.watch_budget_s,
-        request_id,
-    )
-    latency_ms = round((time.perf_counter() - t0) * 1000)
-    out = WatchOut(
-        request_id=request_id,
-        step_id=step.id,
-        status=result.status,
-        mistake_id=result.mistake_id,
-        headline=result.headline,
-        fix=result.fix,
-        spoken=result.spoken,
-        confidence=result.confidence,
-        latency_ms=latency_ms,
-        model=result.model,
-    )
-    if session is not None:
-        await _record(
-            store,
-            session_id=session.id,
-            source="watch",
-            kind="watch_warn" if out.status == "warn" else None,
-            step_id=step.id,
-            request_id=request_id,
-            frame=data,
-            body=out.model_dump(mode="json"),
-            latency_ms=latency_ms,
-        )
-    return out

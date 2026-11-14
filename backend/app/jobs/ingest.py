@@ -10,7 +10,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-from app import ai
+from app import ai, refcache
 from app.config import get_settings
 from app.seed import ref_image_path, step_from_spec
 from app.store.base import Store
@@ -85,6 +85,7 @@ async def run(store: Store, recipe_id: str) -> None:
             await store.delete_prefix("media", recipe_id)
             return
         await store.replace_steps(recipe_id, steps)
+        refcache.invalidate_recipe(recipe_id)
         await store.update_recipe(
             recipe_id, status="review", transcript=draft.transcript, error=None
         )
