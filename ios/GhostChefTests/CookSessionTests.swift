@@ -45,7 +45,7 @@ struct CookSessionTests {
         let ref = try #require(card.refImage, "step 1 image should come from the cache")
         #expect(ref.fileURL.path.contains("CookSessionTests-"))
         #expect(s.prefetchReport?.downloaded == recipe.steps.count)
-        #expect(speech.spoken.last == .init(text: "Step 1 of 6. Place nori. Shiny side down, long edge near.", priority: .info))
+        #expect(speech.spoken.last == .init(text: "Step 1 of 6. Lay out bread. Two slices side by side, flat.", priority: .info))
     }
 
     // MARK: Acceptance
@@ -53,15 +53,15 @@ struct CookSessionTests {
     @Test func fixThenRecheckPassThenAutoAdvanceAfterTwoSeconds() async throws {
         let s = await started()
         await api.enqueueCheck(
-            .success(checkResponse(.fix, headline: "Too much rice", fix: "Spread thinner", spoken: "Too much rice, spread it.")),
+            .success(checkResponse(.fix, headline: "Edges left bare", fix: "Spread right to the crust", spoken: "Edges left bare, spread to the crust.")),
             .success(checkResponse(.pass, headline: "Looks right", spoken: "That looks right.")))
 
         s.send(.primary)
         #expect(s.lens.isChecking)
         await eventually("fix") { s.lens.isFix }
         guard case .fix(let card, let headline, let fix, let proactive) = s.lens else { return }
-        #expect(card.idx == 1 && headline == "Too much rice" && fix == "Spread thinner" && !proactive)
-        #expect(speech.spoken.last == .init(text: "Too much rice, spread it.", priority: .result))
+        #expect(card.idx == 1 && headline == "Edges left bare" && fix == "Spread right to the crust" && !proactive)
+        #expect(speech.spoken.last == .init(text: "Edges left bare, spread to the crust.", priority: .result))
 
         s.send(.primary)  // re-check
         await eventually("pass") { s.lens.isPass }
@@ -99,7 +99,7 @@ struct CookSessionTests {
     @Test func slowCheckArrivingAfterNextIsIgnored() async throws {
         let s = await started()
         await api.setHoldChecks(true)
-        await api.enqueueCheck(.success(checkResponse(.fix, headline: "Too much rice", spoken: "stale fix")))
+        await api.enqueueCheck(.success(checkResponse(.fix, headline: "Edges left bare", spoken: "stale fix")))
         s.send(.primary)
         await eventually("check in flight") { await api.heldCheckCount == 1 }
 
@@ -207,7 +207,7 @@ struct CookSessionTests {
     @Test func finishingLastStepPostsSessionEndAndShowsDone() async throws {
         let s = await started()
         // One fix on step 1, then a pass; the rest skipped with Next.
-        await api.enqueueCheck(.success(checkResponse(.fix, headline: "Too much rice")), .success(checkResponse(.pass)))
+        await api.enqueueCheck(.success(checkResponse(.fix, headline: "Edges left bare")), .success(checkResponse(.pass)))
         s.send(.primary)
         await eventually("fix") { s.lens.isFix }
         s.send(.primary)
@@ -259,12 +259,12 @@ struct CookSessionTests {
         #expect(vias == Array(repeating: .string("tap"), count: 3))
         let last = await api.postedEvents.last?.payload
         #expect(last?["from_idx"] == .number(3) && last?["to_idx"] == .number(2))
-        #expect(speech.spoken.last == .init(text: "Step 2 of 6. Wet hands. Dip fingers, shake off the excess.", priority: .info))
+        #expect(speech.spoken.last == .init(text: "Step 2 of 6. Spread. Thin layer, right to every edge.", priority: .info))
     }
 
     @Test func dismissOnFixReturnsToStep() async throws {
         let s = await started()
-        await api.enqueueCheck(.success(checkResponse(.fix, headline: "Too much rice", fix: "Spread thinner")))
+        await api.enqueueCheck(.success(checkResponse(.fix, headline: "Edges left bare", fix: "Spread right to the crust")))
         s.send(.primary)
         await eventually("fix") { s.lens.isFix }
         s.send(.dismiss)
@@ -343,12 +343,11 @@ struct CookSessionTests {
             api: mimic, frames: frames, speech: speech, clock: clock,
             cache: ImageCache(directory: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)))
         await s.start(recipe: recipe)
-        s.send(.next)
-        s.send(.next)  // step 3 has the rice_too_thick watch-for
+        s.send(.next)  // step 2 has the spread_misses_edges watch-for
         s.send(.primary)
         await eventually("fix") { s.lens.isFix }
         guard case .fix(_, let headline, let fix, _) = s.lens else { return }
-        #expect(headline == "Too much rice" && fix == "Spread thinner, 2cm nori free")
+        #expect(headline == "Edges left bare" && fix == "Spread right to the crust")
         s.send(.primary)
         await eventually("pass") { s.lens.isPass }
     }

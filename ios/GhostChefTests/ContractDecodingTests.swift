@@ -16,25 +16,25 @@ struct ContractDecodingTests {
         {
           "id": "\(stepID)",
           "recipe_id": "\(rid)",
-          "idx": 3,
-          "title": "Spread rice",
-          "key_line": "Thin layer, leave 2cm top",
+          "idx": 4,
+          "title": "Add fillings",
+          "key_line": "One even layer, edge to edge",
           "instruction": "Full instruction, spoken on request.",
           "chef_quote": "Verbatim sentence from the chef's narration, or null",
           "timestamp_s": 74.5,
           "clip_start_s": 72.0,
           "clip_end_s": 76.5,
-          "success_criteria": ["Rice layer is thin enough to see nori through it in places", "Bare strip at top"],
+          "success_criteria": ["Ham and cheese cover the slice in one even layer, reaching the edges", "No bare bread at the corners"],
           "watch_fors": [
             {
-              "id": "rice_too_thick",
-              "mistake": "Rice layer is thick and covers the whole sheet",
-              "headline": "Too much rice",
-              "fix": "Spread thinner, 2cm nori free",
-              "spoken": "There's a bit too much rice — spread it thinner and leave two centimetres of nori at the top."
+              "id": "filling_piled_center",
+              "mistake": "Filling is piled in the middle, bare bread around it",
+              "headline": "Filling piled up",
+              "fix": "Spread it to the edges",
+              "spoken": "The filling is all in the middle — spread it out so it reaches the edges of the bread."
             }
           ],
-          "ref_image_url": "https://example.supabase.co/storage/v1/object/sign/media/r/steps/3/ref.jpg?token=abc",
+          "ref_image_url": "https://example.supabase.co/storage/v1/object/sign/media/r/steps/4/ref.jpg?token=abc",
           "clip_url": null,
           "timer_s": null
         }
@@ -67,13 +67,13 @@ struct ContractDecodingTests {
         let list = try decode(
             RecipeList.self,
             """
-            { "recipes": [ { "id": "\(Self.rid)", "title": "Maki roll", "chef_name": "Aiko", "status": "published", "step_count": 8, "created_at": "2026-11-14T09:30:00Z" } ] }
+            { "recipes": [ { "id": "\(Self.rid)", "title": "Ham and cheese sandwich", "chef_name": "Aiko", "status": "published", "step_count": 6, "created_at": "2026-11-14T09:30:00Z" } ] }
             """)
         let r = try #require(list.recipes.first)
         #expect(r.id == Self.rid)
         #expect(r.chefName == "Aiko")
         #expect(r.status == .published)
-        #expect(r.stepCount == 8)
+        #expect(r.stepCount == 6)
         #expect(r.createdAt == Date(timeIntervalSince1970: 1_794_648_600))
     }
 
@@ -83,7 +83,7 @@ struct ContractDecodingTests {
             """
             {
               "id": "\(Self.rid)",
-              "title": "Maki roll",
+              "title": "Ham and cheese sandwich",
               "chef_name": "Aiko",
               "status": "published",
               "error": null,
@@ -107,7 +107,7 @@ struct ContractDecodingTests {
         let r = try decode(
             Recipe.self,
             """
-            { "id": "\(Self.rid)", "title": "Maki roll", "chef_name": null, "status": "uploading",
+            { "id": "\(Self.rid)", "title": "Ham and cheese sandwich", "chef_name": null, "status": "uploading",
               "error": null, "video_url": null, "transcript": null, "created_at": "2026-11-14T09:30:00Z", "steps": [] }
             """)
         #expect(r.status == .uploading)
@@ -116,28 +116,28 @@ struct ContractDecodingTests {
     }
 
     @Test func stepsAreSortedByIdx() throws {
-        let step1 = Self.stepJSON.replacingOccurrences(of: #""idx": 3"#, with: #""idx": 1"#)
+        let step1 = Self.stepJSON.replacingOccurrences(of: #""idx": 4"#, with: #""idx": 1"#)
         let r = try decode(
             Recipe.self,
             """
             { "id": "\(Self.rid)", "title": "t", "status": "review", "steps": [ \(Self.stepJSON), \(step1) ] }
             """)
-        #expect(r.steps.map(\.idx) == [1, 3])
+        #expect(r.steps.map(\.idx) == [1, 4])
     }
 
     @Test func stepObject() throws {
         let s = try decode(Step.self, Self.stepJSON)
         #expect(s.id == Self.stepID)
         #expect(s.recipeID == Self.rid)
-        #expect(s.idx == 3)
-        #expect(s.title == "Spread rice")
-        #expect(s.keyLine == "Thin layer, leave 2cm top")
+        #expect(s.idx == 4)
+        #expect(s.title == "Add fillings")
+        #expect(s.keyLine == "One even layer, edge to edge")
         #expect(s.timestampS == 74.5)
         #expect(s.clipStartS == 72.0)
         #expect(s.clipEndS == 76.5)
         #expect(s.successCriteria.count == 2)
-        #expect(s.watchFors.first?.id == "rice_too_thick")
-        #expect(s.watchFors.first?.headline == "Too much rice")
+        #expect(s.watchFors.first?.id == "filling_piled_center")
+        #expect(s.watchFors.first?.headline == "Filling piled up")
         #expect(s.refImageURL?.host() == "example.supabase.co")
         #expect(s.clipURL == nil)
         #expect(s.timerS == nil)
@@ -181,12 +181,12 @@ struct ContractDecodingTests {
         let fix = try decode(
             CheckResponse.self,
             """
-            { "request_id": "\(Self.reqID)", "step_id": "\(Self.stepID)", "verdict": "fix", "mistake_id": "rice_too_thick",
-              "headline": "Too much rice", "fix": "Spread thinner, 2cm nori free", "spoken": "…",
+            { "request_id": "\(Self.reqID)", "step_id": "\(Self.stepID)", "verdict": "fix", "mistake_id": "filling_piled_center",
+              "headline": "Filling piled up", "fix": "Spread it to the edges", "spoken": "…",
               "confidence": 0.9, "latency_ms": 1100, "model": "fake" }
             """)
         #expect(fix.verdict == .fix)
-        #expect(fix.mistakeID == "rice_too_thick")
+        #expect(fix.mistakeID == "filling_piled_center")
     }
 
     @Test func unknownEnumValuesDoNotCrash() throws {
@@ -233,12 +233,12 @@ struct ContractDecodingTests {
         let warn = try decode(
             WatchResponse.self,
             """
-            { "request_id": "\(Self.reqID)", "step_id": "\(Self.stepID)", "status": "warn", "mistake_id": "rice_too_thick",
-              "headline": "Too much rice", "fix": "Spread thinner, 2cm nori free", "spoken": "There's a bit too much rice.",
+            { "request_id": "\(Self.reqID)", "step_id": "\(Self.stepID)", "status": "warn", "mistake_id": "filling_piled_center",
+              "headline": "Filling piled up", "fix": "Spread it to the edges", "spoken": "The filling is all in the middle.",
               "confidence": 0.9, "latency_ms": 700, "model": "fake" }
             """)
         #expect(warn.status == .warn)
-        #expect(warn.mistakeID == "rice_too_thick")
+        #expect(warn.mistakeID == "filling_piled_center")
     }
 
     @Test func sessionCreatedAndEventCreated() throws {

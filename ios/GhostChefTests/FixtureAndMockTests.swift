@@ -7,20 +7,19 @@ import Testing
 struct FixtureTests {
     @Test func draftDecodes() throws {
         let draft = try FixtureRecipe.loadDraft()
-        #expect(draft.title == "Maki roll")
+        #expect(draft.title == "Ham and cheese sandwich")
         #expect(!draft.transcript.isEmpty)
         #expect(draft.steps.map(\.idx) == Array(1...draft.steps.count))
     }
 
     @Test func demoMistakeIsExact() throws {
         let draft = try FixtureRecipe.loadDraft()
-        let step3 = try #require(draft.steps.first { $0.idx == 3 })
-        let w = try #require(step3.watchFors.first { $0.id == "rice_too_thick" })
-        #expect(w.headline == "Too much rice")
-        #expect(w.fix == "Spread thinner, 2cm nori free")
-        #expect(
-            w.spoken
-                == "There's a bit too much rice — spread it thinner and leave two centimetres of nori at the top.")
+        // The demo's scripted mistake (docs/DEMO-AND-SUBMISSION.md §2, D-19).
+        let step4 = try #require(draft.steps.first { $0.idx == 4 })
+        let w = try #require(step4.watchFors.first { $0.id == "filling_piled_center" })
+        #expect(w.headline == "Filling piled up")
+        #expect(w.fix == "Spread it to the edges")
+        #expect(w.spoken == "The filling is all in the middle — spread it out so it reaches the edges of the bread.")
     }
 
     @Test func wordLimits() throws {
@@ -72,8 +71,8 @@ struct MockAPITests {
         await api.enqueueCheck(
             .success(
                 CheckResponse(
-                    requestID: "", stepID: "", verdict: .fix, mistakeID: "rice_too_thick",
-                    headline: "Too much rice", fix: "Spread thinner, 2cm nori free", spoken: "…",
+                    requestID: "", stepID: "", verdict: .fix, mistakeID: "filling_piled_center",
+                    headline: "Filling piled up", fix: "Spread it to the edges", spoken: "…",
                     confidence: 0.9, latencyMs: 1, model: "mock")),
             .failure(APIError(status: 504, code: .modelTimeout, message: "slow", retryable: true)))
 

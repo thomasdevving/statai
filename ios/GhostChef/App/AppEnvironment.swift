@@ -51,10 +51,30 @@ final class AppEnvironment {
     /// A new cook-along wired to the current data source, frame source, and speech output.
     func makeCookSession() -> CookSession {
         let settings = settings
-        return CookSession(
-            api: api, frames: frameSource, speech: speech, cache: imageCache,
+        // Every result and step read-out goes through the arbiter so TTS and Live never overlap
+        // (IOS-05.6).
+        let arbitrated = ArbitratedSpeech(base: speech)
+        let session = CookSession(
+            api: api, frames: frameSource, speech: arbitrated, cache: imageCache,
             deviceLabel: "iPhone (\(settings.frameSource.label))",
             watchConfig: { settings.watcherConfig }, watchLog: watchLog)
+        if settings.voiceEnabled {
+            let speech = speech
+            let voice = VoiceController(
+                api: api, audio: AudioIO(), ttsIsSpeaking: { speech.isSpeaking })
+            voice.micMode = settings.voiceMicMode
+            arbitrated.live = voice
+            session.voice = voice
+        }
+        return session
+    }
+
+    /// A voice controller for Settings → Voice Lab (no cook-along around it).
+    func makeVoiceLabController() -> VoiceController {
+        let speech = speech
+        let voice = VoiceController(api: api, audio: AudioIO(), ttsIsSpeaking: { speech.isSpeaking })
+        voice.micMode = settings.voiceMicMode
+        return voice
     }
 
     static func preview(dataSource: Settings.DataSource = .fixture) -> AppEnvironment {

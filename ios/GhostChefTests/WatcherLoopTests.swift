@@ -152,7 +152,7 @@ struct WatcherLoopTests {
     }
 
     @Test func answerArrivingWhilePausedIsDropped() async throws {
-        await api.enqueueWatch(.success(watchResponse(.warn, "too_much_rice")), .success(watchResponse(.warn, "too_much_rice")))
+        await api.enqueueWatch(.success(watchResponse(.warn, "filling_piled_center")), .success(watchResponse(.warn, "filling_piled_center")))
         await api.setHoldWatches(true)
         loop.start()
         await eventually("call 1 in flight") { await api.heldWatchCount == 1 }
@@ -213,8 +213,8 @@ struct WatcherLoopTests {
 
     @Test func stepChangeResetsDebouncerAndDropsInFlightAnswer() async throws {
         await api.enqueueWatch(
-            .success(watchResponse(.warn, "too_much_rice")), .success(watchResponse(.warn, "too_much_rice")),
-            .success(watchResponse(.warn, "too_much_rice")))
+            .success(watchResponse(.warn, "filling_piled_center")), .success(watchResponse(.warn, "filling_piled_center")),
+            .success(watchResponse(.warn, "filling_piled_center")))
         loop.start()
         await eventually("call 1") { await calls() == 1 }
         await waitForIntervalTimer()
@@ -248,15 +248,15 @@ struct WatcherLoopTests {
 
     @Test func twoMatchingWarnsAlertTheHost() async throws {
         await api.enqueueWatch(
-            .success(watchResponse(.warn, "too_much_rice", headline: "Too much rice")),
-            .success(watchResponse(.warn, "too_much_rice", headline: "Too much rice")))
+            .success(watchResponse(.warn, "filling_piled_center", headline: "Filling piled up")),
+            .success(watchResponse(.warn, "filling_piled_center", headline: "Filling piled up")))
         loop.start()
         await eventually("call 1") { await calls() == 1 }
         await waitForIntervalTimer()
         #expect(host.alerts.isEmpty)
         clock.advance(by: .milliseconds(2500))
         await eventually("alert") { host.alerts.count == 1 }
-        #expect(host.alerts.first?.mistakeID == "too_much_rice")
+        #expect(host.alerts.first?.mistakeID == "filling_piled_center")
         #expect(log.entries.map(\.outcome).prefix(2) == [.alert, .warn])
         loop.stop()
     }

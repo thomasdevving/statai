@@ -372,22 +372,22 @@ private struct LensImage: View {
     enum LensPreviewData {
         static var card: StepCard {
             StepCard(
-                idx: 3, total: 6, title: "Spread rice", keyLine: "Thin layer, leave 2cm top",
+                idx: 4, total: 6, title: "Add fillings", keyLine: "One even layer, edge to edge",
                 refImage: Bundle.main.url(forResource: "step-3", withExtension: "jpg", subdirectory: "Fixtures/images")
                     .map { ImageRef(stepID: "preview", fileURL: $0) },
                 watching: .active)
         }
         static var allScreens: [(String, LensScreen)] {
             [
-                ("recipePick", .recipePick(titles: ["Maki roll", "Onigiri", "Miso soup"], selected: 0)),
+                ("recipePick", .recipePick(titles: ["Ham and cheese sandwich", "Club sandwich", "Grilled cheese"], selected: 0)),
                 ("step", .step(card)),
                 ("checking", .checking(card)),
                 ("pass", .pass(headline: "Looks right")),
-                ("fix", .fix(card, headline: "Too much rice", fix: "Spread thinner, 2cm nori free", proactive: false)),
-                ("fix proactive", .fix(card, headline: "Too much rice", fix: "Spread thinner, 2cm nori free", proactive: true)),
+                ("fix", .fix(card, headline: "Filling piled up", fix: "Spread it to the edges", proactive: false)),
+                ("fix proactive", .fix(card, headline: "Filling piled up", fix: "Spread it to the edges", proactive: true)),
                 ("unsure", .unsure(headline: "Can't tell", hint: "Look straight down at mat")),
                 ("talking listening", .talking(phase: .listening, caption: "")),
-                ("talking answering", .talking(phase: .answering, caption: "Use less rice")),
+                ("talking answering", .talking(phase: .answering, caption: "Spread it to the edges")),
                 ("showMe", .showMe(card)),
                 ("timer", .timer(remainingS: 200, card)),
                 ("done", .done(SessionSummary(stepsTotal: 6, stepsPassedFirstTry: 5, fixesCaught: 1, warnings: 0, questions: 0))),

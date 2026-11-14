@@ -21,9 +21,9 @@ struct WatchDebouncerTests {
     @Test func twoWarnsWithTheSameIDAlertOnTheSecond() {
         var d = WatchDebouncer()
         #expect(d.ingest(watchResponse(.warn, "a"), at: at(0)) == nil)
-        let alert = d.ingest(watchResponse(.warn, "a", headline: "Too much rice"), at: at(2.5))
+        let alert = d.ingest(watchResponse(.warn, "a", headline: "Filling piled up"), at: at(2.5))
         #expect(alert?.mistakeID == "a")
-        #expect(alert?.headline == "Too much rice")
+        #expect(alert?.headline == "Filling piled up")
     }
 
     @Test func differentIDsDoNotAlert() {

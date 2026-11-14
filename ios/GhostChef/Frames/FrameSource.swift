@@ -59,7 +59,9 @@ enum FrameSpec {
 
 /// Shared scaling + JPEG encoding. Thread-safe; call it off the main actor.
 enum JPEGEncoder {
-    private static let context = CIContext(options: [.cacheIntermediates: false])
+    /// `CIContext` is thread-safe (Apple's Core Image docs), but SDKs before iOS 26 don't mark it
+    /// `Sendable`, so Swift 6.1 (Xcode 16.x) rejects a plain static. Newer SDKs at most warn here.
+    nonisolated(unsafe) private static let context = CIContext(options: [.cacheIntermediates: false])
 
     /// Scales so the long edge is at most `maxLongEdge` (never upscales) and encodes as JPEG.
     static func encode(_ image: CIImage, maxLongEdge: Int, quality: CGFloat) -> Data? {

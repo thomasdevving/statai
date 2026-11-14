@@ -4,7 +4,8 @@ import Testing
 @testable import GhostChef
 
 /// IOS-04.2 pause conditions and IOS-04.3 warning behaviour, through `CookSession`.
-/// Fixture: step 1 watches for `nori_short_edge_near`, step 2 has no watch-fors.
+/// Fixture (sandwich, D-19): step 1 watches for `slices_overlapping`, step 2 for
+/// `spread_misses_edges`, step 3 has no watch-fors.
 @MainActor
 @Suite("CookSession watcher")
 struct CookSessionWatcherTests {
@@ -18,7 +19,7 @@ struct CookSessionWatcherTests {
     let log = WatchLog()
     let config = ConfigBox()
     let session: CookSession
-    let mistake = "nori_short_edge_near"
+    let mistake = "slices_overlapping"
 
     init() throws {
         recipe = try FixtureRecipe.load()
@@ -64,8 +65,8 @@ struct CookSessionWatcherTests {
     /// Two matching warns at 0.9: the warning shows.
     private func raiseWarning(_ s: CookSession) async {
         await api.enqueueWatch(
-            .success(watchResponse(.warn, mistake, headline: "Nori turned", fix: "Long edge toward you", spoken: "Turn the nori.")),
-            .success(watchResponse(.warn, mistake, headline: "Nori turned", fix: "Long edge toward you", spoken: "Turn the nori.")))
+            .success(watchResponse(.warn, mistake, headline: "Slices overlap", fix: "Lay them side by side", spoken: "Lay the slices side by side.")),
+            .success(watchResponse(.warn, mistake, headline: "Slices overlap", fix: "Lay them side by side", spoken: "Lay the slices side by side.")))
         await tick()
         #expect(!s.lens.isFix)
         await tick()
@@ -87,14 +88,17 @@ struct CookSessionWatcherTests {
     @Test func stepWithoutWatchForsShowsDotOffAndMakesNoCalls() async throws {
         let s = await started()
         s.send(.next)
-        #expect(s.lens.stepIdx == 2)
+        s.send(.next)  // step 3 (lettuce) has no watch-fors
+        #expect(s.lens.stepIdx == 3)
         #expect(s.watchGate == .off)
         #expect(s.lens.card?.watching == .off)
+        await settle()
+        let before = await watchCalls()
         clock.advance(by: .seconds(30))
         await settle()
-        #expect(await watchCalls() == 1)
-        s.send(.previous)
-        await eventually("watching again on step 1") { await watchCalls() == 2 }
+        #expect(await watchCalls() == before, "no calls on a step without watch-fors")
+        s.send(.previous)  // step 2 watches for spread_misses_edges
+        await eventually("watching again on step 2") { await watchCalls() > before }
         #expect(s.lens.card?.watching == .active)
     }
 
@@ -130,7 +134,7 @@ struct CookSessionWatcherTests {
             await eventually("step") { s.lens.stepIdx == 1 }
         }
         await expectPause("fix", s) {
-            await api.enqueueCheck(.success(checkResponse(.fix, headline: "Too much rice")))
+            await api.enqueueCheck(.success(checkResponse(.fix, headline: "Slices overlap")))
             s.send(.primary)
             await eventually("fix") { s.lens.isFix }
         } resume: { s.send(.dismiss) }
@@ -212,8 +216,8 @@ struct CookSessionWatcherTests {
             Issue.record("expected a fix screen")
             return
         }
-        #expect(card.idx == 1 && headline == "Nori turned" && fix == "Long edge toward you" && proactive)
-        #expect(speech.spoken.last == .init(text: "Turn the nori.", priority: .result))
+        #expect(card.idx == 1 && headline == "Slices overlap" && fix == "Lay them side by side" && proactive)
+        #expect(speech.spoken.last == .init(text: "Lay the slices side by side.", priority: .result))
         #expect(s.activeWarningID == mistake)
         await eventually("event") { await events(.warningShown).count == 1 }
         let shown = try #require(await events(.warningShown).first)

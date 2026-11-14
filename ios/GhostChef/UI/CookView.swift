@@ -154,9 +154,29 @@ private struct CookContent: View {
                     title: "\(report.failed.count) image\(report.failed.count == 1 ? "" : "s") missing",
                     systemImage: "photo.badge.exclamationmark", tone: .warning)
             }
+            if let voice = session.voice {
+                voiceChip(voice.status)
+            }
             Spacer(minLength: 0)
         }
         .frame(minHeight: 28)
+    }
+
+    /// IOS-05.4: a small crossed mic when voice is down; never a dialog.
+    @ViewBuilder
+    private func voiceChip(_ status: VoiceStatus) -> some View {
+        switch status {
+        case .off:
+            EmptyView()
+        case .connecting:
+            StatusChip(title: "Voice…", systemImage: "mic", tone: .neutral)
+        case .ready:
+            StatusChip(title: "Voice", systemImage: "mic.fill", tone: .good)
+        case .unavailable:
+            StatusChip(title: "No voice", systemImage: "mic.slash", tone: .warning)
+        case .micDenied:
+            StatusChip(title: "Mic off", systemImage: "mic.slash", tone: .warning)
+        }
     }
 
     static func checkLabel(_ check: CheckResponse) -> String {
@@ -215,6 +235,27 @@ private struct CookContent: View {
 }
 
 /// Buttons mapped to `CookInput`. The primary button's label follows the lens.
+/// IOS-05.3 push-to-talk: mic audio goes to Live only while this is held (for a loud stage).
+private struct PushToTalkButton: View {
+    let voice: VoiceController
+    @GestureState private var isPressed = false
+
+    var body: some View {
+        Label(isPressed ? "Listening…" : "Hold to Ask", systemImage: isPressed ? "mic.fill" : "mic")
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .foregroundStyle(isPressed ? Color.white : Color.primary)
+            .background(isPressed ? Color.accentColor : Color.secondary.opacity(0.15), in: .rect(cornerRadius: 14))
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .updating($isPressed) { _, state, _ in state = true }
+            )
+            .onChange(of: isPressed) { _, pressed in voice.pushToTalkHeld = pressed }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel("Hold to ask a question")
+    }
+}
+
 private struct OperatorControls: View {
     let session: CookSession
 
@@ -248,6 +289,9 @@ private struct OperatorControls: View {
             HStack(spacing: 8) {
                 small("Dismiss", "xmark", .dismiss)
                 small("Repeat", "speaker.wave.2", .repeatInstruction)
+            }
+            if let voice = session.voice, voice.micMode == .pushToTalk, voice.status == .ready {
+                PushToTalkButton(voice: voice)
             }
         }
         .disabled(!session.isActive)
@@ -342,7 +386,7 @@ private struct TonalControlStyle: ButtonStyle {
     NavigationStack {
         CookView(
             summary: RecipeSummary(
-                id: FixtureRecipe.fixtureID(0), title: "Maki roll", chefName: nil, status: .published,
+                id: FixtureRecipe.fixtureID(0), title: "Ham and cheese sandwich", chefName: nil, status: .published,
                 stepCount: 6, createdAt: nil))
     }
     .environment(AppEnvironment.preview())

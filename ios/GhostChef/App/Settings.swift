@@ -28,6 +28,8 @@ final class Settings {
         static let watchEnabled = "settings.watchEnabled"
         static let watchInterval = "settings.watchInterval"
         static let speechMuted = "settings.speechMuted"
+        static let voiceEnabled = "settings.voiceEnabled"
+        static let voiceMicMode = "settings.voiceMicMode"
     }
 
     /// API-CONTRACT §3.3 default.
@@ -52,6 +54,10 @@ final class Settings {
     var watchInterval: Double { didSet { defaults.set(watchInterval, forKey: Key.watchInterval) } }
     /// Silences on-device speech and the pass chime (IOS-03.4).
     var speechMuted: Bool { didSet { defaults.set(speechMuted, forKey: Key.speechMuted) } }
+    /// Gemini Live questions and voice commands (IOS-05).
+    var voiceEnabled: Bool { didSet { defaults.set(voiceEnabled, forKey: Key.voiceEnabled) } }
+    /// Open mic (default) or push-to-talk for a loud stage (IOS-05.3).
+    var voiceMicMode: VoiceMicMode { didSet { defaults.set(voiceMicMode.rawValue, forKey: Key.voiceMicMode) } }
 
     init(defaults: UserDefaults = .standard, bundle: Bundle = .main) {
         self.defaults = defaults
@@ -68,6 +74,8 @@ final class Settings {
         speechMuted = defaults.bool(forKey: Key.speechMuted)
         watchEnabled = defaults.object(forKey: Key.watchEnabled) as? Bool ?? true
         watchInterval = defaults.object(forKey: Key.watchInterval) as? Double ?? Self.defaultWatchInterval
+        voiceEnabled = defaults.object(forKey: Key.voiceEnabled) as? Bool ?? true
+        voiceMicMode = defaults.string(forKey: Key.voiceMicMode).flatMap(VoiceMicMode.init) ?? .openMic
     }
 
     /// What the watcher reads on every tick.

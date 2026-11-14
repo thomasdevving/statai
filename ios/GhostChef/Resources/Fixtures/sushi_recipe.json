@@ -1,130 +1,131 @@
 {
-  "title": "Maki roll",
-  "transcript": "[PLACEHOLDER NARRATION — replace with the real chef transcript]\nToday we're making a simple maki roll, and I'll show you exactly what it should look like at every step. First, lay a sheet of nori on the bamboo mat, shiny side down, with the long edge towards you. The rough side holds the rice. Next, dip your fingers in the water bowl and shake off the excess. You wet your hands so the rice doesn't stick to your fingers and you can spread it gently without squashing the grains. Now take a small handful of rice and spread it in a thin, even layer. You should still see the dark nori through the rice in places. Leave about two centimetres of bare nori along the far edge, because that strip seals the roll. Most beginners use far too much rice, and then the roll won't close. Lay one line of filling across the third of the sheet closest to you. Just one thin line of cucumber; don't pile it up, or it squeezes out when you roll. To roll, lift the near edge of the mat, tuck the nori over the filling, then roll forward and press gently along the whole length so it holds its shape. Finally, wet your knife, cut the roll in half, then cut each half into three equal pieces. Six even pieces, and you're done.",
+  "title": "Ham and cheese sandwich",
+  "transcript": "[PLACEHOLDER NARRATION — replace with the real chef transcript]\nToday we're making a simple ham and cheese sandwich, and I'll show you exactly what it should look like at every step. First, lay two slices of bread side by side on the board, flat, not overlapping. Next, take the spread and cover one slice in a thin, even layer. Go all the way to the crust on every side. You spread it right to the edges so every bite has flavour and the filling has something to stick to; bare corners are the first thing people leave behind. Now lay one lettuce leaf flat on the spread side. Tear it if it's too big, so it covers the slice without hanging over. Then the fillings: ham first, then cheese, in one even layer that reaches the edges of the bread. Don't pile it all up in the middle. That's the most common mistake, and it makes the sandwich fat in the centre and empty at the corners, so it falls apart when you cut it. Close the sandwich with the second slice, spread side down, and line the edges up with the bottom slice before you press gently. Finally, cut it once, corner to corner, with one clean stroke. Two even triangles, and you're done.",
   "steps": [
     {
       "idx": 1,
-      "title": "Place nori",
-      "key_line": "Shiny side down, long edge near",
-      "instruction": "Lay a sheet of nori on the bamboo mat, shiny side down, with the long edge towards you.",
-      "chef_quote": "Lay a sheet of nori on the bamboo mat, shiny side down, with the long edge towards you.",
-      "timestamp_s": 14.0,
-      "clip_start_s": 9.0,
-      "clip_end_s": 13.5,
+      "title": "Lay out bread",
+      "key_line": "Two slices side by side, flat",
+      "instruction": "Lay two slices of bread side by side on the board, flat, not overlapping.",
+      "chef_quote": "Lay two slices of bread side by side on the board, flat, not overlapping.",
+      "timestamp_s": 12.0,
+      "clip_start_s": 7.0,
+      "clip_end_s": 11.5,
       "success_criteria": [
-        "One whole nori sheet lies flat on the mat",
-        "The long edge of the sheet faces the cook"
+        "Two slices of bread lie flat on the board",
+        "The slices sit side by side without overlapping"
       ],
       "watch_fors": [
         {
-          "id": "nori_short_edge_near",
-          "mistake": "The nori is turned so its short edge faces the cook",
-          "headline": "Turn the nori",
-          "fix": "Long edge towards you",
-          "spoken": "Turn the nori so the long edge is towards you."
+          "id": "slices_overlapping",
+          "mistake": "One slice lies partly on top of the other",
+          "headline": "Slices overlap",
+          "fix": "Lay them side by side",
+          "spoken": "The slices are overlapping — lay them side by side so you can spread one."
         }
       ],
       "timer_s": null
     },
     {
       "idx": 2,
-      "title": "Wet hands",
-      "key_line": "Dip fingers, shake off the excess",
-      "instruction": "Dip your fingers in the water bowl and shake off the excess so the rice doesn't stick.",
-      "chef_quote": "You wet your hands so the rice doesn't stick to your fingers.",
-      "timestamp_s": 30.0,
-      "clip_start_s": 26.0,
-      "clip_end_s": 30.5,
+      "title": "Spread",
+      "key_line": "Thin layer, right to every edge",
+      "instruction": "Cover one slice with the spread in a thin, even layer, all the way to the crust on every side.",
+      "chef_quote": "Go all the way to the crust on every side.",
+      "timestamp_s": 41.0,
+      "clip_start_s": 34.0,
+      "clip_end_s": 38.5,
       "success_criteria": [
-        "The nori sheet is still dry and flat on the mat"
-      ],
-      "watch_fors": [],
-      "timer_s": null
-    },
-    {
-      "idx": 3,
-      "title": "Spread rice",
-      "key_line": "Thin layer, leave 2cm top",
-      "instruction": "Spread a small handful of rice in a thin, even layer, leaving about two centimetres of bare nori along the far edge.",
-      "chef_quote": "You should still see the dark nori through the rice in places.",
-      "timestamp_s": 74.5,
-      "clip_start_s": 72.0,
-      "clip_end_s": 76.5,
-      "success_criteria": [
-        "Rice layer is thin enough to see nori through it in places",
-        "A strip of bare nori about 2 cm wide remains along the far edge",
-        "Rice covers the rest of the sheet evenly, without bare patches"
+        "Spread covers one whole slice in a thin, even layer",
+        "Spread reaches the crust on all four sides, with no bare corners"
       ],
       "watch_fors": [
         {
-          "id": "rice_too_thick",
-          "mistake": "Rice layer is thick and covers the whole sheet",
-          "headline": "Too much rice",
-          "fix": "Spread thinner, 2cm nori free",
-          "spoken": "There's a bit too much rice — spread it thinner and leave two centimetres of nori at the top."
-        },
-        {
-          "id": "rice_covers_top_edge",
-          "mistake": "Rice reaches the far edge, leaving no bare nori strip",
-          "headline": "No top margin",
-          "fix": "Clear 2cm at the far edge",
-          "spoken": "Push the rice back so there's a two-centimetre strip of bare nori at the far edge."
+          "id": "spread_misses_edges",
+          "mistake": "Spread covers only the middle, leaving bare bread along the edges or corners",
+          "headline": "Edges left bare",
+          "fix": "Spread right to the crust",
+          "spoken": "There's bare bread at the edges — take the spread right to the crust all the way round."
         }
       ],
       "timer_s": null
     },
     {
+      "idx": 3,
+      "title": "Add lettuce",
+      "key_line": "One leaf, flat, no overhang",
+      "instruction": "Lay one lettuce leaf flat on the spread side, tearing it if needed so it covers the slice without hanging over.",
+      "chef_quote": "Tear it if it's too big, so it covers the slice without hanging over.",
+      "timestamp_s": 66.0,
+      "clip_start_s": 60.0,
+      "clip_end_s": 64.5,
+      "success_criteria": [
+        "A lettuce leaf lies flat on the spread slice",
+        "The lettuce stays within the edges of the bread"
+      ],
+      "watch_fors": [],
+      "timer_s": null
+    },
+    {
       "idx": 4,
       "title": "Add fillings",
-      "key_line": "One line across the near third",
-      "instruction": "Lay one thin line of filling across the third of the sheet closest to you.",
-      "chef_quote": "Just one thin line of cucumber; don't pile it up.",
-      "timestamp_s": 120.0,
-      "clip_start_s": 115.0,
-      "clip_end_s": 119.5,
+      "key_line": "One even layer, edge to edge",
+      "instruction": "Lay the ham, then the cheese, in one even layer that reaches the edges of the bread.",
+      "chef_quote": "Don't pile it all up in the middle.",
+      "timestamp_s": 98.0,
+      "clip_start_s": 90.0,
+      "clip_end_s": 94.5,
       "success_criteria": [
-        "Filling forms a single thin line running across the sheet",
-        "The line sits in the third of the sheet nearest the cook"
+        "Ham and cheese cover the slice in one even layer, reaching the edges",
+        "No bare bread or lettuce shows around the edge of the filling"
       ],
       "watch_fors": [
         {
-          "id": "too_much_filling",
-          "mistake": "Filling is piled high or spread over more than one line",
-          "headline": "Too much filling",
-          "fix": "One thin line, no piles",
-          "spoken": "That's a lot of filling — keep it to one thin line so the roll closes."
+          "id": "filling_piled_center",
+          "mistake": "Filling is piled in the middle, bare bread around it",
+          "headline": "Filling piled up",
+          "fix": "Spread it to the edges",
+          "spoken": "The filling is all in the middle — spread it out so it reaches the edges of the bread."
         }
       ],
       "timer_s": null
     },
     {
       "idx": 5,
-      "title": "Roll",
-      "key_line": "Lift, tuck, roll, press gently",
-      "instruction": "Lift the near edge of the mat, tuck the nori over the filling, then roll forward and press gently along the whole length.",
-      "chef_quote": "Press gently along the whole length so it holds its shape.",
-      "timestamp_s": 170.0,
-      "clip_start_s": 162.0,
-      "clip_end_s": 166.5,
+      "title": "Close",
+      "key_line": "Spread side down, edges lined up",
+      "instruction": "Close the sandwich with the second slice, spread side down, and line its edges up with the bottom slice before pressing gently.",
+      "chef_quote": "Line the edges up with the bottom slice before you press gently.",
+      "timestamp_s": 124.0,
+      "clip_start_s": 117.0,
+      "clip_end_s": 121.5,
       "success_criteria": [
-        "The roll is closed, with the bare nori strip sealed underneath",
-        "The roll has an even thickness along its length"
+        "The top slice covers the bottom slice completely",
+        "The edges of the two slices line up"
       ],
-      "watch_fors": [],
+      "watch_fors": [
+        {
+          "id": "top_slice_misaligned",
+          "mistake": "The top slice is shifted, leaving part of the filling uncovered",
+          "headline": "Slices not lined up",
+          "fix": "Line up the top slice",
+          "spoken": "The top slice has slipped — line its edges up with the bottom slice."
+        }
+      ],
       "timer_s": null
     },
     {
       "idx": 6,
-      "title": "Slice",
-      "key_line": "Wet knife, half, then thirds",
-      "instruction": "Wet your knife, cut the roll in half, then cut each half into three equal pieces.",
-      "chef_quote": "Six even pieces, and you're done.",
-      "timestamp_s": 220.0,
-      "clip_start_s": 212.0,
-      "clip_end_s": 216.5,
+      "title": "Cut",
+      "key_line": "Corner to corner, one clean cut",
+      "instruction": "Cut the sandwich once, corner to corner, with one clean stroke.",
+      "chef_quote": "Two even triangles, and you're done.",
+      "timestamp_s": 150.0,
+      "clip_start_s": 142.0,
+      "clip_end_s": 146.5,
       "success_criteria": [
-        "There are six pieces of roughly equal width",
-        "Each piece shows the filling in the centre"
+        "The sandwich is cut into two triangles of similar size",
+        "The cut runs from one corner to the opposite corner"
       ],
       "watch_fors": [],
       "timer_s": null

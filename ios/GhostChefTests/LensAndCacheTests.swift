@@ -6,22 +6,22 @@ import Testing
 @Suite("LensScreen spoken forms")
 struct LensSpokenTests {
     let card = StepCard(
-        idx: 3, total: 8, title: "Spread rice", keyLine: "Thin layer, leave 2cm top", refImage: nil,
+        idx: 4, total: 6, title: "Add fillings", keyLine: "One even layer, edge to edge", refImage: nil,
         watching: .active)
 
     @Test func everyCase() {
-        #expect(LensScreen.step(card).spokenText == "Step 3 of 8. Spread rice. Thin layer, leave 2cm top.")
+        #expect(LensScreen.step(card).spokenText == "Step 4 of 6. Add fillings. One even layer, edge to edge.")
         #expect(LensScreen.checking(card).spokenText == "Checking.")
         #expect(LensScreen.pass(headline: "Looks right").spokenText == "Looks right.")
         #expect(
-            LensScreen.fix(card, headline: "Too much rice", fix: "Spread thinner, 2cm nori free", proactive: true)
-                .spokenText == "Too much rice. Spread thinner, 2cm nori free.")
+            LensScreen.fix(card, headline: "Filling piled up", fix: "Spread it to the edges", proactive: true)
+                .spokenText == "Filling piled up. Spread it to the edges.")
         #expect(
             LensScreen.unsure(headline: "Can't tell", hint: "Look straight down at mat").spokenText
                 == "Can't tell. Look straight down at mat.")
         #expect(LensScreen.unsure(headline: "Can't tell", hint: "").spokenText == "Can't tell.")
         #expect(LensScreen.talking(phase: .listening, caption: "").spokenText == nil)
-        #expect(LensScreen.talking(phase: .answering, caption: "Use less rice").spokenText == nil)
+        #expect(LensScreen.talking(phase: .answering, caption: "Spread it to the edges").spokenText == nil)
         #expect(LensScreen.showMe(card).spokenText == "Here is how the chef did it.")
         #expect(LensScreen.timer(remainingS: 200, card).spokenText == "3 minutes 20 seconds left.")
         #expect(LensScreen.timer(remainingS: 60, card).spokenText == "1 minute left.")
@@ -31,13 +31,13 @@ struct LensSpokenTests {
                 .spokenText == "Done. 6 of 8 steps right first time, 1 fix caught.")
         #expect(LensScreen.done(nil).spokenText == "Done. Well cooked.")
         #expect(LensScreen.notice("No connection").spokenText == "No connection.")
-        #expect(LensScreen.recipePick(titles: ["Maki roll", "Onigiri"], selected: 1).spokenText == "Recipe 2 of 2: Onigiri.")
+        #expect(LensScreen.recipePick(titles: ["Ham and cheese sandwich", "Club sandwich"], selected: 1).spokenText == "Recipe 2 of 2: Club sandwich.")
         #expect(LensScreen.recipePick(titles: [], selected: 0).spokenText == "No recipes yet.")
     }
 
     @Test func sentenceKeepsExistingPunctuation() {
         #expect(LensScreen.sentence("Looks right!") == "Looks right!")
-        #expect(LensScreen.sentence("  Roll  ") == "Roll.")
+        #expect(LensScreen.sentence("  Close  ") == "Close.")
         #expect(LensScreen.sentence("") == "")
     }
 

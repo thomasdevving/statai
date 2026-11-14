@@ -442,8 +442,8 @@ final class GlassesManager {
         }
         let step = try? FixtureRecipe.load().steps.first { $0.idx == 3 }
         let card = GlassesCards.stepCard(
-            index: step?.idx ?? 3, total: 6, title: step?.title ?? "Spread rice",
-            keyLine: step?.keyLine ?? "Thin layer, leave 2cm top",
+            index: step?.idx ?? 4, total: 6, title: step?.title ?? "Add fillings",
+            keyLine: step?.keyLine ?? "One even layer, edge to edge",
             image: GlassesCards.loadThumbnail(step?.refImageURL))
         do {
             try await display.send(card)
@@ -516,7 +516,7 @@ final class GlassesManager {
             do {
                 try await display.send(
                     GlassesCards.stepCard(
-                        index: 3, total: 6, title: step?.title ?? "Spread rice",
+                        index: 4, total: 6, title: step?.title ?? "Add fillings",
                         keyLine: "Update \(elapsed / 5): \(String(format: "%.0f", fps)) fps", image: image,
                         footer: "\(elapsed) s · \(now) frames"))
             } catch {

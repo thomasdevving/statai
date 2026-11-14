@@ -74,6 +74,12 @@ final class CookSession: WatcherHost {
     @ObservationIgnored private let cache: ImageCache
     @ObservationIgnored private let deviceLabel: String?
     @ObservationIgnored let watcher: WatcherLoop
+    /// Gemini Live (IOS-05). Nil when voice is off or not wired (tests, fixture previews).
+    @ObservationIgnored var voice: VoiceController? {
+        didSet { voice?.host = self }
+    }
+    /// The screen to return to when a Live turn ends (IOS-05.4).
+    @ObservationIgnored private var lensBeforeTalking: LensScreen?
 
     @ObservationIgnored private var pendingCheck: Task<Void, Never>?
     @ObservationIgnored private var screenTimer: Task<Void, Never>?
@@ -139,6 +145,7 @@ final class CookSession: WatcherHost {
         guard let recipe else { return }
         cancelTimers()
         speech.stop()
+        voice?.stop()
         endSessionInBackground()
         startTask?.cancel()
         startTask = Task { await openSession(recipe: recipe) }
@@ -148,6 +155,7 @@ final class CookSession: WatcherHost {
     func stop() {
         cancelTimers()
         watcher.stop()
+        voice?.stop()
         startTask?.cancel()
         speech.stop()
         endSessionInBackground()
@@ -169,11 +177,15 @@ final class CookSession: WatcherHost {
         guard !Task.isCancelled else { return }
         stepIndex = 0
         activeWarningID = nil
+        lensBeforeTalking = nil
+        isTalking = false
         watcher.stepDidChange()
         phase = .cooking
         showStep()
         watcher.start()
         speakLens(priority: .info)
+        // IOS-05.4: after the first card is up, connect Live in the background.
+        voice?.start()
     }
 
     // MARK: Inputs
@@ -367,6 +379,7 @@ final class CookSession: WatcherHost {
         // sentence finishes first and the step is queued behind it.
         if via != .auto { speech.stop() }
         speakLens(priority: .info)
+        if index != from { voice?.stepDidChange() }
     }
 
     private func finish() {
@@ -530,5 +543,73 @@ final class CookSession: WatcherHost {
 
     private func log(_ message: String) {
         print("[cook] \(message)")
+    }
+}
+
+// MARK: - Gemini Live (IOS-05.4, 05.5)
+
+extension CookSession: VoiceHost {
+    var voiceRecipeID: String? { recipe?.id }
+    var voiceSessionID: String? { sessionID }
+
+    var voiceStep: VoiceStepContext? {
+        guard let recipe, let step = currentStep else { return nil }
+        return VoiceStepContext(
+            idx: step.idx, total: recipe.steps.count, title: step.title,
+            instruction: step.instruction.isEmpty ? step.keyLine : step.instruction)
+    }
+
+    /// Listening / answering on the lens. The watcher pauses through `isTalking`.
+    func voiceShowTalking(_ phase: TalkPhase, caption: String) {
+        guard self.phase == .cooking, !isDone else { return }
+        if case .talking = lens {
+        } else {
+            lensBeforeTalking = lens
+        }
+        setTalking(true)
+        lens = .talking(phase: phase, caption: caption)
+    }
+
+    /// Back to the screen before the turn. Transient screens (pass, unsure, notice) whose timers
+    /// were skipped while talking go back to the step instead; a pass still advances.
+    func voiceEndTalking() {
+        let previous = lensBeforeTalking
+        lensBeforeTalking = nil
+        setTalking(false)
+        // A verdict or a step change replaced the talking screen meanwhile: leave it.
+        guard case .talking = lens else { return }
+        switch previous {
+        case .fix(let card, let headline, let fix, let proactive)?:
+            lens = .fix(currentCard() ?? card, headline: headline, fix: fix, proactive: proactive)
+            if proactive {
+                schedule(after: Timing.warningAutoDismiss) { session in session.dismissWarning() }
+            }
+        case .showMe?:
+            if let card = currentCard() { lens = .showMe(card) } else { showStep() }
+        case .checking?:
+            // The check may still be in flight; its verdict replaces this when it lands.
+            if latestCheckRequestID != nil, let card = currentCard() { lens = .checking(card) } else { showStep() }
+        case .pass?:
+            advance(via: .auto)
+        default:
+            showStep()
+        }
+    }
+
+    /// A voice command takes the gesture's path with `via: voice`. `check_my_work` checks from a
+    /// step, fix or talking screen; it never advances a pass.
+    func voiceRun(_ input: CookInput) {
+        if input == .primary, case .pass = lens { return }
+        send(input, via: .voice)
+    }
+
+    func voicePostQuestion(caption: String, transcript: String) {
+        var payload: [String: JSONValue] = ["caption": .string(caption)]
+        if !transcript.isEmpty { payload["transcript"] = .string(transcript) }
+        postEvent(.question, stepID: currentStep?.id, payload: payload)
+    }
+
+    func voicePostClientError(_ detail: String) {
+        postEvent(.clientError, stepID: currentStep?.id, payload: ["where": .string("live"), "detail": .string(detail)])
     }
 }

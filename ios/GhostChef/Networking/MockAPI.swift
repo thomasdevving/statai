@@ -36,6 +36,8 @@ actor MockAPI: GhostChefAPI {
     /// fixture show the whole fix → re-check → pass loop offline. Off: always `pass`.
     private let mimicFakeAI: Bool
     private var checkCountByStep: [String: Int] = [:]
+    /// Tokens `/live-token` hands out, in order (IOS-05 tests). Empty: 503, as with the fixture.
+    private var liveTokens: [LiveTokenResponse] = []
 
     init(recipe: Recipe, delay: Double = 0, mimicFakeAI: Bool = false) {
         self.recipe = recipe
@@ -218,8 +220,14 @@ actor MockAPI: GhostChefAPI {
             fix: w.fix, spoken: w.spoken, confidence: 0.9, latencyMs: Int(delay * 1000), model: "mock")
     }
 
+    /// Queue tokens for `/live-token` (tests of the Gemini Live controller).
+    func enqueueLiveTokens(_ tokens: LiveTokenResponse...) {
+        liveTokens.append(contentsOf: tokens)
+    }
+
     func liveToken(recipeID: String, sessionID: String?) async throws -> LiveTokenResponse {
         calls.append(.liveToken(recipeID))
+        if !liveTokens.isEmpty { return liveTokens.removeFirst() }
         throw APIError(
             status: 503, code: .modelUnavailable,
             message: "Voice is not available with the bundled fixture", retryable: false)
