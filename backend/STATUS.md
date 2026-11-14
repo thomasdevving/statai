@@ -12,7 +12,7 @@
 | 04 | Deploy to Railway + emergency mode | DONE | 2026-11-14 / `b72ce2d` | Production runs on Railway with `gemini` + `supabase`; smoke against production passed. Emergency laptop mode is **NOT REHEARSED** on a hotspot. Automatic deploys are off (owner). See BE-04 notes. |
 | 05 | Live token, monitor, session summary | DONE | 2026-11-14 / `ab84dc8`, production `fc21d115` | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) and, since AI-05 reached `main` (`96e105e`), mints a **real token locally** (2026-11-14: 200, `gemini-3.8-live`, `v1beta`, `locked: true`). Production redeployed at `b9b01bb` (deployment `fc21d115`); production smoke without `--allow-live-errors` exit 0 with `/live-token` 200. Deployed to production (`c151ee6`), production smoke exit 0 (with `--allow-live-errors`). See BE-05 notes. |
 | 06 | Ingestion pipeline with ffmpeg | PARTIAL | 2026-11-14 / `7a864cd`, production `0a5f8498` | BE-06.1–06.4 done and tested on fake AI + memory store with generated `testsrc` videos (ffmpeg 7.1.5). **BE-06.5 not run:** no chef video exists yet. Team decision (2026-11-14): build everything around generated video and the hand-written fixture now, and swap in the real take once it is recorded (then: BE-06.5 run, AI fixture update, production re-seed). Deployed to production (`0a5f8498`, commit `4892cc7`); production smoke exit 0 and `/health` shows `ffmpeg: true`. No ingestion has been run on production, so the Supabase streaming download is still tested only with a mocked HTTP layer. See BE-06 notes. |
-| 07 | Hardening and end-to-end | PARTIAL | 2026-11-14 | BE-07.1–07.5 done: watch quota cool-down, fault injection, security pass, recovery table (server rows), `cleanup.py`, `load_watch.py` run once on production. **BE-07.6 open** (owner): hotspot rehearsal, freeze tag, final smoke on the frozen commit. BE-07 code is **not deployed** yet; production still runs `0a5f8498` (BE-06). See BE-07 notes. |
+| 07 | Hardening and end-to-end | PARTIAL | 2026-11-14 | BE-07.1–07.5 done: watch quota cool-down, fault injection, security pass, recovery table (server rows), `cleanup.py`, `load_watch.py` run once on production. **BE-07.6 open** (owner): hotspot rehearsal, freeze tag, final smoke on the frozen commit. Deployed to production 2026-11-14 (`f023c9e`, deployment `1befa7f0`); smoke OK; production test sessions cleaned. Not frozen. See BE-07 notes. |
 
 Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (defined in docs/PLAN.md §8).
 
@@ -22,7 +22,7 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 |---|---|---|---|---|
 | Owner's laptop on the LAN | `http://192.168.200.152:8000` (when the owner runs it; IP may change) | `fake` | `memory` | 2026-11-14 |
 | Owner's laptop, Supabase store (local test only) | `http://localhost:8001` (started for BE-02 verification, then stopped) | `fake` | `supabase` | 2026-11-14 |
-| Production (Railway) | `https://statai-production.up.railway.app` | `gemini` | `supabase` | 2026-11-14 |
+| Production (Railway) | `https://statai-production.up.railway.app` (deployment `1befa7f0` = commit `f023c9e`, BE-07) | `gemini` | `supabase` | 2026-11-14 |
 | Emergency laptop (hotspot) | `scripts/emergency.sh` prints `http://<lan-ip>:8000`. **NOT REHEARSED** on a hotspot with a phone | `gemini` | `memory` | — |
 
 The demo key is shared privately, never written here.
@@ -60,6 +60,7 @@ The demo key is shared privately, never written here.
 | 2026-11-14 | Supabase production project, re-seed only (no smoke): `STORAGE=supabase scripts/seed.py --publish --replace` after AI `cf93919` (fixture step 2: spread both slices) | exit 0. Recipe "Ham and cheese sandwich", 6 steps, published. Step 2 row read back from Supabase matches the fixture ("Spread" / "Thin layer, right to every edge"), ref image present. Old seed sessions and frames deleted by `--replace` | — | — |
 | 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `0a5f8498` = commit `4892cc7` (BE-06 code + re-seeded sandwich fixture), default fixture frame, `--fast`, without `--allow-live-errors` | exit 0, every status as expected; `/health` reports `"ffmpeg":true` | 1254 / 1667 (n=2) | 792 / 1346 (n=6) |
 | 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `0a5f8498` (BE-06 code), default fixture frame, `--fast`, after the BE-07.1 load run | OK, every status as expected | 962 / 1012 (n=2) | 717 / 845 (n=6) |
+| 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), deployment `1befa7f0` = commit `f023c9e` (BE-07 code), default fixture frame, `--fast` | OK, every status as expected. CORS preflight now lists `X-Fault` (new code live); `dev-key` → 401; startup log has no fault-injection warning; Railway variables contain no `FAULT_INJECT*` | 1076 / 1305 (n=2) | 839 / 1017 (n=6) |
 Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not Gemini.
 
 ## Accounts (who holds them; no secrets here)
@@ -225,7 +226,7 @@ Run in this session and seen:
   - **`emergency.ps1` + `PUBLIC_BASE_URL`.** In PowerShell, assigning `""` deletes the variable, so the value in `.env` could win. The script now sets a single space, which the backend treats as unset.
   - **`.env` parsing in both scripts.** Inline ` # comments` are now stripped, and quoted values are taken from inside the quotes (bash checked on 5 cases).
   - The security-tester re-checked all three fixes: clean pass, no new findings.
-- **Owner action:** the local `backend/.env` still has `DEMO_API_KEY=dev-key`, so `emergency.sh` will refuse to start until a private key is set there. That key must be the same one the apps are configured with.
+- ~~**Owner action:** the local `backend/.env` still has `DEMO_API_KEY=dev-key`~~ Done (checked 2026-11-14, BE-07): `.env` holds the real demo key.
 - `ruff check .` clean; `pytest -q` 113 passed, 3 skipped.
 
 To finish BE-04 (owner):
@@ -333,11 +334,14 @@ Run in this session and seen unless stated. The code was written by the implemen
 - **BE-07.5:** `scripts/cleanup.py` (dry run unless `--yes`; sessions older than `--hours` with events and frames, blobs first; `failed` recipes via `purge_recipe`; the seeded recipe is never deleted, its old sessions are). Dry run on Supabase listed 4 sessions (all test data from today) and 0 failed recipes; **nothing deleted yet**: run `STORAGE=supabase python scripts/cleanup.py --hours 1 --yes` just before the final rehearsal. Memory mode: rows live only in the server process, so it cleans only stale `.data/frames/<session>` folders (dry run seen). `--yes` is covered by tests and the live Supabase test, not run by hand on production. Known limit: PostgREST caps one listing at 1000 rows, so a bigger backlog needs repeated runs.
 - **What footage and frames exist (for the consent and retention answer), Supabase production, 2026-11-14:** `videos`: 0 objects (no chef video has ever been uploaded). `media`: 6 objects, 281 kB, the fixture's reference stills (placeholder images, no people). `frames`: 2 objects, 96 kB, from a smoke run (the fixture image). The load run and smoke stored check frames too, all the same fixture image. Tables: 1 recipe (published seed), 4 sessions. No frame of a real person is stored yet. Frames are stored only for `/check` and `watch_warn`; deleting a recipe deletes its sessions and frames; `cleanup.py` removes old sessions.
 
-To finish BE-07 (owner, BE-07.6):
-1. Deploy the BE-07 commit to production (pin the commit as for BE-05/06), `/health`, smoke with a real frame. Make sure `FAULT_INJECT*` is not set.
-2. Run `cleanup.py --yes` before the final rehearsal.
-3. Rehearse emergency mode on the hotspot with a phone.
-4. Tag the demo commit, tell the team the hash, record it here with the last smoke run.
+Done after the batch commit (2026-11-14):
+- **Deployed** `f023c9e` to production (service source pinned to the commit; deployment `1befa7f0`, SUCCESS). Checks: `/health` → `gemini` / `supabase` / `ffmpeg: true`; preflight lists `X-Fault`; `dev-key` → 401; no `FAULT_INJECT*` variable; smoke OK (table above, fixture frame, not a real one).
+- **Cleanup run on production:** `STORAGE=supabase scripts/cleanup.py --hours 0 --yes` deleted 5 test sessions (the BE-06 production smoke, the two load-check sessions, two smokes). SQL afterwards: 0 sessions, 0 events, 0 frames; 1 recipe, 6 steps, 6 `media` stills (seed intact). Re-run it just before the final rehearsal if more test sessions pile up.
+- **Emergency key:** the local `backend/.env` already holds the real demo key (not `dev-key`), so the BE-04 "owner action" is done and `emergency.sh` will start with real Gemini.
+
+Still open (owner, BE-07.6):
+1. Rehearse emergency mode on the hotspot with a phone and the iOS app (needs IOS-01.2: local-network permission + ATS exception).
+2. Tag the demo commit, tell the team the hash, record it here with a final smoke run with a real frame.
 
 ## Needs from other tracks
 
