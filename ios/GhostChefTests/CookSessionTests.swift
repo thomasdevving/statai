@@ -322,6 +322,10 @@ struct CookSessionTests {
                 try await base.watch(frame: frame, stepID: stepID, requestID: requestID, sessionID: sessionID, capturedAt: capturedAt)
             }
             func liveToken(recipeID: String, sessionID: String?) async throws -> LiveTokenResponse { try await base.liveToken(recipeID: recipeID, sessionID: sessionID) }
+            func createRecipe(title: String, chefName: String?, stepMarksS: [Double], consent: Bool) async throws -> RecipeUpload {
+                try await base.createRecipe(title: title, chefName: chefName, stepMarksS: stepMarksS, consent: consent)
+            }
+            func processRecipe(id: String) async throws -> ProcessStarted { try await base.processRecipe(id: id) }
         }
         let s = CookSession(
             api: NoSessionAPI(base: api), frames: frames, speech: speech, clock: clock,

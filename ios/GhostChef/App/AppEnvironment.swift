@@ -86,6 +86,29 @@ final class AppEnvironment {
         return session
     }
 
+    // MARK: Chef mode (IOS-08)
+
+    /// The phone camera instance (shared with the cook-along; one capture session).
+    var phoneCamera: PhoneCameraFrameSource {
+        if let existing = source(for: .phoneCamera) as? PhoneCameraFrameSource { return existing }
+        let made = PhoneCameraFrameSource()
+        frameSources[.phoneCamera] = made
+        return made
+    }
+
+    let takeStore = TakeStore()
+
+    /// The review page for a processed take: `<API base>/app/review/` (WEB-02).
+    var reviewPageURL: URL? {
+        settings.apiConfig.baseURL?.appending(path: "app/review/")
+    }
+
+    func makeChefUploader() -> ChefUploader {
+        ChefUploader(
+            api: api, transport: URLSessionUploadTransport(), store: takeStore,
+            reviewURL: { [weak self] in self?.reviewPageURL })
+    }
+
     /// A voice controller for Settings → Voice Lab (no cook-along around it).
     func makeVoiceLabController() -> VoiceController {
         let speech = speech

@@ -64,7 +64,7 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Ghost Chef connects to your glasses over Wi-Fi and talks to the team's development server on your local network.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Ghost Chef listens when you ask a question about the recipe so it can answer by voice.</string>
+	<string>Ghost Chef listens when you ask a question about the recipe, and records the chef's voice in Chef mode.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

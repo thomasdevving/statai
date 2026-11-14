@@ -21,8 +21,11 @@ protocol GhostChefAPI: Sendable {
     ) async throws -> WatchResponse
     func liveToken(recipeID: String, sessionID: String?) async throws -> LiveTokenResponse
 
-    // Chef mode (contract v2.0, IOS-08) adds here: createRecipe(title:chefName:stepMarksS:consent:)
-    // returning the signed upload URL, processRecipe(id:), and the TUS / PUT upload itself.
+    // Chef mode (contract v2.0, IOS-08). The upload itself (TUS / PUT straight to Storage) is
+    // `ChefUploader`'s job: it never goes through this API or carries the demo key.
+    func createRecipe(title: String, chefName: String?, stepMarksS: [Double], consent: Bool) async throws -> RecipeUpload
+    @discardableResult
+    func processRecipe(id: String) async throws -> ProcessStarted
 }
 
 /// A fresh client-generated `request_id` (API-CONTRACT §1). Lowercase so it compares equal to

@@ -30,6 +30,21 @@ final class Settings {
         static let speechMuted = "settings.speechMuted"
         static let voiceEnabled = "settings.voiceEnabled"
         static let voiceMicMode = "settings.voiceMicMode"
+        static let appMode = "settings.appMode"
+    }
+
+    /// IOS-08.1: the two modes on the first screen.
+    enum AppMode: String, CaseIterable, Identifiable, Hashable, Sendable {
+        case cook
+        case chef
+
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .cook: "Cook"
+            case .chef: "Chef"
+            }
+        }
     }
 
     /// API-CONTRACT §3.3 default.
@@ -58,6 +73,8 @@ final class Settings {
     var voiceEnabled: Bool { didSet { defaults.set(voiceEnabled, forKey: Key.voiceEnabled) } }
     /// Open mic (default) or push-to-talk for a loud stage (IOS-05.3).
     var voiceMicMode: VoiceMicMode { didSet { defaults.set(voiceMicMode.rawValue, forKey: Key.voiceMicMode) } }
+    /// The last mode picked on the first screen (IOS-08.1); nil before the first pick.
+    var lastAppMode: AppMode? { didSet { defaults.set(lastAppMode?.rawValue, forKey: Key.appMode) } }
 
     init(defaults: UserDefaults = .standard, bundle: Bundle = .main) {
         self.defaults = defaults
@@ -76,6 +93,7 @@ final class Settings {
         watchInterval = defaults.object(forKey: Key.watchInterval) as? Double ?? Self.defaultWatchInterval
         voiceEnabled = defaults.object(forKey: Key.voiceEnabled) as? Bool ?? true
         voiceMicMode = defaults.string(forKey: Key.voiceMicMode).flatMap(VoiceMicMode.init) ?? .openMic
+        lastAppMode = defaults.string(forKey: Key.appMode).flatMap(AppMode.init)
     }
 
     /// What the watcher reads on every tick.

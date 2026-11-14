@@ -91,7 +91,7 @@ targets:
         NSBonjourServices:
           - _bonjour._tcp
         NSCameraUsageDescription: Ghost Chef looks at your cutting board through the camera to check each cooking step against the chef's reference.
-        NSMicrophoneUsageDescription: Ghost Chef listens when you ask a question about the recipe so it can answer by voice.
+        NSMicrophoneUsageDescription: Ghost Chef listens when you ask a question about the recipe, and records the chef's voice in Chef mode.
         NSBluetoothAlwaysUsageDescription: Ghost Chef connects to your Meta glasses over Bluetooth to show steps in the lens and receive gestures.
         NSLocalNetworkUsageDescription: Ghost Chef connects to your glasses over Wi-Fi and talks to the team's development server on your local network.
         NSAppTransportSecurity:

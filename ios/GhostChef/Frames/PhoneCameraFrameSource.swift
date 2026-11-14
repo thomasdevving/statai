@@ -9,6 +9,8 @@ import Foundation
 final class PhoneCameraFrameSource: NSObject, FrameSource, @unchecked Sendable {
     /// For `CameraPreview`. Configure and run it only through this class.
     let captureSession = AVCaptureSession()
+    /// Every frame, for Chef-mode recording (IOS-08.3).
+    let frameTap = FrameTap()
 
     private let sessionQueue = DispatchQueue(label: "ghostchef.camera.session")
     private let bufferQueue = DispatchQueue(label: "ghostchef.camera.buffers")
@@ -108,5 +110,6 @@ extension PhoneCameraFrameSource: AVCaptureVideoDataOutputSampleBufferDelegate {
     ) {
         guard let buffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         lock.withLock { latestBuffer = buffer }
+        frameTap.emit(buffer)
     }
 }

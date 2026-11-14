@@ -8,6 +8,7 @@ actor MockAPI: GhostChefAPI {
         case health, recipes, recipe(String), createSession(String), postEvent(SessionEventKind)
         case session(String), check(stepID: String, requestID: String)
         case watch(stepID: String, requestID: String), liveToken(String)
+        case createRecipe(title: String, marks: [Double]), processRecipe(String)
     }
 
     private let recipe: Recipe
@@ -36,6 +37,8 @@ actor MockAPI: GhostChefAPI {
     /// fixture show the whole fix → re-check → pass loop offline. Off: always `pass`.
     private let mimicFakeAI: Bool
     private var checkCountByStep: [String: Int] = [:]
+    /// `/process` answers, in order (IOS-08 tests). Empty: `202 processing`.
+    private var processScript: [Result<Void, APIError>] = []
     /// Tokens `/live-token` hands out, in order (IOS-05 tests). Empty: 503, as with the fixture.
     private var liveTokens: [LiveTokenResponse] = []
 
@@ -218,6 +221,36 @@ actor MockAPI: GhostChefAPI {
         return WatchResponse(
             requestID: requestID, stepID: stepID, status: .warn, mistakeID: w.id, headline: w.headline,
             fix: w.fix, spoken: w.spoken, confidence: 0.9, latencyMs: Int(delay * 1000), model: "mock")
+    }
+
+    // MARK: Chef mode (IOS-08)
+
+    /// What `/recipes/{id}/process` answers next, e.g. `409 upload_missing` once.
+    func enqueueProcess(_ results: Result<Void, APIError>...) {
+        processScript.append(contentsOf: results)
+    }
+
+    /// Memory-mode shape: no resumable endpoint, so only the simple `PUT` applies.
+    func createRecipe(title: String, chefName: String?, stepMarksS: [Double], consent: Bool) async throws -> RecipeUpload {
+        calls.append(.createRecipe(title: title, marks: stepMarksS))
+        await pause()
+        guard consent else {
+            throw APIError.server(status: 422, code: .validationError, message: "consent must be true", retryable: false, requestID: nil)
+        }
+        let id = UUID().uuidString.lowercased()
+        return RecipeUpload(
+            recipeID: id, status: .uploading,
+            uploadURL: URL(string: "http://mock.local/local-upload/videos/\(id)/source.mp4?token=mock")!,
+            uploadToken: "mock", bucket: "videos", objectPath: "\(id)/source.mp4", resumableEndpoint: nil,
+            uploadExpiresAt: Date().addingTimeInterval(7200))
+    }
+
+    @discardableResult
+    func processRecipe(id: String) async throws -> ProcessStarted {
+        calls.append(.processRecipe(id))
+        await pause()
+        if !processScript.isEmpty, case .failure(let error) = processScript.removeFirst() { throw error }
+        return ProcessStarted(recipeID: id, status: .processing)
     }
 
     /// Queue tokens for `/live-token` (tests of the Gemini Live controller).

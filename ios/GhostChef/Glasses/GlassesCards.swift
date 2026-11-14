@@ -87,6 +87,19 @@ enum GlassesCards {
         .padding(16)
     }
 
+    /// IOS-08.3: Chef mode while recording: "● REC 03:12" and "Step N" only, plus a button to
+    /// mark the next step (fallback for the pinch).
+    static func recordingCard(elapsed: TimeInterval, step: Int, justMarked: Bool, onMark: @escaping @Sendable () -> Void) -> FlexBox {
+        FlexBox(direction: .column, spacing: 8) {
+            Text("● REC \(recordingClock(elapsed))", style: .heading)
+            Text(justMarked ? "Step \(step) marked" : "Step \(step)", style: .body)
+            ButtonGroup {
+                Button(label: "New step", style: .secondary, onClick: onMark)
+            }
+        }
+        .padding(16)
+    }
+
     static func iconName(_ icon: GlassesCardSpec.Icon) -> IconName {
         switch icon {
         case .checkmark: .checkmarkCircle

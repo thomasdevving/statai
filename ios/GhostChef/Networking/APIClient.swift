@@ -84,6 +84,16 @@ final class APIClient: GhostChefAPI {
         return try await send(try makeRequest("GET", path: "live-token", query: query))
     }
 
+    func createRecipe(title: String, chefName: String?, stepMarksS: [Double], consent: Bool) async throws -> RecipeUpload {
+        let body = RecipeCreate(title: title, chefName: chefName, stepMarksS: stepMarksS, consent: consent)
+        return try await send(try makeRequest("POST", path: "recipes", json: body))
+    }
+
+    @discardableResult
+    func processRecipe(id: String) async throws -> ProcessStarted {
+        try await send(try makeRequest("POST", path: "recipes/\(id)/process"))
+    }
+
     // MARK: - Request building (internal for tests)
 
     func makeRequest(

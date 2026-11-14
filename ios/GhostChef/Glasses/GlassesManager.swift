@@ -106,6 +106,8 @@ final class GlassesManager {
     private(set) var thermalDescription = "—"
     /// The newest camera frame, written on the SDK's frame thread (IOS-06.2).
     nonisolated let latestFrames = LatestFrameStore()
+    /// Every glasses frame, for Chef-mode recording (IOS-08.3).
+    nonisolated let frameTap = FrameTap()
     /// Device inputs for the cook-along (IOS-06.4). Proof e still logs them.
     @ObservationIgnored var onInput: (@MainActor (InputEvent) -> Void)?
     @ObservationIgnored private var statusInputs = GlassesStatusInputs() {
@@ -411,9 +413,13 @@ final class GlassesManager {
             }.store(in: cameraTokens)
             let counter = frames
             let latest = latestFrames
+            let tap = frameTap
             stream.videoFramePublisher.listen { [weak self] frame in
                 let total = counter.increment()
-                if let pixels = CMSampleBufferGetImageBuffer(frame.sampleBuffer) { latest.put(pixels) }
+                if let pixels = CMSampleBufferGetImageBuffer(frame.sampleBuffer) {
+                    latest.put(pixels)
+                    tap.emit(pixels)
+                }
                 guard let requestedAt = counter.takeSnapshotRequest(),
                     let pixels = CMSampleBufferGetImageBuffer(frame.sampleBuffer)
                 else {
