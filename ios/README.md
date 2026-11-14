@@ -76,7 +76,7 @@ ios/
     Glasses/      GlassesManager (DAT), GlassesLabView (IOS-02 spike)
     Chef/         ChefRecorder (DAT/phone → MP4 + step marks), ChefUploader (TUS / PUT)   (IOS-08)
     UI/           ModePickerView, RecipeListView, CookView, ChefRecordView, SettingsView, DoneView
-    Resources/    Fixtures/sushi_recipe.json (copy of ai/fixtures), assets, chime
+    Resources/    Fixtures/sushi_recipe.json (copy of ai/fixtures; the sandwich lesson since D-19, file name kept until after the demo), assets, chime
   GhostChefTests/
   README.md  STATUS.md  tasks/
 ```
@@ -97,8 +97,8 @@ One Claude session per batch. Kickoff prompt: [../docs/PLAN.md §7](../docs/PLAN
 |---|---|---|---|---|
 | 01 | [Project foundation](tasks/01-project-foundation.md) | G0 | Fixture from AI-01; BE-01 for live data | Sign the app, run on the phone |
 | 02 | [DAT glasses spike](tasks/02-dat-glasses-spike.md) | G1 | 01; a pair of glasses (or MockDeviceKit to start) | Get glasses, pair, test, ask the booth |
-| 03 | [Cook-along core](tasks/03-cook-along-core.md) | G2 | 01; BE-01 (BE-03 for real verdicts) | Try it on real rice |
-| 04 | [Proactive watcher](tasks/04-proactive-watcher.md) | G2 | 03 | Try it on real rice |
+| 03 | [Cook-along core](tasks/03-cook-along-core.md) | G2 | 01; BE-01 (BE-03 for real verdicts) | Try it on a real sandwich |
+| 04 | [Proactive watcher](tasks/04-proactive-watcher.md) | G2 | 03 | Try it on a real sandwich |
 | 05 | [Gemini Live voice](tasks/05-gemini-live-voice.md) | G3 | 03; BE-05; AI-05 protocol notes | Talk to it |
 | 06 | [Glasses integration](tasks/06-glasses-integration.md) | G3 | 02 result, 03 (04 if done); glasses in hand | Wear them |
 | 07 | [Resilience and demo mode](tasks/07-resilience-and-demo-mode.md) | G4 | 03–06, 08 | Run the recovery tests, rehearse |

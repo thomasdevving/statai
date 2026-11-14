@@ -47,6 +47,57 @@ enum GlassesCards {
         .padding(16)
     }
 
+    /// IOS-06.3: any lens screen, from its SDK-free spec (`GlassesLensLayout`). Bright on black;
+    /// fix and pass are told apart by icon and words (SDK 1.0.1 text has no amber or green).
+    /// Button clicks come back as `CookInput`s.
+    static func card(
+        _ spec: GlassesCardSpec, image: UIImage?, onButton: @escaping @Sendable (CookInput) -> Void
+    ) -> FlexBox {
+        FlexBox(direction: .column, spacing: 8) {
+            FlexBox(direction: .row, spacing: 8, crossAlignment: .center) {
+                if let icon = spec.icon {
+                    Icon(name: iconName(icon), style: .filled)
+                }
+                Text(spec.heading, style: .heading)
+            }
+            .flexShrink(0)
+            if let image {
+                Image(image: image, sizePreset: .fill, cornerRadius: .small)
+                    .flexShrink(1)
+            }
+            for line in spec.lines.prefix(2) {
+                Text(line, style: .body)
+                    .flexShrink(0)
+            }
+            if let meta = spec.meta {
+                Text(meta, style: .meta, color: .secondary)
+                    .flexShrink(0)
+            }
+            if !spec.buttons.isEmpty {
+                ButtonGroup {
+                    for button in spec.buttons {
+                        Button(
+                            label: button.label, style: button.primary ? .primary : .secondary,
+                            onClick: { onButton(button.input) })
+                    }
+                }
+                .flexShrink(0)
+            }
+        }
+        .padding(16)
+    }
+
+    static func iconName(_ icon: GlassesCardSpec.Icon) -> IconName {
+        switch icon {
+        case .checkmark: .checkmarkCircle
+        case .warning: .exclamationTriangle
+        case .info: .iCircle
+        case .question: .exclamationCircle
+        case .speech: .speechBubble
+        case .done: .checkmark
+        }
+    }
+
     /// Small enough for the lens, decoded without inflating the full image, and center-cropped
     /// to `aspect` (width / height). A `.fill` image spans the card's width, so a portrait
     /// 720×1280 still would be taller than the card and push the key line off it; a 16:10

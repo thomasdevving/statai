@@ -57,10 +57,19 @@ struct SettingsView: View {
                     } label: {
                         Label("Grab a Test Frame", systemImage: "camera.viewfinder")
                     }
+                    LabeledContent {
+                        Text(env.glasses.status.label)
+                    } label: {
+                        Label("Glasses", systemImage: "eyeglasses")
+                    }
+                    if env.glasses.status.isReady {
+                        LabeledContent("Battery", value: env.glasses.batteryLevel.map { "\($0)%" } ?? "—")
+                        LabeledContent("Thermal", value: env.glasses.thermalDescription)
+                    }
                 } header: {
                     Text("Camera")
                 } footer: {
-                    Text("Glasses become a frame source once the glasses integration lands.")
+                    Text("A cook-along uses the glasses camera, lens and inputs automatically when the glasses are ready; otherwise the frame source chosen here. Audio still plays on the phone (the glasses audio route is not decided yet).")
                 }
 
                 Section {

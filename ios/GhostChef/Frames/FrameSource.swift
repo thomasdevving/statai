@@ -16,6 +16,8 @@ protocol FrameSource: AnyObject, Sendable {
 enum FrameSourceKind: String, CaseIterable, Identifiable, Sendable {
     case phoneCamera
     case stillImage
+    /// The glasses' camera stream (IOS-06.2), real glasses or MockDeviceKit.
+    case glasses
 
     var id: String { rawValue }
 
@@ -23,15 +25,16 @@ enum FrameSourceKind: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .phoneCamera: "iPhone camera"
         case .stillImage: "Still image (testing)"
+        case .glasses: "Glasses camera"
         }
     }
 
     /// Kinds offered in Settings. The still image only appears where there is no camera.
     static var selectable: [FrameSourceKind] {
         #if targetEnvironment(simulator)
-            [.phoneCamera, .stillImage]
+            [.phoneCamera, .stillImage, .glasses]
         #else
-            [.phoneCamera]
+            [.phoneCamera, .glasses]
         #endif
     }
 }

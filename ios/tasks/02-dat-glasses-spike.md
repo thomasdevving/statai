@@ -71,7 +71,7 @@ Pair through the Meta AI app, enable Developer Mode, register the app. Repeat a�
 | f | Audio route | With the camera stream running, play a spoken sentence (`AVSpeechSynthesizer`) and record 3 s from the microphone with `AVAudioSession` category `playAndRecord`, mode `voiceChat`, option `allowBluetooth` | Does speech come out of the glasses? Is the active input the glasses' mic (print `currentRoute`)? Does the video stream survive? |
 | g | Measurements | Log for 30 s: frames per second received, frame resolution, time from "want a frame" to JPEG bytes; note heat or battery warnings | Numbers |
 | h | Record for Chef mode | With the camera stream running, write 60 s of frames plus microphone audio to an MP4 with `AVAssetWriter`; play it back on the phone | Does it play, is the sound in sync, which mic was used, file size, any dropped frames or heat. De-risks IOS-08 (risk R-19) |
-| — | Framing | Look down at a board at arm's length with a nori sheet on a mat. Grab frames standing and sitting | Is the whole mat in frame? Save 3 frames for the AI owner |
+| — | Framing | Look down at a board at arm's length with two slices of bread on it. Grab frames standing and sitting | Is the whole board (both slices) in frame? Save 3 frames for the AI owner |
 
 **Acceptance:** `STATUS.md` → Device facts, real-glasses column filled for a–h with observed detail, glasses model, firmware, SDK version, date; "Environment actually used" complete. Send the saved frames to the AI owner (they answer risk R-02 for the real camera).
 

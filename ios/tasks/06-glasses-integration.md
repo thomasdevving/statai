@@ -79,7 +79,7 @@ The cook-along from IOS-03 runs on the glasses: frames come from the glasses' ca
 
 ### IOS-06.7 Full run, recorded
 
-**Do** — the G3 run: on the glasses, with real Gemini and the real seeded recipe, real rice: step card → mistake → (warning) → fix → check passes → next. Record it on a second phone (hands and table only) with the monitor visible.
+**Do** — the G3 run: on the glasses, with real Gemini and the real seeded recipe (the sandwich lesson), real bread and fillings: step card → mistake → (warning) → fix → check passes → next. Record it on a second phone (hands and table only) with the monitor visible.
 
 **Acceptance**
 - `STATUS.md` → "End-to-end runs on the glasses" has the row: date, glasses model and firmware, what ran, result, where the recording is.

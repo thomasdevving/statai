@@ -8,7 +8,7 @@
 | **Unblocks** | The demo's "it spoke first" moment |
 | **Size** | Medium |
 | **Model** | Opus 5.5 |
-| **Needs a human for** | Trying it over real rice; judging whether it is annoying |
+| **Needs a human for** | Trying it over a real sandwich; judging whether it is annoying |
 
 ## Goal
 
@@ -75,9 +75,9 @@ Rules: a streak counts only `warn` responses with the **same** `mistake_id` and 
 
 **Acceptance:** toggling and changing values takes effect without restarting the session.
 
-### IOS-04.5 Try it on real rice *(human)*
+### IOS-04.5 Try it on a real sandwich *(human)*
 
-With real Gemini: spread a correct layer (expect silence for at least a minute), then pile on rice (expect a warning). Then fix it (expect silence, and a pass on check).
+With real Gemini, on step 4 (Add fillings): lay an even layer of ham and cheese to the edges (expect silence for at least a minute), then pile it all in the middle (expect the `filling_piled_center` warning). Then fix it (expect silence, and a pass on check).
 
 **Acceptance:** `STATUS.md` records: time from mistake to warning, any false warnings during the correct phase, the threshold used. If it is too jumpy or too slow, tell the AI owner with the readout values; do not hand-tune the prompt side yourself.
 

@@ -9,6 +9,8 @@ struct CookView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var session: CookSession?
     @State private var cameraError: String?
+    /// Lens + inputs on the glasses (IOS-06.3, 06.4); nil when cooking on the phone camera.
+    @State private var glassesLink: GlassesCookLink?
     /// Debug builds accept `-openWatcher` to open the watcher sheet, for readout screenshots.
     @State private var showingWatcher = {
         #if DEBUG
@@ -53,6 +55,7 @@ struct CookView: View {
             async let camera: Void = startCamera()
             await session.start(recipeID: summary.id)
             await camera
+            startGlassesLinkIfNeeded(session)
             #if DEBUG
                 await Self.autoplayIfRequested(session)
             #endif
@@ -62,7 +65,11 @@ struct CookView: View {
         }
         .onDisappear {
             session?.stop()
-            env.frameSource.stop()
+            env.cookFrameSource.stop()
+            if let link = glassesLink {
+                glassesLink = nil
+                Task { await link.stop() }
+            }
             UIApplication.shared.isIdleTimerDisabled = false
         }
     }
@@ -86,9 +93,18 @@ struct CookView: View {
         }
     #endif
 
+    /// IOS-06: when the frames come from the glasses, also drive the lens and take the glasses'
+    /// inputs. The phone buttons keep working either way.
+    private func startGlassesLinkIfNeeded(_ session: CookSession) {
+        guard env.isCookingOnGlasses, cameraError == nil, glassesLink == nil else { return }
+        let link = GlassesCookLink(session: session, glasses: env.glasses)
+        glassesLink = link
+        link.start()
+    }
+
     private func startCamera() async {
         do {
-            try await env.frameSource.start()
+            try await env.cookFrameSource.start()
             cameraError = nil
         } catch {
             cameraError = error.localizedDescription
@@ -157,9 +173,27 @@ private struct CookContent: View {
             if let voice = session.voice {
                 voiceChip(voice.status)
             }
+            glassesChip(env.glasses.status)
             Spacer(minLength: 0)
         }
         .frame(minHeight: 28)
+    }
+
+    /// IOS-06.1: glasses state on the phone. Hidden when no glasses are involved at all.
+    @ViewBuilder
+    private func glassesChip(_ status: GlassesStatus) -> some View {
+        switch status {
+        case .notRegistered, .noDevice:
+            if env.isCookingOnGlasses {
+                StatusChip(title: status.label, systemImage: "eyeglasses", tone: .warning)
+            }
+        case .ready:
+            StatusChip(title: status.label, systemImage: "eyeglasses", tone: env.isCookingOnGlasses ? .good : .neutral)
+        case .connecting:
+            StatusChip(title: status.label, systemImage: "eyeglasses", tone: .neutral)
+        case .unavailable, .disconnected:
+            StatusChip(title: status.label, systemImage: "eyeglasses", tone: .warning)
+        }
     }
 
     /// IOS-05.4: a small crossed mic when voice is down; never a dialog.
@@ -207,7 +241,7 @@ private struct CookContent: View {
     private var cameraTile: some View {
         ZStack {
             Rectangle().fill(.quaternary)
-            if let phone = env.frameSource as? PhoneCameraFrameSource, cameraError == nil {
+            if let phone = env.cookFrameSource as? PhoneCameraFrameSource, cameraError == nil {
                 CameraPreview(session: phone.captureSession)
             } else if let cameraError {
                 VStack(spacing: 6) {
@@ -221,8 +255,9 @@ private struct CookContent: View {
                 .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 6) {
-                    Image(systemName: "photo").font(.title3)
-                    Text(env.settings.frameSource.label).font(.caption2).multilineTextAlignment(.center)
+                    Image(systemName: env.isCookingOnGlasses ? "eyeglasses" : "photo").font(.title3)
+                    Text(env.isCookingOnGlasses ? FrameSourceKind.glasses.label : env.settings.frameSource.label)
+                        .font(.caption2).multilineTextAlignment(.center)
                 }
                 .padding(8)
                 .foregroundStyle(.secondary)

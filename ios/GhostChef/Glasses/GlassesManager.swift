@@ -97,6 +97,22 @@ final class GlassesManager {
     private(set) var framesReceived = 0
     private(set) var inputEventsReceived = 0
 
+    // MARK: Cook-along state (IOS-06.1)
+
+    /// What the cook screen and Settings show about the glasses.
+    private(set) var status: GlassesStatus = .notRegistered
+    /// From the active device's `DeviceState`; nil when unknown.
+    private(set) var batteryLevel: Int?
+    private(set) var thermalDescription = "—"
+    /// The newest camera frame, written on the SDK's frame thread (IOS-06.2).
+    nonisolated let latestFrames = LatestFrameStore()
+    /// Device inputs for the cook-along (IOS-06.4). Proof e still logs them.
+    @ObservationIgnored var onInput: (@MainActor (InputEvent) -> Void)?
+    @ObservationIgnored private var statusInputs = GlassesStatusInputs() {
+        didSet { if statusInputs != oldValue { status = statusInputs.resolve() } }
+    }
+    @ObservationIgnored private var activeDeviceToken: (any AnyListenerToken)?
+
     // Mock device
     private(set) var mockEnabled = false
     private(set) var mockPaired = false
@@ -139,6 +155,7 @@ final class GlassesManager {
             note("SDK configured")
         } catch {
             configureError = error.localizedDescription
+            statusInputs.configureError = error.localizedDescription
             note("SDK configure failed: \(error.localizedDescription)")
             return
         }
@@ -180,6 +197,7 @@ final class GlassesManager {
                 for await state in Wearables.shared.registrationStateStream() {
                     let name = Self.describe(state)
                     self?.registration = name
+                    self?.statusInputs.registered = state == .registered
                     self?.note("Registration: \(name)")
                 }
             })
@@ -204,6 +222,7 @@ final class GlassesManager {
                     deviceTokens = []
                     let list = ids.compactMap { Wearables.shared.deviceForIdentifier($0) }
                     publish(list)
+                    await followActiveDevice(in: list)
                     for device in list {
                         deviceTokens.append(
                             device.addLinkStateListener { [weak self] _ in
@@ -379,7 +398,7 @@ final class GlassesManager {
 
     @discardableResult
     private func startCamera(on session: DeviceSession) -> Bool {
-        let config = StreamConfiguration(videoCodec: .raw, resolution: .high, frameRate: 24)
+        let config = StreamConfiguration(videoCodec: .raw, resolution: .high, frameRate: GlassesDecisions.streamFrameRate)
         do {
             guard let newCamera = try session.addCamera(config: config) else { return false }
             camera = newCamera
@@ -391,8 +410,10 @@ final class GlassesManager {
                 Task { @MainActor in self?.note("Stream error: \(error.localizedDescription)") }
             }.store(in: cameraTokens)
             let counter = frames
+            let latest = latestFrames
             stream.videoFramePublisher.listen { [weak self] frame in
                 let total = counter.increment()
+                if let pixels = CMSampleBufferGetImageBuffer(frame.sampleBuffer) { latest.put(pixels) }
                 guard let requestedAt = counter.takeSnapshotRequest(),
                     let pixels = CMSampleBufferGetImageBuffer(frame.sampleBuffer)
                 else {
@@ -410,7 +431,7 @@ final class GlassesManager {
                 }
             }.store(in: cameraTokens)
             stream.start()
-            note("Camera stream starting: raw, high, 24 fps")
+            note("Camera stream starting: raw, high, \(GlassesDecisions.streamFrameRate) fps")
             return true
         } catch {
             note("addCamera failed: \(error.localizedDescription)")
@@ -440,7 +461,7 @@ final class GlassesManager {
             if case .running = outcomes[.c] { set(.c, .fail("Display did not start (state \(displayState))")) }
             return
         }
-        let step = try? FixtureRecipe.load().steps.first { $0.idx == 3 }
+        let step = try? FixtureRecipe.load().steps.first { $0.idx == 4 }
         let card = GlassesCards.stepCard(
             index: step?.idx ?? 4, total: 6, title: step?.title ?? "Add fillings",
             keyLine: step?.keyLine ?? "One even layer, edge to edge",
@@ -500,7 +521,7 @@ final class GlassesManager {
             set(.d, .fail("Needs proofs b and c working first"))
             return
         }
-        let step = try? FixtureRecipe.load().steps.first { $0.idx == 3 }
+        let step = try? FixtureRecipe.load().steps.first { $0.idx == 4 }
         let image = GlassesCards.loadThumbnail(step?.refImageURL)
         var windows: [Int] = []
         var sendFailures = 0
@@ -540,25 +561,14 @@ final class GlassesManager {
             set(.e, .fail("Session did not start"))
             return
         }
-        if inputs == nil {
-            do {
-                guard let attached = try session.addInputs(configuration: InputsConfiguration()) else {
-                    set(.e, .fail("addInputs returned nil: this device reports no inputs"))
-                    return
-                }
-                inputs = attached
-                let events = attached.events
-                inputDrain = Task { [weak self] in
-                    for await event in events {
-                        self?.inputEventsReceived += 1
-                        self?.note("Input: \(event)")
-                    }
-                    self?.note("Input event stream ended")
-                }
-            } catch {
-                set(.e, .fail("addInputs failed: \(error.localizedDescription)"))
-                return
-            }
+        switch attachInputs(on: session) {
+        case .attached: break
+        case .noInputs:
+            set(.e, .fail("addInputs returned nil: this device reports no inputs"))
+            return
+        case .failed(let message):
+            set(.e, .fail("addInputs failed: \(message)"))
+            return
         }
         if let display = await ensureDisplayIfSupported() {
             try? await display.send(
@@ -610,6 +620,7 @@ final class GlassesManager {
             newSession.statePublisher.listen { [weak self] state in
                 Task { @MainActor in
                     self?.sessionState = state
+                    self?.statusInputs.session = Self.sessionValue(state)
                     self?.note("Session: \(state)")
                     if state == .stopped { self?.sessionStopped() }
                 }
@@ -627,6 +638,7 @@ final class GlassesManager {
     }
 
     private func sessionStopped() {
+        latestFrames.clear()
         inputDrain?.cancel()
         inputDrain = nil
         inputs = nil
@@ -653,6 +665,131 @@ final class GlassesManager {
         _ = await waitUntil(seconds: 3) { self.session == nil }
         sessionStopped()
         note("Stopped everything")
+    }
+
+    // MARK: Cook-along (IOS-06)
+
+    private enum InputsAttach { case attached, noInputs, failed(String) }
+
+    private func attachInputs(on session: DeviceSession) -> InputsAttach {
+        if inputs != nil { return .attached }
+        do {
+            guard let attached = try session.addInputs(configuration: InputsConfiguration()) else { return .noInputs }
+            inputs = attached
+            let events = attached.events
+            inputDrain = Task { [weak self] in
+                for await event in events {
+                    guard let self else { return }
+                    self.inputEventsReceived += 1
+                    self.note("Input: \(event)")
+                    self.onInput?(event)
+                }
+                self?.note("Input event stream ended")
+            }
+            return .attached
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    /// Opens the session, the camera stream, inputs, and (when the device has one) the display.
+    /// Returns true when camera frames are flowing or about to. Never throws. On false the
+    /// cook-along shows a camera error and checks say "Camera not ready"; falling back to the
+    /// phone camera is IOS-07's job.
+    func startCookAlong() async -> Bool {
+        guard status.isReady, let session = await ensureSession() else {
+            note("Cook-along: glasses not ready (\(status.label))")
+            return false
+        }
+        do {
+            if try await Wearables.shared.checkPermissionStatus(.camera) != .granted,
+                try await Wearables.shared.requestPermission(.camera) != .granted
+            {
+                note("Cook-along: camera permission denied in Meta AI")
+                return false
+            }
+        } catch {
+            note("Cook-along: permission check failed: \(error.localizedDescription)")
+            return false
+        }
+        if camera == nil, !startCamera(on: session) { return false }
+        if case .failed(let message) = attachInputs(on: session) { note("Cook-along: inputs unavailable: \(message)") }
+        _ = await ensureDisplayIfSupported()
+        note("Cook-along on the glasses: camera\(display != nil ? " + display" : "")\(inputs != nil ? " + inputs" : "")")
+        return true
+    }
+
+    /// Clears the lens and stops the stream; the session stays open for the next cook-along.
+    func stopCookAlong() async {
+        await clearLens()
+        camera?.stop()
+        camera = nil
+        cameraTokens.clear()
+        latestFrames.clear()
+        note("Cook-along on the glasses stopped")
+    }
+
+    /// True while a display is started on the glasses.
+    var canDisplay: Bool { display != nil && displayIsStarted }
+
+    /// Sends one card. Throws the SDK's error; the renderer decides what to do with it.
+    func showOnLens(_ view: FlexBox) async throws {
+        guard let display, displayIsStarted else { throw DisplayError.deviceDisconnected }
+        try await display.send(view)
+    }
+
+    func clearLens() async {
+        guard let display, displayIsStarted else { return }
+        try? await display.clearDisplay()
+    }
+
+    /// Follows link, hinge, thermal, compatibility and battery of the active device.
+    private func followActiveDevice(in list: [Device]) async {
+        if let token = activeDeviceToken { await token.cancel() }
+        activeDeviceToken = nil
+        let active = list.first { $0.identifier == selector?.activeDevice } ?? list.first
+        var inputs = statusInputs
+        inputs.hasDevice = active != nil
+        inputs.supportsDisplay = active?.supportsDisplay() ?? false
+        if let active {
+            apply(state: DeviceState(
+                linkState: active.linkState, compatibility: active.compatibility(),
+                batteryLevel: active.batteryLevel, hingeState: active.hingeState, thermalLevel: active.thermalLevel),
+                to: &inputs)
+            activeDeviceToken = active.addDeviceStateListener { [weak self] state in
+                Task { @MainActor in
+                    guard let self else { return }
+                    var updated = self.statusInputs
+                    self.apply(state: state, to: &updated)
+                    self.statusInputs = updated
+                }
+            }
+        }
+        statusInputs = inputs
+    }
+
+    private func apply(state: DeviceState, to inputs: inout GlassesStatusInputs) {
+        inputs.link =
+            switch state.linkState {
+            case .connected: .connected
+            case .connecting: .connecting
+            default: .disconnected
+            }
+        inputs.compatible = state.compatibility == .compatible || state.compatibility == .undefined
+        inputs.hingeClosed = state.hingeState == .closed
+        inputs.thermalCritical = [.critical, .emergency, .shutdown].contains(state.thermalLevel)
+        batteryLevel = state.batteryLevel
+        thermalDescription = String(describing: state.thermalLevel)
+    }
+
+    private static func sessionValue(_ state: DeviceSessionState) -> GlassesStatusInputs.Session {
+        switch state {
+        case .idle: .none
+        case .starting: .starting
+        case .started: .started
+        case .paused: .paused
+        case .stopping, .stopped: .stopped
+        }
     }
 
     // MARK: Helpers

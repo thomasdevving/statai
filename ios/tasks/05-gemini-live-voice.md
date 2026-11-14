@@ -62,7 +62,7 @@ What was read in the documentation on 2026-11-13: ephemeral tokens are Live-only
 **Do**
 - On session start (after the first step card is up): fetch `/live-token` and connect in the background. Failure → voice unavailable, a small crossed-mic indicator, **no error dialog**; retry on the next step change (new token each time).
 - On every step change send the context line exactly as in the contract:
-  `[CONTEXT] Cook is now on step 3 of 8: "Spread rice". Do not reply to this message.`
+  `[CONTEXT] Cook is now on step 4 of 6: "Add fillings". Do not reply to this message.`
 - Lens: when the user starts speaking → `.talking(.listening, caption: "")`; while the answer plays → `.talking(.answering, caption:)` with a 3–5 word caption (the first words of the output transcription if the API provides one; otherwise "Answering…"); when the turn completes → back to the previous screen.
 - The watcher pauses during `.talking` (IOS-04 already checks the lens).
 - Post a `question` event per answered turn (caption, transcript if available).
@@ -76,7 +76,7 @@ What was read in the documentation on 2026-11-13: ephemeral tokens are Live-only
 | Function | Do | Respond |
 |---|---|---|
 | `check_my_work` | `handle(.primary)` from a step / fix screen | `{"status":"done","note":"The app has shown and spoken the result. Say nothing more."}` — send it **immediately**, do not wait for the check result |
-| `next_step` / `previous_step` | `handle(.next)` / `handle(.previous)`, `via: voice` | `{"status":"done","now_on":"4 of 8: Roll"}` |
+| `next_step` / `previous_step` | `handle(.next)` / `handle(.previous)`, `via: voice` | `{"status":"done","now_on":"5 of 6: Close"}` |
 | `show_me` | `handle(.showMe)` | `{"status":"done"}` |
 | `repeat_instruction` | nothing in the UI | `{"instruction":"<full instruction text>"}` |
 

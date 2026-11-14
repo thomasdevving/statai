@@ -8,7 +8,7 @@
 | **Unblocks** | IOS-04, IOS-05, IOS-06 |
 | **Size** | Large |
 | **Model** | Opus 5.5 |
-| **Needs a human for** | Running it on the phone over real rice once real verdicts are available |
+| **Needs a human for** | Running it on the phone over a real sandwich once real verdicts are available |
 
 ## Goal
 
@@ -46,7 +46,7 @@ enum LensScreen: Equatable {
 enum CookInput: Equatable { case primary, next, previous, showMe, dismiss, repeatInstruction }
 ```
 
-- Every case also has a **spoken form** (`var spokenText: String?`) used by the audio-only mode: e.g. `.step` → "Step 3 of 8. Spread rice. Thin layer, leave two centimetres at the top."
+- Every case also has a **spoken form** (`var spokenText: String?`) used by the audio-only mode: e.g. `.step` → "Step 4 of 6. Add fillings. One even layer, edge to edge."
 
 **Acceptance:** compiles; unit test for the spoken forms.
 
@@ -119,7 +119,7 @@ Rules:
 
 ### IOS-03.7 Run it for real
 
-With the backend on real Gemini (BE-03.1) and real rice: check a correct layer, a clearly wrong layer, and a covered camera. Note the verdicts and the felt latency.
+With the backend on real Gemini (BE-03.1) and a real sandwich: check a correct even layer of filling, filling clearly piled in the middle, and a covered camera. Note the verdicts and the felt latency.
 
 **Acceptance:** `STATUS.md` records the run honestly (which verdicts were right, time from pinch to result as felt and as reported in `latency_ms`). Mark the batch `DONE (fake)` if only fake AI was available.
 

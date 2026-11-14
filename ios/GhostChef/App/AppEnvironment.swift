@@ -37,12 +37,26 @@ final class AppEnvironment {
 
     /// The frame source chosen in Settings. Instances are created once and reused.
     var frameSource: any FrameSource {
-        let kind = settings.frameSource
+        source(for: settings.frameSource)
+    }
+
+    /// The frame source a cook-along uses, fixed when the session is made: the glasses camera
+    /// whenever the glasses are ready at that moment (IOS-06.2), otherwise the Settings choice.
+    private(set) var cookFrameSourceKind: FrameSourceKind?
+
+    var cookFrameSource: any FrameSource {
+        source(for: cookFrameSourceKind ?? settings.frameSource)
+    }
+
+    var isCookingOnGlasses: Bool { (cookFrameSourceKind ?? settings.frameSource) == .glasses }
+
+    private func source(for kind: FrameSourceKind) -> any FrameSource {
         if let existing = frameSources[kind] { return existing }
         let made: any FrameSource =
             switch kind {
             case .phoneCamera: PhoneCameraFrameSource()
             case .stillImage: StillImageFrameSource.testCard()
+            case .glasses: DATFrameSource(glasses: glasses)
             }
         frameSources[kind] = made
         return made
@@ -51,12 +65,15 @@ final class AppEnvironment {
     /// A new cook-along wired to the current data source, frame source, and speech output.
     func makeCookSession() -> CookSession {
         let settings = settings
+        let kind: FrameSourceKind = glasses.status.isReady ? .glasses : settings.frameSource
+        cookFrameSourceKind = kind
+        let frameSource = source(for: kind)
         // Every result and step read-out goes through the arbiter so TTS and Live never overlap
         // (IOS-05.6).
         let arbitrated = ArbitratedSpeech(base: speech)
         let session = CookSession(
             api: api, frames: frameSource, speech: arbitrated, cache: imageCache,
-            deviceLabel: "iPhone (\(settings.frameSource.label))",
+            deviceLabel: kind == .glasses ? "Glasses + iPhone" : "iPhone (\(kind.label))",
             watchConfig: { settings.watcherConfig }, watchLog: watchLog)
         if settings.voiceEnabled {
             let speech = speech

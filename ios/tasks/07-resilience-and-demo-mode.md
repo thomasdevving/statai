@@ -69,7 +69,7 @@ Every failure in [ARCHITECTURE §6](../../docs/ARCHITECTURE.md#6-failure-behavio
 
 **Do** — a "Demo" section in Settings:
 - **Restart session** (also on the Done screen): one tap, back to step 1 of the same recipe, new session id, watcher and voice reset.
-- **Start at step** picker (so the demo can begin at "Spread rice").
+- **Start at step** picker (so the demo can begin at "Add fillings", step 4, as in docs/DEMO-AND-SUBMISSION.md).
 - **Keep awake**, brightness hint, Do Not Disturb reminder.
 - **Operator overlay** on the phone's `CookView` (toggle): last watch results, last check latency, Live state, glasses state, frame age. This is for the operator, never mirrored to the lens.
 - Saved servers (from IOS-07.3) and the tuned watch threshold from `ai/STATUS.md` preset.

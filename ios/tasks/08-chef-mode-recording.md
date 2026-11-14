@@ -60,7 +60,7 @@ The app has two modes, picked on the first screen: **Cook** (everything from IOS
 
 ### IOS-08.5 Real take on the glasses *(human wears them)*
 
-Record the real sushi chef take in Chef mode, following the chef-take rules in [AI-03.1](../../ai/tasks/03-footage-and-eval-set.md#ai-031-the-chef-take-human): narrate each step with the reason, say what good looks like and what the common mistake is, hold still two seconds on each finished state — and **pinch at the start of each new step**. Hands and board only; no faces, no bystanders. Agree the timing with the AI owner: this take can replace AI-03's earlier footage as the source of the demo recipe.
+Record the real chef take of the sandwich lesson (D-19) in Chef mode, following the chef-take rules in [AI-03.1](../../ai/tasks/03-footage-and-eval-set.md#ai-031-the-chef-take-human): narrate each step with the reason, say what good looks like and what the common mistake is, hold still two seconds on each finished state — and **pinch at the start of each new step**. Hands and board only; no faces, no bystanders. Agree the timing with the AI owner: this take can replace AI-03's earlier footage as the source of the demo recipe.
 
 **Acceptance:** `STATUS.md` → "Chef mode takes" has the row: date, glasses model and firmware, source (glasses / phone), duration, file size, frame rate and resolution as written, number of marks, upload path (TUS / PUT) and time, and whether it reached `review`. Tell the web owner it is ready for WEB-02.5.
 
