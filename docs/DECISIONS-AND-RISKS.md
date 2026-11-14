@@ -14,7 +14,7 @@
 | D-05 | **Supabase** for Postgres and Storage | TECH-SPEC | Managed, signed URLs | A `memory` store stays available as fallback |
 | D-06 | **Gemini Live opened directly from the phone** with an ephemeral token minted by the backend | TECH-SPEC | Lowest voice latency; key stays server-side | Yes: Live is item 10 in the cut order |
 | D-07 | The proactive watcher is a **polling classifier with debounce**, not Gemini Live | TECH-SPEC | Live over-talks or stays silent; polling is controllable | Settled |
-| D-08 | One **seeded, pre-ingested sushi recipe**; the demo never depends on live ingestion | TECH-SPEC | Demo safety | Settled |
+| D-08 | One **seeded, pre-ingested recipe** (the sandwich lesson, D-19); the demo never depends on live ingestion | TECH-SPEC | Demo safety | Settled |
 | D-09 | Work is split into **four tracks = four folders** (`ios/`, `backend/`, `ai/`, `web/`), one laptop each, no shared files | Team (2026-11-13) | Four laptops in parallel without merge conflicts | Settled |
 | D-10 | Contract additions over TECH-SPEC: `unsure` verdict, `request_id` + stale-result rule, `watch_fors` ids, publish/delete/consent, monitor endpoints, Live function calls, the `ghostchef_ai` package boundary | Proposed in this plan; listed in [API-CONTRACT §10](API-CONTRACT.md#10-differences-from-tech-spec) | Needed to make the spec buildable in parallel and to cover the trust criterion | **Yes — team should confirm or strike individual items** |
 | D-11 | A **web simulator** and a **demo monitor** are added to the `web/` track | Proposed in this plan | End-to-end testing without the Mac; the audience cannot see a lens | Yes. Monitor polish is item 7 in the cut order |
@@ -25,6 +25,7 @@
 | D-16 | The web page is **review / edit / publish only**, plus an MP4 upload as a dev fallback | TECH-SPEC update (2026-11-14) | Recording happens on the glasses; the browser does not need a full upload studio | Settled |
 | D-17 | Video goes **directly from client to Supabase Storage** through a signed upload URL (resumable on iOS); FastAPI never receives the bytes. `POST /recipes` → upload → `POST /recipes/{id}/process`. Contract v2.0 | TECH-SPEC update (2026-11-14) | Venue Wi-Fi; Railway request limits; resumable uploads | Settled |
 | D-18 | Cook mode **prefetches every image and clip** before cooking; all published recipes visible to everyone, no accounts | TECH-SPEC update (2026-11-14) | Instant step changes on bad Wi-Fi | Settled |
+| D-19 | **The seeded lesson is an assembly-only sandwich, not sushi.** No cooking, no heat. Six steps: lay out bread → spread → add lettuce → add fillings → close → cut. The scripted demo mistake is `filling_piled_center` ("Filling piled up" / "Spread it to the edges") on "Add fillings"; the second listed mistake is `spread_misses_edges` on "Spread". The fixture keeps its path `ai/fixtures/sushi_recipe.json` (historical name) so no code path changes; only its contents change | Team (2026-11-14) | The team cannot cook at the venue; a sandwich can be filmed and demoed anywhere, keeps the chef → learner story and the Ghost Chef name, and its mistakes are visible in one frame | Yes, by the team. Renaming the fixture file is optional, after the demo |
 
 ## 2. Risks
 
@@ -33,7 +34,7 @@ Likelihood / impact: H, M, L. Ordered by how much they threaten the core demo.
 | # | Risk | L | I | Owner | Next test / mitigation | Fallback |
 |---|---|---|---|---|---|---|
 | R-01 | **No Display pair when we need it.** Ten Display and ten Gen 2 pairs are shared by all teams; nothing is booked | H | H | ios | Ask the booth tonight: how booking works, for how long, whether a pair can be held for the demo slot | Build on `MockDeviceKit` + phone camera; plan access windows; audio-only on a Gen 2 pair |
-| R-02 | **A single frame cannot separate "too much rice" from "right".** POV distance, white rice on dark nori, glare | M | H | ai | AI-03 films it tonight/tomorrow; AI-04 runs the first 10 frames by hand before anything else | Choose a more visible scripted mistake (rice covering the top margin; filling in the wrong place); make the criterion "can you see nori at the top edge" |
+| R-02 | **A single frame cannot separate "filling piled in the middle" from "right", or misses a thin spread.** POV distance, low-contrast spread on pale bread, glare. AI-04 already saw false approvals of unfinished work on stand-in footage | M | H | ai | AI-03 films the sandwich; AI-04 runs the first 10 dev frames by hand before anything else | Make the criterion binary ("bare bread visible at an edge"); use a coloured spread and a dark board; script only the most visible mistake |
 | R-03 | **Camera + display + Bluetooth audio at once** was confirmed only verbally | M | H | ios | IOS-02 proofs (d) and (f) | Display + check without Live; or audio through the phone speaker |
 | R-04 | **Neural Band gestures may not reach a DAT app on iOS.** The changelog shows only an experimental inputs module and display buttons | M | M | ios | IOS-02 proof (e) | Display buttons, captouch tap, voice commands; the phone as a remote in the operator's hand |
 | R-05 | **iOS DAT help on site may be thin.** The named mentor is an Android DAT mentor | M | M | ios | Ask at the booth who knows the iOS SDK; install Meta's Claude Code plugin and docs MCP | Rely on the samples in the SDK repo |
@@ -42,7 +43,7 @@ Likelihood / impact: H, M, L. Ordered by how much they threaten the core demo.
 | R-08 | **Live from Swift over a raw WebSocket** takes longer than planned | M | M | ios | Verify the endpoint and message shapes in the current reference before coding; timebox | Cut function calls, then cut Live (cut order 8, 10) |
 | R-09 | **Stage noise** breaks voice | H | M | ios | Push-to-talk toggle; test near the stage | Skip the question beat; captions on the lens |
 | R-10 | **Venue Wi-Fi** unreliable | H | M | backend | Hotspot test; emergency laptop backend | Hotspot + laptop |
-| R-11 | **Sushi logistics.** Ingredients, cooked rice, a place to film, knives, hygiene with shared glasses | M | M | web | Buy and cook on Saturday morning; ask organizers about food and knives at the stand | A non-food stand-in is a different product: avoid; simplify to nori + rice only |
+| R-11 | **Sandwich logistics.** Ingredients, keeping fillings cool, a place to film, knives, hygiene with shared glasses | L | M | web | Buy on Saturday morning; ask organizers about food and knives at the stand (Q-09) | Butter knife only; skip the cut step on stage |
 | R-12 | **Stage lighting** differs from where prompts were tuned | M | M | ai | Capture held-out frames at the actual demo spot | Small light in the kit; `unsure` when too dark |
 | R-13 | **Integration happens for the first time on Sunday** | M | H | backend | Gates G1 and G2 require integrated runs; the smoke script runs after every backend push | — |
 | R-14 | **Accounts and credits**: Gemini credits not yet received; Supabase and Railway projects not yet created; Wearables Developer Center registration not yet done | M | H | each track | First task of AI-02, BE-02, BE-04, IOS-02 | Free tiers; emergency laptop |
@@ -65,7 +66,7 @@ Likelihood / impact: H, M, L. Ordered by how much they threaten the core demo.
 | Q-06 | ~~Who has the larger Claude allowance?~~ **Answered 2026-11-14: the Mac owner**, who owns `ios/` | Team | Resolved |
 | Q-07 | What does the preliminary submission require, and by exactly when? | Platform / organizers | Tonight |
 | Q-08 | Pitch length, review format, required submission fields, video rules | Organizers / authenticated platform | WEB-05 |
-| Q-09 | Are cooked food and knives allowed at the stand and on stage? | Organizers | Demo |
+| Q-09 | Are food (assembly only, no cooking) and knives allowed at the stand and on stage? | Organizers | Demo |
 | Q-10 | Is there a real cooking instructor we can talk to before Sunday? | Team's network | Pilot claim |
 | Q-11 | `CONCEPT.md`, referenced by TECH-SPEC, is not in the repository | Team | Nothing critical; add it if it exists |
 | Q-12 | Is the product name "Ghost Chef" final? (The repository is named `statai`) | Team | Submission title |

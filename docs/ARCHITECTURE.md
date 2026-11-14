@@ -133,7 +133,7 @@ Each row must end the weekend as either *tested* (with the result written in the
 | A5 | Camera stream and display UI run **at the same time** | **[TEAM]** "confirmed with Meta" verbally; untested | IOS-02 |
 | A6 | Gemini Live audio can use the glasses' Bluetooth mic and speakers **while** DAT streams video | **[TEAM]** "confirmed with Meta" verbally; untested | IOS-02 |
 | A7 | Neural Band pinch / swipe reach our app | **[OPEN]** — the iOS changelog does not mention Neural Band. It lists an *experimental* `MWDATInputs` module (1.0.0) and display `Button` / `ButtonGroup`. The spec's gesture table may have to map onto display buttons, captouch, or voice | IOS-02 |
-| A8 | Camera frames are good enough for a rice-thickness judgment | **[OPEN]** — documented stream sizes are 504×896 (medium) and 720×1280 (high); frame rate and real quality unknown | IOS-02, AI-03 |
+| A8 | Camera frames are good enough to judge filling placement and spread coverage | **[OPEN]** — documented stream sizes are 504×896 (medium) and 720×1280 (high); frame rate and real quality unknown | IOS-02, AI-03 |
 | A9 | Looking down at a board puts the work in frame | **[OPEN]** — a camera near the eyes does not guarantee the hands are in view | IOS-02, AI-03 |
 | A10 | Development without hardware is possible | **[VERIFIED-DOC]** — `MockDeviceKit` with a phone-camera mock feed (0.6.0), `pairGlasses(model:)` (0.8.0), mock display preview (1.0.0) | IOS-02 |
 | A11 | The Web Apps route cannot replace DAT for us | **[TEAM]** + consistent with Meta's FAQ, which lists position, location, Neural Band wrist motion and input for Web Apps but no camera ([FAQ](https://developers.meta.com/wearables/faq/)) | Settled (D-03) |
@@ -151,7 +151,7 @@ Meta publishes agent tooling for the SDK: a Claude Code plugin (`claude plugin m
 | G3 | Ephemeral tokens work for a phone-opened Live session | **[VERIFIED-DOC]** — preview feature; `client.auth_tokens.create(...)` on API version `v1beta`; defaults: 1 use, 1 minute to open a session, 30 minutes to send messages; can be locked to a model and config; a non-SDK client passes the token as an `access_token` query parameter or `Authorization: Token <token>` header; reconnecting needs session resumption about every 10 minutes | AI-05, IOS-05 |
 | G4 | The watcher's call volume fits our rate limit | **[OPEN]** — one call per 2.5 s is ~24 requests per minute per active session. Limits are per project and tier | AI-02 reads the real limits in AI Studio |
 | G5 | `/check` answers in 1–2 s and `/watch` in under 2.5 s end to end | **[OPEN]** — a target from the spec, not a measurement | AI-02 baseline, AI-07 |
-| G6 | A single frame is enough to tell "too much rice" from "right amount" | **[OPEN]** — the central product risk | AI-03, AI-04, AI-07 |
+| G6 | A single frame is enough to tell "filling piled in the middle" from "even layer to the edges" | **[OPEN]** — the central product risk | AI-03, AI-04, AI-07 |
 | G7 | There is no Swift SDK path we can rely on for Live with ephemeral tokens | **[OPEN]** — plan is a raw WebSocket client; verify the endpoint and message shapes in the current Live API reference before writing it | IOS-05 |
 
 Google's Gemini API docs moved: `ai.google.dev/gemini-api/docs/*` now redirects to `aistudio.google.com/docs/*`. **[VERIFIED-DOC]**

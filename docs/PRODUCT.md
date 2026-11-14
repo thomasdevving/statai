@@ -13,7 +13,7 @@ A chef records a recipe once through smart glasses; anyone wearing the glasses c
 Learning a hands-on technique from a video breaks at the exact moment it matters:
 
 - Your hands are wet, sticky, or holding a knife, so you cannot pause, scrub, or search a phone.
-- The video cannot see your board. You find out the rice was too thick when the roll falls apart, three steps later.
+- The video cannot see your board. You find out the filling was all in the middle when the sandwich falls apart at the first bite.
 - A human instructor fixes this by glancing at your hands and saying one sentence. That attention does not scale beyond a small class.
 
 The ordinary alternatives are a phone propped against a jar (no feedback, needs touching), a recipe app with voice control (no eyes on your work), and a generic visual assistant (not grounded in this chef's method, does not know which step you are on).
@@ -41,7 +41,7 @@ This is not a mirrored phone screen: the phone is in a pocket for the whole cook
 
 **Cook (every time).** Open the app in **Cook mode** → pick the recipe from the library (all its images and clips download before cooking starts) → see step card with the chef's reference still → work → the watcher flags a known mistake, or the cook pinches / says "check" → Pass advances; Fix shows the reference and one instruction → fix it → re-check passes → ask a question out loud at any time → Done summary.
 
-**Demo (the one journey that must work).** A volunteer rolls sushi, spreads too much rice, the glasses catch it and show the chef's reference, they fix it, the check passes, they ask a question and get a spoken answer. **[TEAM]** Full script: [DEMO-AND-SUBMISSION.md](DEMO-AND-SUBMISSION.md).
+**Demo (the one journey that must work).** A volunteer makes a sandwich, piles the filling in the middle, the glasses catch it and show the chef's reference, they fix it, the check passes, they ask a question and get a spoken answer. **[TEAM]** Full script: [DEMO-AND-SUBMISSION.md](DEMO-AND-SUBMISSION.md).
 
 ## 6. Scope
 
@@ -51,7 +51,7 @@ The Must / Nice / Cut lists are in [TECH-SPEC.md § Scope](TECH-SPEC.md#scope) a
 
 ## 7. What "correct" means here
 
-A step is checked only against criteria that are **visible in a single first-person frame**: coverage, thickness seen as "can you see nori through the rice", placement, margins, shape. Each step's `success_criteria` and `watch_fors` are written (or edited by the chef) to be that kind of criterion.
+A step is checked only against criteria that are **visible in a single first-person frame**: coverage, placement, margins, alignment, shape (for example "the filling reaches the edges of the bread"). Each step's `success_criteria` and `watch_fors` are written (or edited by the chef) to be that kind of criterion.
 
 - When the criteria are not visible in the frame, the answer is **`unsure`** with an instruction for getting a better view. It is never a guess.
 - Advice that comes from the chef's recording is presented as the chef's ("Chef says…"). Anything the model infers beyond the recording is not attributed to the chef.

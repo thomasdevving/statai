@@ -41,15 +41,15 @@
 
 ## 3. Visual evaluation set
 
-Built from the team's own footage of the seeded recipe. Scope: the **checkable demo steps** only (at minimum "Spread rice"; add "Add fillings" and "Roll" if time allows).
+Built from the team's own footage of the seeded recipe. Scope: the **checkable demo steps** only (at minimum "Add fillings"; add "Spread" and "Close" if time allows).
 
 **Case types per step** (aim for the mix, not the count):
 
 | Type | Label | Examples |
 |---|---|---|
-| Correct | `pass` | Right amount of rice, different hands, slightly different angle, a correct variation the chef would accept |
-| Known mistake | `fix` + `mistake_id` | Rice too thick; rice covering the top margin |
-| Unjudgeable | `unsure` | Hands covering the mat, blur, mat half out of frame, too dark |
+| Correct | `pass` | Filling in an even layer to the edges, different hands, slightly different angle, a correct variation the chef would accept |
+| Known mistake | `fix` + `mistake_id` | Filling piled in the middle (`filling_piled_center`), including the subtle case; spread missing the edges (`spread_misses_edges`) |
+| Unjudgeable | `unsure` | Hands covering the bread, blur, bread half out of frame, too dark |
 | Off-task | `unsure` or watcher `ok` | Looking away, empty board, wrong step in view |
 
 **Split.** `dev` frames are used while writing prompts. `heldout` frames are captured in a separate take (different person or session if possible) and are **not looked at** until the prompt is frozen. The split is a column in `ai/eval/cases.csv`.
@@ -79,7 +79,7 @@ Built from the team's own footage of the seeded recipe. Scope: the **checkable d
 |---|---|---|---|---|
 | A. Full: reference image + criteria + mistakes | — | — | — | What we ship |
 | B. No reference image (criteria text only) | — | — | — | Shows what the chef's frame adds |
-| C. Generic prompt ("is this sushi step done correctly?") | — | — | — | Shows what grounding adds |
+| C. Generic prompt ("is this sandwich step done correctly?") | — | — | — | Shows what grounding adds |
 
 If B or C performs as well as A, say so and simplify the product. Do not hide it.
 

@@ -90,13 +90,13 @@ A gate is passed when its exit criteria are demonstrated to the team, not when s
 
 - [ ] A real camera frame (webcam in the simulator is enough) gets a real Gemini verdict against a real reference image, through `/check`.
 - [ ] IOS-02 spike results are written down: each of the seven proofs is PASS, FAIL, or NOT TESTED with a reason.
-- [ ] Chef footage of the sushi recipe exists (AI-03), with deliberately wrong takes.
+- [ ] Chef footage of the sandwich lesson exists (AI-03), with deliberately wrong takes.
 - [ ] Decision taken and recorded: Display + gestures as specified, or one of the fallbacks in [DECISIONS-AND-RISKS.md](DECISIONS-AND-RISKS.md).
 
 ### G2 — Core journey · suggested Sat 16:00
 
 - [ ] On the iPhone (phone camera is acceptable here): pick recipe → step card → check → fix → re-check passes → next step.
-- [ ] The watcher raises the scripted "too much rice" warning on real rice and stays quiet on a correct layer, at least once each.
+- [ ] The watcher raises the scripted "filling piled up" warning on a real sandwich and stays quiet on a correct layer, at least once each.
 - [ ] Backend is deployed (BE-04) with Supabase and the real seeded recipe.
 - [ ] The monitor shows the session live.
 
