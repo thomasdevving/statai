@@ -7,8 +7,15 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load ai/.env or ./.env if present, never overriding variables already set.
-load_dotenv(override=False)
+# The package itself reads no .env file on import (API-CONTRACT §7: environment variables
+# only). The old upward search let any program that imported the package pick up ai/.env,
+# i.e. a real key with fake mode off. Command-line entry points call load_env() explicitly.
+AI_DIR = Path(__file__).resolve().parents[2]
+
+
+def load_env() -> None:
+    """Load ai/.env for command-line use, never overriding variables already set."""
+    load_dotenv(AI_DIR / ".env", override=False)
 
 # Gemini: chosen by the AI-02 smoke tests on 2026-11-14 with the team's key (ai/STATUS.md).
 # check uses the fast lite model for now: gemini-3.8-flash was overloaded (503) during the test

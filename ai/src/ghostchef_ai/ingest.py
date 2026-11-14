@@ -24,14 +24,17 @@ from pydantic import ValidationError
 
 from ghostchef_ai import client, prompts
 from ghostchef_ai.config import model_ids, provider
-from ghostchef_ai.errors import AIError, AIInvalidOutput, AIUnavailable
+from ghostchef_ai.errors import AIError, AIInvalidOutput, AITimeout, AIUnavailable
 from ghostchef_ai.schemas import RecipeDraft, clamp_words
 
 log = logging.getLogger(__name__)
 
 TIMEOUT_S = 180.0             # the generate call (background job, not interactive)
-PROCESSING_TIMEOUT_S = 300.0  # Files API: upload -> ACTIVE
+UPLOAD_TIMEOUT_S = 300.0      # Files API: the upload itself (500 MB on venue Wi-Fi)
+PROCESSING_TIMEOUT_S = 300.0  # Files API: uploaded -> ACTIVE, including every status poll
 POLL_INTERVAL_S = 2.0
+# Extra margin for the last status poll before the overall processing limit cuts it off.
+POLL_GRACE_S = 10.0
 # Thinking tokens count against this limit; a 10-step recipe plus a transcript is a few
 # thousand tokens of JSON.
 MAX_OUTPUT_TOKENS = 16384
@@ -209,6 +212,15 @@ def validate(data: Any, *, title_hint: str | None = None) -> RecipeDraft:
 # --------------------------------------------------------------------------- Gemini calls
 
 
+_MIME_TYPES = {".mp4": "video/mp4", ".m4v": "video/mp4", ".mov": "video/quicktime",
+               ".webm": "video/webm"}
+
+
+def _mime_type(path: Path) -> str:
+    """Explicit type: the SDK otherwise guesses from the extension, and a temp file has none."""
+    return _MIME_TYPES.get(path.suffix.lower(), "video/mp4")
+
+
 def _state(f: Any) -> str:
     st = getattr(f, "state", None)
     return getattr(st, "name", None) or str(st or "")
@@ -298,16 +310,26 @@ async def run_extract(video_path: Path, *, title_hint: str | None = None,
     aio = client.gemini_client().aio
     t0 = time.perf_counter()
     try:
-        uploaded = await aio.files.upload(file=str(path))
+        uploaded = await asyncio.wait_for(
+            aio.files.upload(file=str(path), config={"mime_type": _mime_type(path)}),
+            timeout=UPLOAD_TIMEOUT_S)
     except AIError:
         raise
+    except TimeoutError as exc:
+        raise AITimeout(f"video upload took longer than {UPLOAD_TIMEOUT_S:g} s") from exc
     except Exception as exc:  # noqa: BLE001
         raise client.map_error(exc) from exc
     try:
         try:
-            uploaded = await _wait_active(aio.files, uploaded, PROCESSING_TIMEOUT_S)
+            # The overall limit also covers a status poll that hangs on a stalled connection.
+            uploaded = await asyncio.wait_for(
+                _wait_active(aio.files, uploaded, PROCESSING_TIMEOUT_S),
+                timeout=PROCESSING_TIMEOUT_S + POLL_INTERVAL_S + POLL_GRACE_S)
         except AIError:
             raise
+        except TimeoutError as exc:
+            raise AITimeout(
+                f"video processing took longer than {PROCESSING_TIMEOUT_S:g} s") from exc
         except Exception as exc:  # noqa: BLE001
             raise client.map_error(exc) from exc
         t1 = time.perf_counter()

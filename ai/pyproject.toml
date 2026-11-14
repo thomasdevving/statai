@@ -8,7 +8,8 @@ version = "0.1.0"
 description = "Ghost Chef: every prompt and Gemini call, plus fake mode for development"
 requires-python = ">=3.11"
 dependencies = [
-    "google-genai",
+    # Pinned: client.py, live.py and ingest.py were verified against 3.3.0 (ai/STATUS.md).
+    "google-genai==3.3.0",
     "pydantic>=2",
     "python-dotenv",
 ]

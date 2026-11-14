@@ -31,9 +31,11 @@ AI_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(AI_DIR / "src"))
 
 from ghostchef_ai import check, client, watch  # noqa: E402
-from ghostchef_ai.config import fixture_dir, is_fake  # noqa: E402
+from ghostchef_ai.config import fixture_dir, is_fake, load_env  # noqa: E402
 from ghostchef_ai.errors import AIError  # noqa: E402
 from ghostchef_ai.schemas import RecipeDraft  # noqa: E402
+
+load_env()
 
 
 @dataclass

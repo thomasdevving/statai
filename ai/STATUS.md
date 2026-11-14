@@ -256,6 +256,18 @@ The team replaced the sushi lesson with an assembly-only sandwich (`docs/DECISIO
 - Tests moved to the new fixture (demo step 3 → 4, step without mistakes 2 → 3); the prompt-neutrality tests also forbid sandwich words. `test_ingest.py` and `test_schemas.py` keep `rice_too_thick` as synthetic sample data only. 155 tests pass, ruff clean.
 - **Still needed:** the filmed expert sandwich take and mistake clips (AI-03.1–03.4), real stills and transcript in the fixture (AI-03.5), then the dev eval (AI-04.5), the Live re-run (AI-05.3) and extraction on the real video (AI-06.3). The stock maki frames from the earlier no-cooking interim are no longer relevant to the lesson.
 
+## Code review fixes, 2026-11-14
+
+A read-only review of AI-01 to AI-06 found 3 bugs and several risks. Fixed (not yet committed), each with a new test; 163 tests pass, ruff clean:
+
+- **Prompt filling** (`prompts/__init__.py`): one-pass substitution, placeholders checked against the template. A recipe title, step text or transcript containing `{{` or another placeholder's name is now inserted literally instead of raising `KeyError` or being re-filled.
+- **Video upload timeouts** (`ingest.py`): the upload (300 s) and the whole wait for ACTIVE (300 s + one poll + `POLL_GRACE_S`) are bounded; a stall ends in `AITimeout` and the uploaded file is still deleted. The MIME type is now sent explicitly, so a temp file without `.mp4` uploads.
+- **Live token downgrade** (`live.py`): only an HTTP 400 on the fully locked request leads to the partially locked token; a 503 / network error is raised instead of silently returning `locked: false`. `client.map_error` now keeps the HTTP status on `AIUnavailable` (`.status`).
+- **`.env` loading** (`config.py`): importing the package no longer reads any `.env` file (API-CONTRACT §7). The CLI, `scripts/dev_eval.py` and `scripts/live_smoke.py` call `config.load_env()` (loads `ai/.env`); `smoke_models.py` and `gemini_smoke.py` already loaded it themselves. **Backend:** keep setting `GHOSTCHEF_AI_FAKE` and `GEMINI_API_KEY` in its own environment; the package no longer finds `ai/.env` for you.
+- **SDK pinned** (`pyproject.toml`): `google-genai==3.3.0`, the version everything was verified against. Reinstall with `pip install -e ../ai` to pick it up.
+
+Not changed (logged for later): a bad `GHOSTCHEF_PROVIDER` / `GHOSTCHEF_MAX_CALLS` raises `ValueError`, not an `AIError`; API-CONTRACT §5 should say the phone sends `sessionResumption` itself even with a locked token (a `[docs]` change for the team); a Gemini 504 maps to our 503; a bad-token-name error and a `live_smoke.py` connect error could include the token; the default fix "Compare with the chef's photo" is used even without a reference photo.
+
 ## For other tracks: using the package (AI-01)
 
 - Install from `backend/`: `pip install -e ../ai`, set `GHOSTCHEF_AI_FAKE=1` (and `GHOSTCHEF_AI_FAKE_DELAY=0` in tests).

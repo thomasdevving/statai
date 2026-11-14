@@ -6,6 +6,7 @@ data, so they ship with the package; nothing outside the package is read.
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from importlib.resources import files
 
@@ -15,14 +16,20 @@ def template(name: str) -> str:
     return (files(__package__) / f"{name}.md").read_text(encoding="utf-8")
 
 
+_PLACEHOLDER = re.compile(r"\{\{([A-Z_]+)\}\}")
+
+
 def render(name: str, **values: str) -> str:
-    """Fill {{KEY}} placeholders. Every placeholder in the template must be given, and no more."""
+    """Fill {{KEY}} placeholders in one pass.
+
+    The placeholders are read from the template, not from the result, so values may contain any
+    text, including "{{" or another placeholder's name, without breaking or being re-filled
+    (recipe titles, step text and transcripts come from users). A mismatch between the template's
+    placeholders and the given keys is a programming error and raises KeyError.
+    """
     text = template(name)
-    for key, value in values.items():
-        token = "{{" + key + "}}"
-        if token not in text:
-            raise KeyError(f"prompt {name!r} has no placeholder {token}")
-        text = text.replace(token, value)
-    if "{{" in text:
-        raise KeyError(f"prompt {name!r} has unfilled placeholders")
-    return text
+    wanted = set(_PLACEHOLDER.findall(text))
+    given = set(values)
+    if wanted != given:
+        raise KeyError(f"prompt {name!r} placeholders {sorted(wanted)} != given {sorted(given)}")
+    return _PLACEHOLDER.sub(lambda m: values[m.group(1)], text)

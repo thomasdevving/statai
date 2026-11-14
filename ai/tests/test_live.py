@@ -158,12 +158,23 @@ async def test_quota_and_timeout_are_not_downgraded(stub, recipe, exc, err):
     assert len(tokens.requests) == 1
 
 
-async def test_both_locks_fail_raises_unavailable(stub, recipe):
-    class AlwaysFail(_FakeTokens):
+async def test_outage_on_locked_request_is_not_downgraded(stub, recipe):
+    """A 503 "high demand" must not silently produce an unlocked token (code review)."""
+    tokens = _FakeTokens(reject_full=_ClientError(503, "UNAVAILABLE: high demand"))
+    stub(tokens)
+    with pytest.raises(gc.AIUnavailable):
+        await gc.mint_live_token(_cfg(recipe))
+    assert len(tokens.requests) == 1
+
+
+async def test_rejected_lock_then_outage_raises_unavailable(stub, recipe):
+    class RejectThenFail(_FakeTokens):
         async def create(self, *, config):
             self.requests.append(config)
+            if len(self.requests) == 1:
+                raise _ClientError(400, "INVALID_ARGUMENT: tools cannot be set")
             raise _ClientError(503, "UNAVAILABLE")
-    tokens = AlwaysFail()
+    tokens = RejectThenFail()
     stub(tokens)
     with pytest.raises(gc.AIUnavailable):
         await gc.mint_live_token(_cfg(recipe))

@@ -317,3 +317,18 @@ async def test_fake_mode_unchanged(stub, recipe, monkeypatch, big_frame):
     assert (await gc.check_frame(big_frame, recipe.step(4), None)).model == "fake"
     assert (await gc.watch_frame(big_frame, recipe.step(4))).model == "fake"
     assert not s.calls
+
+
+def test_render_inserts_values_literally():
+    """Values come from users: '{{' or a placeholder name must not break or be re-filled."""
+    hint = 'Title hint: "My {{ odd }} {{STEP_MARKS}} sandwich".'
+    text = prompts.render("extract", TITLE_HINT=hint, STEP_MARKS="No step marks were given.")
+    assert '"My {{ odd }} {{STEP_MARKS}} sandwich"' in text
+    assert text.count("No step marks were given.") == 1
+
+
+def test_render_rejects_wrong_keys():
+    with pytest.raises(KeyError):
+        prompts.render("extract", TITLE_HINT="x")
+    with pytest.raises(KeyError):
+        prompts.render("extract", TITLE_HINT="x", STEP_MARKS="y", EXTRA="z")

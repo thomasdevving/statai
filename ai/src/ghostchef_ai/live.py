@@ -185,7 +185,8 @@ async def _create(constraints: dict[str, Any], now: datetime):
 async def mint_live_token(live_config: LiveConfig) -> LiveToken:
     """Mint a single-use token: fully locked if the API accepts it, else partially locked.
 
-    Raises AIError subclasses only. Quota and timeout errors are not retried with a weaker lock.
+    Raises AIError subclasses only. Only an HTTP 400 on the fully locked request leads to the
+    partial lock; quota, timeout and other errors are raised unchanged.
     """
     now = datetime.now(tz=UTC)
     locked = True
@@ -193,8 +194,12 @@ async def mint_live_token(live_config: LiveConfig) -> LiveToken:
         tok = await _create(locked_setup(live_config), now)
     except (AIQuotaError, AITimeout):
         raise
-    except AIUnavailable:
-        # The full lock was rejected (e.g. a field cannot be constrained): lock what can be.
+    except AIUnavailable as exc:
+        # Only a rejection of the request itself (HTTP 400, e.g. a field cannot be constrained)
+        # justifies a weaker lock. An outage (5xx "high demand", network) is re-raised: the
+        # phone's unlocked path is untested, and the next attempt may get a full lock.
+        if getattr(exc, "status", None) != 400:
+            raise
         locked = False
         tok = await _create(partial_setup(live_config), now)
     name = getattr(tok, "name", None) or ""

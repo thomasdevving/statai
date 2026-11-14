@@ -1,12 +1,13 @@
 """ingest.py (AI-06) without network: prompt, repair rules, retry, upload lifecycle."""
 
+import asyncio
 import json
 from types import SimpleNamespace
 
 import pytest
 
 from ghostchef_ai import client, ingest
-from ghostchef_ai.errors import AIInvalidOutput, AIUnavailable
+from ghostchef_ai.errors import AIInvalidOutput, AITimeout, AIUnavailable
 from ghostchef_ai.schemas import RecipeDraft
 
 
@@ -174,7 +175,7 @@ class StubFiles:
     def _file(self):
         return SimpleNamespace(name="files/abc", state=SimpleNamespace(name=self.states.pop(0)))
 
-    async def upload(self, *, file):
+    async def upload(self, *, file, config=None):
         self.uploaded = file
         return self._file()
 
@@ -270,3 +271,49 @@ async def test_openai_provider_is_refused(monkeypatch, video):
     monkeypatch.setenv("GHOSTCHEF_PROVIDER", "openai")
     with pytest.raises(AIUnavailable, match="needs Gemini"):
         await ingest.run_extract(video)
+
+
+class HangingFiles(StubFiles):
+    def __init__(self, hang_upload=False, hang_get=False):
+        super().__init__(states=("PROCESSING", "PROCESSING", "ACTIVE"))
+        self.hang_upload, self.hang_get = hang_upload, hang_get
+        self.configs = []
+
+    async def upload(self, *, file, config=None):
+        self.configs.append(config)
+        if self.hang_upload:
+            await asyncio.sleep(10)
+        return await super().upload(file=file)
+
+    async def get(self, *, name):
+        if self.hang_get:
+            await asyncio.sleep(10)
+        return await super().get(name=name)
+
+
+async def test_stalled_upload_times_out(monkeypatch, video):
+    files = HangingFiles(hang_upload=True)
+    _stub(monkeypatch, files, StubModels([]))
+    monkeypatch.setattr(ingest, "UPLOAD_TIMEOUT_S", 0.05)
+    with pytest.raises(AITimeout, match="upload"):
+        await ingest.run_extract(video)
+
+
+async def test_stalled_status_poll_times_out_and_deletes(monkeypatch, video):
+    files = HangingFiles(hang_get=True)
+    _stub(monkeypatch, files, StubModels([]))
+    monkeypatch.setattr(ingest, "PROCESSING_TIMEOUT_S", 0.05)
+    monkeypatch.setattr(ingest, "POLL_INTERVAL_S", 0.0)
+    monkeypatch.setattr(ingest, "POLL_GRACE_S", 0.05)
+    with pytest.raises(AITimeout, match="processing"):
+        await ingest.run_extract(video)
+    assert files.deleted == ["files/abc"]
+
+
+async def test_upload_sends_explicit_mime_type(monkeypatch, tmp_path):
+    files = HangingFiles()
+    _stub(monkeypatch, files, StubModels([_resp(raw())]))
+    noext = tmp_path / "upload-tmp"
+    noext.write_bytes(b"\x00" * 64)
+    await ingest.run_extract(noext)
+    assert files.configs == [{"mime_type": "video/mp4"}]

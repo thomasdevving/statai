@@ -10,7 +10,7 @@ from pathlib import Path
 
 import ghostchef_ai as gc
 from ghostchef_ai import check, ingest, watch
-from ghostchef_ai.config import fixture_dir, is_fake
+from ghostchef_ai.config import fixture_dir, is_fake, load_env
 from ghostchef_ai.schemas import RecipeDraft
 
 
@@ -78,6 +78,7 @@ async def _run(args: argparse.Namespace) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_env()  # ai/.env, for command-line use only
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(prog="python -m ghostchef_ai")

@@ -111,7 +111,9 @@ def map_error(exc: BaseException) -> AIError:
     if status == 429 or name == "RateLimitError" or "RESOURCE_EXHAUSTED" in str(exc):
         return AIQuotaError(f"rate limit or quota exhausted ({name})")
     msg = str(exc).splitlines()[0][:300] if str(exc) else ""
-    return AIUnavailable(f"{name}{f' {status}' if status else ''}: {msg}")
+    err = AIUnavailable(f"{name}{f' {status}' if status else ''}: {msg}")
+    err.status = status  # lets callers tell a request rejection (400) from an outage (5xx)
+    return err
 
 
 # --------------------------------------------------------------------------- clients

@@ -36,8 +36,11 @@ AI_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(AI_DIR / "src"))
 
 import ghostchef_ai as gc  # noqa: E402
+from ghostchef_ai.config import load_env  # noqa: E402
 from ghostchef_ai.live import LIVE_API_VERSION, SILENT_FUNCTIONS  # noqa: E402
 from ghostchef_ai.schemas import RecipeDraft  # noqa: E402
+
+load_env()
 
 HOST = "wss://generativelanguage.googleapis.com"
 PATH = (f"/ws/google.ai.generativelanguage.{LIVE_API_VERSION}"
