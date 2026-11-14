@@ -1,6 +1,6 @@
 {
   "title": "Ham and cheese sandwich",
-  "transcript": "[PLACEHOLDER NARRATION — replace with the real chef transcript]\nToday we're making a simple ham and cheese sandwich, and I'll show you exactly what it should look like at every step. First, lay two slices of bread side by side on the board, flat, not overlapping. Next, take the spread and cover one slice in a thin, even layer. Go all the way to the crust on every side. You spread it right to the edges so every bite has flavour and the filling has something to stick to; bare corners are the first thing people leave behind. Now lay one lettuce leaf flat on the spread side. Tear it if it's too big, so it covers the slice without hanging over. Then the fillings: ham first, then cheese, in one even layer that reaches the edges of the bread. Don't pile it all up in the middle. That's the most common mistake, and it makes the sandwich fat in the centre and empty at the corners, so it falls apart when you cut it. Close the sandwich with the second slice, spread side down, and line the edges up with the bottom slice before you press gently. Finally, cut it once, corner to corner, with one clean stroke. Two even triangles, and you're done.",
+  "transcript": "[PLACEHOLDER NARRATION — replace with the real chef transcript]\nToday we're making a simple ham and cheese sandwich, and I'll show you exactly what it should look like at every step. First, lay two slices of bread side by side on the board, flat, not overlapping. Next, take the spread and cover both slices in a thin, even layer. Go all the way to the crust on every side. You spread it right to the edges so every bite has flavour and the filling has something to stick to; bare corners are the first thing people leave behind. Now lay one lettuce leaf flat on the spread side. Tear it if it's too big, so it covers the slice without hanging over. Then the fillings: ham first, then cheese, in one even layer that reaches the edges of the bread. Don't pile it all up in the middle. That's the most common mistake, and it makes the sandwich fat in the centre and empty at the corners, so it falls apart when you cut it. Close the sandwich with the second slice, spread side down, and line the edges up with the bottom slice before you press gently. Finally, cut it once, corner to corner, with one clean stroke. Two even triangles, and you're done.",
   "steps": [
     {
       "idx": 1,
@@ -30,14 +30,14 @@
       "idx": 2,
       "title": "Spread",
       "key_line": "Thin layer, right to every edge",
-      "instruction": "Cover one slice with the spread in a thin, even layer, all the way to the crust on every side.",
+      "instruction": "Cover both slices with the spread in a thin, even layer, all the way to the crust on every side.",
       "chef_quote": "Go all the way to the crust on every side.",
       "timestamp_s": 41.0,
       "clip_start_s": 34.0,
       "clip_end_s": 38.5,
       "success_criteria": [
-        "Spread covers one whole slice in a thin, even layer",
-        "Spread reaches the crust on all four sides, with no bare corners"
+        "Spread covers both slices in a thin, even layer",
+        "Spread reaches the crust on all four sides of each slice, with no bare corners"
       ],
       "watch_fors": [
         {
