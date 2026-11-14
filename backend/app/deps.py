@@ -35,3 +35,8 @@ def reset_store() -> None:
     """Tests only: drop the singleton so the next get_store() builds a fresh one."""
     global _store
     _store = None
+    # In-process caches built from the old store's data.
+    from app.routers import live, sessions
+
+    live.reset()
+    sessions.reset()

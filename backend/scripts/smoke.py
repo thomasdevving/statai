@@ -49,13 +49,17 @@ class Smoke:
             self.failures.append(f"{endpoint}: expected {expect}, got {r.status_code} {outcome}")
         return r
 
-    def fetch_url(self, url: str, step: str) -> None:
+    def fetch_url(
+        self, url: str, step: str, label: str = "GET <signed url>", want_type: str | None = None
+    ) -> None:
+        # No X-Demo-Key: signed and tokenised URLs must work without it.
         r = httpx.get(url, timeout=30.0)
-        self.rows.append(
-            (step, "GET <signed url>", r.status_code, None, r.headers.get("content-type", ""))
-        )
+        ctype = r.headers.get("content-type", "")
+        self.rows.append((step, label, r.status_code, None, ctype))
         if r.status_code != 200:
-            self.failures.append(f"signed url for step {step}: {r.status_code}")
+            self.failures.append(f"{label} for step {step}: {r.status_code}")
+        elif want_type and not ctype.startswith(want_type):
+            self.failures.append(f"{label} for step {step}: content-type {ctype!r}")
 
 
 def main() -> int:
@@ -70,6 +74,11 @@ def main() -> int:
         "--allow-model-errors",
         action="store_true",
         help="real-condition run: count 429/503/504 from /check and /watch instead of failing",
+    )
+    ap.add_argument(
+        "--allow-live-errors",
+        action="store_true",
+        help="report a 429/503/504 from /live-token instead of failing (real token not ready)",
     )
     ap.add_argument("--watch-n", type=int, default=6)
     ap.add_argument("--fast", action="store_true", help="skip the 2.5 s sleep between /watch")
@@ -153,18 +162,76 @@ def main() -> int:
             frame_call("watch")
 
         # 5. live token (never print the token itself)
-        live = s.call("GET", f"/live-token?recipe_id={recipe['id']}&session_id={sid}").json()
-        print(f"live: model={live.get('model')} locked={live.get('locked')}")
+        n = len(s.failures)
+        r = s.call("GET", f"/live-token?recipe_id={recipe['id']}&session_id={sid}")
+        try:
+            live = r.json()
+        except ValueError:
+            live = {}
+        if r.status_code == 200:
+            print(
+                f"live: model={live.get('model')} locked={live.get('locked')} "
+                f"api_version={live.get('api_version')} expires_at={live.get('expires_at')}"
+            )
+        else:
+            code = (live.get("error") or {}).get("code")
+            print(f"live: HTTP {r.status_code} {code}")
+            if args.allow_live_errors and r.status_code in (429, 503, 504):
+                del s.failures[n:]
 
-        # 6. monitor, session, end
-        s.call("GET", f"/sessions/{sid}/monitor")
+        # 6. question event, then the monitor must follow a step change
+        s.call(
+            "POST",
+            f"/sessions/{sid}/events",
+            expect=201,
+            step=str(target["idx"]),
+            json={
+                "kind": "question",
+                "step_id": target["id"],
+                "payload": {"caption": "how thin is right", "transcript": "smoke test"},
+            },
+        )
+        m = s.call("GET", f"/sessions/{sid}/monitor").json()
+        cur = (m.get("current_step") or {}).get("idx")
+        if cur != target["idx"]:
+            s.failures.append(f"monitor current_step {cur}, expected {target['idx']}")
+        nxt = next((st for st in recipe["steps"] if st["idx"] != target["idx"]), None)
+        if nxt is not None:
+            s.call(
+                "POST",
+                f"/sessions/{sid}/events",
+                expect=201,
+                step=str(nxt["idx"]),
+                json={
+                    "kind": "step_change",
+                    "step_id": nxt["id"],
+                    "payload": {"from_idx": target["idx"], "to_idx": nxt["idx"], "via": "tap"},
+                },
+            )
+            m = s.call("GET", f"/sessions/{sid}/monitor").json()
+            cur = (m.get("current_step") or {}).get("idx")
+            if cur != nxt["idx"]:
+                s.failures.append(f"monitor current_step {cur} after step_change to {nxt['idx']}")
+        print(
+            f"monitor: current_step={cur} events={len(m.get('events') or [])} "
+            f"last_result={(m.get('last_result') or {}).get('source')} latency={m.get('latency')}"
+        )
+        if m.get("last_frame_url"):
+            s.fetch_url(m["last_frame_url"], "-", "GET <last_frame_url>", "image/jpeg")
+        else:
+            s.failures.append("monitor last_frame_url is null after check/watch")
+
+        # 7. summary, end (twice: session_end is idempotent)
         summary = s.call("GET", f"/sessions/{sid}").json().get("summary")
         print(f"summary: {summary}")
-        s.call("POST", f"/sessions/{sid}/events", expect=201, json={"kind": "session_end"})
+        e1 = s.call("POST", f"/sessions/{sid}/events", expect=201, json={"kind": "session_end"})
+        e2 = s.call("POST", f"/sessions/{sid}/events", expect=201, json={"kind": "session_end"})
+        if e1.json().get("event_id") != e2.json().get("event_id"):
+            s.failures.append("second session_end created a new event")
     except httpx.HTTPError as exc:
         s.failures.append(f"transport error: {type(exc).__name__}: {exc}")
 
-    # 7. table + latency
+    # 8. table + latency
     print()
     print(f"{'step':>4}  {'endpoint':<36} {'http':>4} {'latency_ms':>10}  result")
     for step, endpoint, code, lat, outcome in s.rows:

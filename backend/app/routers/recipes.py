@@ -8,6 +8,8 @@ from app import metrics
 from app.deps import get_store
 from app.errors import ApiError
 from app.jobs import ingest
+from app.routers import live
+from app.routers import sessions as monitor_cache
 from app.schemas import (
     ProcessStarted,
     RecipeCreate,
@@ -136,4 +138,6 @@ async def delete_recipe(recipe_id: str, store: StoreDep) -> Response:
     sessions = await purge_recipe(store, recipe.id) or []
     for s in sessions:
         metrics.drop(s.id)
+        monitor_cache.evict(s.id)
+    live.evict_recipe(recipe.id, [s.id for s in sessions])
     return Response(status_code=204)

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import time
+from dataclasses import dataclass
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -23,7 +27,7 @@ from app.schemas import (
     SessionListItem,
     SessionSummary,
 )
-from app.store.base import Event, Session, Store
+from app.store.base import Event, Session, Step, Store, utcnow
 from app.views import event_out, load_session, parse_uuid, step_out
 
 router = APIRouter(tags=["sessions"])
@@ -31,6 +35,57 @@ router = APIRouter(tags=["sessions"])
 StoreDep = Annotated[Store, Depends(get_store)]
 
 MONITOR_EVENTS = 30
+ACTIVE_WINDOW = timedelta(hours=3)
+MONITOR_CACHE_S = 3.0
+
+# session_end is idempotent: serialise it so two concurrent calls cannot both append.
+_end_lock = asyncio.Lock()
+
+
+@dataclass
+class _MonitorCtx:
+    session: Session
+    recipe_title: str | None
+    steps: list[Step]
+    loaded_at: float
+
+
+# session_id -> session, recipe title and steps, reused for MONITOR_CACHE_S (monitor polls 1/s).
+_monitor_cache: dict[str, _MonitorCtx] = {}
+# Bumped on every eviction, so a monitor load that started before a session_end or delete
+# never writes its (now stale) result back into the cache.
+_generation = 0
+
+
+def reset() -> None:
+    _monitor_cache.clear()
+
+
+def evict(session_id: str) -> None:
+    """Drop cached monitor state for a session (ended or deleted)."""
+    global _generation
+    _generation += 1
+    _monitor_cache.pop(session_id, None)
+
+
+async def _monitor_ctx(store: Store, session_id: str) -> _MonitorCtx:
+    now = time.monotonic()
+    sid = parse_uuid(session_id, "session_id")
+    hit = _monitor_cache.get(sid)
+    if hit is not None and now - hit.loaded_at < MONITOR_CACHE_S:
+        return hit
+    gen = _generation
+    session = await load_session(store, sid)
+    recipe = await store.get_recipe(session.recipe_id)
+    steps = await store.list_steps(session.recipe_id)
+    ctx = _MonitorCtx(session, recipe.title if recipe else None, steps, now)
+    if gen != _generation:
+        return ctx  # something was evicted while loading: answer, but do not cache
+    if len(_monitor_cache) > 256:
+        for k in [k for k, v in _monitor_cache.items() if now - v.loaded_at >= MONITOR_CACHE_S]:
+            del _monitor_cache[k]
+    _monitor_cache[sid] = ctx
+    return ctx
 
 
 @router.post("/sessions", status_code=201, response_model=SessionCreated)
@@ -49,18 +104,31 @@ async def post_event(session_id: str, body: EventCreate, store: StoreDep) -> Eve
     session = await load_session(store, session_id)
     step_id = parse_uuid(body.step_id, "step_id") if body.step_id else None
     request_id = parse_uuid(body.request_id, "request_id") if body.request_id else None
-    event = await store.append_event(
-        Event(
-            session_id=session.id,
-            kind=body.kind,
-            step_id=step_id,
-            request_id=request_id,
-            payload=body.payload,
-        )
+    event = Event(
+        session_id=session.id,
+        kind=body.kind,
+        step_id=step_id,
+        request_id=request_id,
+        payload=body.payload,
     )
-    if body.kind == "session_end" and session.finished_at is None:
-        await store.update_session(session.id, finished_at=event.created_at)
-    return EventCreated(event_id=event.id)
+    if body.kind != "session_end":
+        return EventCreated(event_id=(await store.append_event(event)).id)
+
+    # Idempotent: a repeated session_end returns the first one's id and changes nothing.
+    # Keyed on the existing event, not on finished_at, so a retry after a failed
+    # update_session repairs finished_at instead of appending a second session_end.
+    async with _end_lock:
+        session = await load_session(store, session.id)
+        stored = next(
+            (e for e in await store.list_events(session.id) if e.kind == "session_end"), None
+        )
+        if stored is None:
+            stored = await store.append_event(event)
+        if session.finished_at is None:
+            evict(session.id)
+            await store.update_session(session.id, finished_at=stored.created_at)
+    evict(session.id)
+    return EventCreated(event_id=stored.id)
 
 
 @router.get("/sessions", response_model=SessionList)
@@ -69,14 +137,23 @@ async def list_sessions(
     active: Annotated[bool | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> SessionList:
+    rows = await store.list_sessions(active=active, limit=limit)
+    if active is True:
+        # "active" = not finished and started within the last 3 h. Rows are newest first, so
+        # filtering after the limit still yields the newest `limit` matching sessions.
+        cutoff = utcnow() - ACTIVE_WINDOW
+        rows = [s for s in rows if s.started_at >= cutoff]
+    titles: dict[str, str | None] = {}
     items = []
-    for s in await store.list_sessions(active=active, limit=limit):
-        recipe = await store.get_recipe(s.recipe_id)
+    for s in rows:
+        if s.recipe_id not in titles:
+            recipe = await store.get_recipe(s.recipe_id)
+            titles[s.recipe_id] = recipe.title if recipe else None
         items.append(
             SessionListItem(
                 id=s.id,
                 recipe_id=s.recipe_id,
-                recipe_title=recipe.title if recipe else None,
+                recipe_title=titles[s.recipe_id],
                 client=s.client,
                 device_label=s.device_label,
                 started_at=s.started_at,
@@ -87,8 +164,13 @@ async def list_sessions(
 
 
 def summarize(steps_total: int, events: list[Event]) -> SessionSummary:
-    # A step "passed first try" when its first check with a verdict is a pass.
-    # check_unsure is not a verdict (the model could not judge), so it is skipped here.
+    """Done-screen summary (BE-05.3).
+
+    - steps_passed_first_try: steps whose first check event is check_pass. check_unsure is not a
+      verdict (the model could not judge) and affects none of the counts, so it is skipped when
+      finding the first check. A step with no check does not count.
+    - fixes_caught / warnings / questions: counts of check_fix / watch_warn / question.
+    """
     first_verdict: dict[str, str] = {}
     for e in events:
         if e.kind in ("check_pass", "check_fix") and e.step_id and e.step_id not in first_verdict:
@@ -121,10 +203,9 @@ async def get_session(session_id: str, store: StoreDep) -> SessionDetail:
 
 @router.get("/sessions/{session_id}/monitor", response_model=Monitor)
 async def monitor(session_id: str, store: StoreDep) -> Monitor:
-    session = await load_session(store, session_id)
-    recipe = await store.get_recipe(session.recipe_id)
-    events = await store.list_events(session.id)
-    steps = await store.list_steps(session.recipe_id)
+    ctx = await _monitor_ctx(store, session_id)
+    session, steps = ctx.session, ctx.steps
+    events = await store.list_events(session.id)  # the one storage round trip per call
 
     current_idx = 1
     for e in reversed(events):
@@ -156,7 +237,7 @@ async def monitor(session_id: str, store: StoreDep) -> Monitor:
             started_at=session.started_at,
             finished_at=session.finished_at,
         ),
-        recipe_title=recipe.title if recipe else None,
+        recipe_title=ctx.recipe_title,
         current_step=await step_out(store, current) if current else None,
         last_frame_url=last_frame_url,
         last_frame_at=last_frame_at,
