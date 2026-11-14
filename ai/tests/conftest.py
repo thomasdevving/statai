@@ -15,7 +15,9 @@ def _fake_env(monkeypatch):
     monkeypatch.setenv("GHOSTCHEF_AI_FAKE", "1")
     monkeypatch.setenv("GHOSTCHEF_AI_FAKE_DELAY", "0")
     for k in ("GHOSTCHEF_MODEL_VIDEO", "GHOSTCHEF_MODEL_CHECK", "GHOSTCHEF_MODEL_WATCH",
-              "GHOSTCHEF_MODEL_LIVE", "GHOSTCHEF_FIXTURE_DIR"):
+              "GHOSTCHEF_MODEL_LIVE", "GHOSTCHEF_FIXTURE_DIR",
+              # ai/.env may hold a real key: unit tests must never reach a paid API.
+              "GEMINI_API_KEY", "OPENAI_API_KEY"):
         monkeypatch.delenv(k, raising=False)
     fake.reset()
     yield

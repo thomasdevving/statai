@@ -104,4 +104,4 @@ python -m ghostchef_ai live-config
 python -m ghostchef_ai.eval --split dev --config full
 ```
 
-`--step N` loads step N from `fixtures/sushi_recipe.json` unless `--recipe other.json` is given.
+`--step N` loads step N from `fixtures/sushi_recipe.json` unless `--recipe other.json` is given. `check --no-ref` sends no reference image; `-v` (real mode) also prints latency and the raw model answer (with `evidence`) to stderr. For several frames at two sizes, use `python scripts/dev_eval.py` (AI-04.5; dev rows only).

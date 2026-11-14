@@ -92,13 +92,10 @@ def test_build_live_config(recipe):
                      "repeat_instruction"]
 
 
-@pytest.mark.parametrize("name", ["check_frame", "watch_frame", "extract_recipe",
-                                  "mint_live_token"])
+@pytest.mark.parametrize("name", ["extract_recipe", "mint_live_token"])
 async def test_real_path_not_implemented(monkeypatch, recipe, big_frame, name):
     monkeypatch.setenv("GHOSTCHEF_AI_FAKE", "0")
     calls = {
-        "check_frame": lambda: gc.check_frame(big_frame, recipe.step(3), None),
-        "watch_frame": lambda: gc.watch_frame(big_frame, recipe.step(3)),
         "extract_recipe": lambda: gc.extract_recipe(Path("x.mp4")),
         "mint_live_token": lambda: gc.mint_live_token(
             gc.build_live_config(recipe.title, None, recipe.transcript, recipe.steps)),

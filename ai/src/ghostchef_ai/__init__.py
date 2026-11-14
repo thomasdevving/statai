@@ -1,15 +1,15 @@
 """ghostchef_ai — the complete public surface (docs/API-CONTRACT.md §7).
 
 Every async function dispatches per call: fake mode (GHOSTCHEF_AI_FAKE=1) -> ghostchef_ai.fake,
-otherwise the real implementation. Real implementations arrive in AI-04 (check, watch),
-AI-05 (token) and AI-06 (extract); until then they raise AIUnavailable.
+otherwise the real implementation: check.check_frame and watch.watch_frame (AI-04),
+live.mint_live_token (AI-05). extract_recipe arrives in AI-06; until then it raises AIUnavailable.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from ghostchef_ai import fake
+from ghostchef_ai import check, fake, watch
 from ghostchef_ai.config import is_fake, model_ids
 from ghostchef_ai.errors import AIError, AIInvalidOutput, AIQuotaError, AITimeout, AIUnavailable
 from ghostchef_ai.live import build_live_config
@@ -51,13 +51,13 @@ async def check_frame(
 ) -> CheckResult:
     if is_fake():
         return await fake.check_frame(frame_jpeg, step, ref_image_jpeg, timeout_s=timeout_s)
-    raise _not_yet("check_frame")
+    return await check.check_frame(frame_jpeg, step, ref_image_jpeg, timeout_s=timeout_s)
 
 
 async def watch_frame(frame_jpeg: bytes, step: StepSpec, *, timeout_s: float = 3.5) -> WatchResult:
     if is_fake():
         return await fake.watch_frame(frame_jpeg, step, timeout_s=timeout_s)
-    raise _not_yet("watch_frame")
+    return await watch.watch_frame(frame_jpeg, step, timeout_s=timeout_s)
 
 
 async def mint_live_token(live_config: LiveConfig) -> LiveToken:

@@ -9,7 +9,7 @@
 | 01 | Package skeleton, fake mode, fixture | DONE (fake) | 2026-11-14 · `273fadb` | Fake mode only: no Gemini call exists yet. 38 tests pass, ruff clean, all verification commands run (Windows, Python 3.13). Fixture recipe and the six reference images are **placeholders**, not chef footage. Model IDs in `config.py` are unverified placeholders until AI-02. |
 | 02 | Gemini access and model selection | DONE | 2026-11-14 · `19091c3` + not yet committed | On the **event key** (project "Hack Junction 2026-7638", Tier 3, paid): image, two-image, video, Live audio, Live function call and fully locked ephemeral token all **PASS**; limits read in AI Studio; models pinned. Earlier tests ran on a different key (see account facts). `check` stays provisionally on the lite model; AI-04 decides with real frames. The account's data-use wording was not found on the pages read. The OpenAI stand-in is no longer used. |
 | 03 | Chef footage and evaluation set | PARTIAL — team decided not to cook; see "Footage and evaluation set" | 2026-11-14 · `3491963` | **Tooling done, physical work not started.** Done: `scripts/extract_frames.py` (03.3), `scripts/check_cases.py` (validates `eval/cases.csv`, prints split × label counts, `--scaffold` adds unlabelled rows), `scripts/side_by_side.py` (for 03.6), `eval/` layout, empty `eval/cases.csv`, `eval/README.md` template; 18 new tests; 74 pass. ffmpeg 9.0.2 installed on the owner's laptop (winget `Gyan.FFmpeg`); extraction verified on a generated 6 s test video (frame names, 720×1280 size, `--at`), **not yet on real footage**. **Not done (human):** 03.1 chef take, 03.2 mistake clips, 03.4 labelling, 03.5 real stills + fixture v1, 03.6 the "can a person tell?" check. |
-| 04 | Check and watch | NOT STARTED | | |
+| 04 | Check and watch | PARTIAL — code done; the two data-dependent criteria are blocked by having no labelled footage | 2026-11-14 · not yet committed | **Done:** prompts in `src/ghostchef_ai/prompts/check.md`, `watch.md` (recipe-agnostic, tested); real `check.py` / `watch.py` on `client.image_json`; `__init__.py` dispatches to them when fake mode is off; new unit tests with a stubbed model call (every post-processing rule, retry, timeout → `AITimeout`, quota → `AIQuotaError`), 120 tests pass, ruff clean; CLI runs against the real API on real frames (below); `scripts/dev_eval.py` (AI-04.5 runner, dev rows only); both frame sizes tried for each call. **Not met:** AI-04.3 "a mistake frame returns `warn` with the right id": no frame of a mistake exists. AI-04.5 confusion tables: `eval/cases.csv` has 0 rows, so there is nothing to count. **False approvals remain** on clearly unfinished work with the pinned check model: risk R-02, see "Check and watch on private dev material". |
 | 05 | Live voice config and token | NOT STARTED | | |
 | 06 | Recipe extraction from video | NOT STARTED | | |
 | 07 | Evaluation and tuning | NOT STARTED | | |
@@ -24,7 +24,7 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 | Project tier | **Tier 3**, key marked **paid**, billing account `…7F15` | AI Studio API keys page |
 | Data-use / retention setting of this account | Not stated on the pages read. AI Studio labels the event key "paid"; check the terms for paid use before quoting any policy | AI Studio API keys page |
 | Model for `video` (extract_recipe) | `gemini-3.5-flash` | Video test PASS (below) |
-| Model for `check` | `gemini-3.5-flash-lite` (**provisional**) | Image tests PASS; revisit `gemini-3.8-flash` in AI-04 when not overloaded |
+| Model for `check` | `gemini-3.5-flash-lite` (kept by AI-04; **open team decision**, see R-02 note below) | Meets the 2 s p50 target (~0.9–1.0 s warm). `gemini-3.8-flash` judged the dev material better but took 2.0–7.2 s with one 8 s timeout in 27 calls (AI-04). Switch without code changes: `GHOSTCHEF_MODEL_CHECK=gemini-3.8-flash` |
 | Model for `watch` | `gemini-3.5-flash-lite` | Image tests PASS, ~0.9 s |
 | Model for `live` | `gemini-3.8-live` | Live audio + function call + locked token PASS |
 | Rate limits for the watch model (RPM / TPM / RPD) | Event project, Gemini 3.5 Flash Lite: 30K / 30M / unlimited | AI Studio rate-limit page, 2026-11-14 |
@@ -102,8 +102,13 @@ Run cost: 24 calls, 35,189 input tokens, 382 output tokens. The dollar charge wa
 
 | Call | Model | n | p50 ms | max ms | Date | Network |
 |---|---|---|---|---|---|---|
-| check_frame | — not implemented until AI-04 | — | — | — | — | — |
-| watch_frame | — not implemented until AI-04 | — | — | — | — | — |
+| check_frame, 1280 px, warm process (final prompt) | `gemini-3.5-flash-lite` | 9 | 1017 | 1931 | 2026-11-14 | not recorded (owner's laptop) |
+| check_frame, 768 px, warm process (final prompt) | `gemini-3.5-flash-lite` | 9 | 883 | 949 | 2026-11-14 | not recorded |
+| check_frame, 768 px, warm process (final prompt) | `gemini-3.8-flash` (LOW thinking) | 9 | 2505 | 6003 | 2026-11-14 | not recorded |
+| check_frame, single CLI call (cold process: client + TLS setup) | `gemini-3.5-flash-lite` | 2 | 2073 / 2131 | — | 2026-11-14 | not recorded |
+| watch_frame, 512 px, warm process | `gemini-3.5-flash-lite` | 9 | 902 | 1518 | 2026-11-14 | not recorded |
+| watch_frame, 384 px, warm process | `gemini-3.5-flash-lite` | 9 | 865 | 1339 | 2026-11-14 | not recorded |
+| watch_frame, single CLI call (cold process) | `gemini-3.5-flash-lite` | 2 | 1874 / 1690 | — | 2026-11-14 | not recorded |
 | One-image JSON call (smoke test, proxy for watch) | `gemini-3.5-flash-lite` | 3 | 906 | 1842 | 2026-11-14 | not recorded |
 | extract_recipe | — not implemented until AI-06; video smoke on a 12 s clip: 4.9 s upload + 7.3 s generate (`gemini-3.5-flash`) | 1 | — | — | 2026-11-14 | not recorded |
 
@@ -112,8 +117,9 @@ Run cost: 24 calls, 35,189 input tokens, 382 output tokens. The dollar charge wa
 | Value | Current | Set by |
 |---|---|---|
 | `WATCH_THRESHOLD` (client debounce confidence) | 0.7 (contract default, untuned) | AI-07 |
-| Watch frame long edge | 512 px (contract default, untuned) | AI-04 |
-| Check frame long edge | 1280 px (contract default, untuned) | AI-04 |
+| Watch frame long edge | **512 px** (contract default, kept). AI-04 tried 384 px: median 865 vs 902 ms, 18 vs 28 KB per frame, same answers (9/9 `ok` both) on 9 unlabelled frames. Too small a gain to justify less detail | AI-04 (AI-07 may revisit with labels) |
+| Check frame long edge | **1280 px** (contract default, kept). AI-04 tried 768 px: median ~0.1 s faster (883 vs 1017 ms), 53 vs 110 KB per frame, no consistent difference in answers across rounds on 9 unlabelled frames. Kept until labelled frames can show whether detail matters | AI-04 (AI-07 may revisit with labels) |
+| Check media resolution | MEDIUM (`check.LOW_DETAIL = False`); watch uses LOW | AI-04 |
 
 ## Live facts for `ios/` (AI-05 fills this in)
 
@@ -147,6 +153,40 @@ Run cost: 24 calls, 35,189 input tokens, 382 output tokens. The dollar charge wa
 
 **What AI-03 still cannot do without real footage:** a labelled dev/held-out set with mistakes, real reference stills for the fixture, the "can a person tell?" check, and every number in EVALUATION.md §4. Options that avoid cooking (a team decision, not made here): ready-made rice and assembly only; non-food props; or a non-food task. Until one is chosen, AI-07's evaluation has no data.
 
+## Check and watch on private dev material (AI-04, 2026-11-14)
+
+> **Dev material, unlabelled, used for tuning. These are not accuracy numbers and must not be reported as such.** Input: the 9 private Mixkit frames (see above), rotated 180° to approximate the wearer's view, step 3 "Spread rice", **no reference image** (`--no-ref`; the fixture's `step-3.jpg` is a text placeholder). Every frame is mid-step: a third to half of the sheet still bare, hands on the rice in most frames. So a `pass` on any of them is wrong by construction, while `fix` or `unsure` are both defensible. No frame shows a listed mistake. Runner: `scripts/dev_eval.py frames footage/mixkit/frames --rotate 180 --step 3 --no-ref`. Resized copies and per-row JSON (with `evidence`) are in the gitignored `ai/footage/dev-variants/`.
+
+**check_frame**: counts are pass / fix / unsure over the 9 frames.
+
+| Round | Prompt / fixture change | Model | Size | pass / fix / unsure | p50 / max ms |
+|---|---|---|---|---|---|
+| 1 | First prompt, free-text `evidence` | `gemini-3.5-flash-lite` | 1280 | 7 / 1 / 1 | 1349 / 4963 |
+| 1 | | `gemini-3.5-flash-lite` | 768 | 7 / 1 / 1 | 1082 / 1202 |
+| 2 | Per-criterion check first; `evidence` = met / not met / hidden per criterion; "unfinished work is never a pass"; hands covering → unsure | `gemini-3.5-flash-lite` | 1280 | 4 / 5 / 0 | 973 / 1988 |
+| 2 | | `gemini-3.5-flash-lite` | 768 | 6 / 3 / 0 | 953 / 1075 |
+| 2 | | `gemini-3.8-flash` (LOW thinking) | 768 | 2 / 3 / 4 | 2541 / 6562 |
+| 3 | Sizes judged in proportion ("a bare quarter / third / half is not a narrow strip"); step-3 criteria 2 and 3 reworded in the fixture (below) | `gemini-3.5-flash-lite` | 1280 | 2 / 7 / 0 | 1017 / 1931 |
+| 3 | | `gemini-3.5-flash-lite` | 768 | 1 / 8 / 0 | 883 / 949 |
+| 3 | | `gemini-3.8-flash` (LOW thinking) | 768 | 0 / 7 / 2 | 2505 / 6003 |
+| 3 | | `gemini-3.8-flash`, LOW media resolution | 768 | 0 / 7 / 1, plus 1 `AITimeout` at 8 s | 5116 / 7169 |
+
+What the `evidence` showed: the lite model reads the bare half of the sheet as "2 met: bare strip at top" (the 2 cm margin) and passes. `gemini-3.8-flash` says "bare strip much wider than 2cm" / "half of sheet is bare", and marks criteria hidden when hands cover the rice. Both models give confidence 0.85–0.99 on almost every answer, so the < 0.5 → `unsure` rule hardly ever fires and confidence carries little signal. Answers are **not stable at temperature 0**: frame `0010.00` at 1280 px got `fix rice_too_thick` in the round-3 batch and `pass` from a single CLI call with the same prompt.
+
+**R-02 is materialising.** After three prompt rounds, the pinned check model (`gemini-3.5-flash-lite`) still approves 1–2 of 9 clearly unfinished frames. `gemini-3.8-flash` approved none, but its latency (p50 2.5–5.1 s across runs, max 7.2 s, one timeout in 27 calls) misses the `/check` p50 ≤ 2000 ms target in docs/EVALUATION.md. Choosing between them is a team decision for the next sync. Either way it needs labelled frames (AI-03) before anyone can say how often it happens on real use.
+
+**watch_frame** (one prompt version; the model never writes text): 512 px 9/9 `ok` (confidence 0.80–0.95), 384 px 9/9 `ok` (0.80–0.95). So work in progress was never flagged as a mistake. One extra call on step 4's mistake list (wrong step for the frame) also gave `ok`. **Not tested:** whether watch warns on a real mistake, because no mistake frame exists.
+
+**CLI runs against the real API** (`ai/.env`, Gemini, event key):
+- `check --step 3 --frame footage/dev-variants/1280-r180/mixkit-0020.00.jpg --ref fixtures/images/step-3.jpg -v` → `fix`, `mistake_id: null`, headline "Spread rice evenly", 2073 ms.
+- `check --step 3 --frame …/1280-r180/mixkit-0010.00.jpg --no-ref -v` → `pass` (a false approval, see above), 2131 ms.
+- `watch --step 3 --frame …/512-r180/mixkit-0010.00.jpg -v` → `ok`, confidence 0.8, 1874 ms.
+- First smoke call, unrotated frame `0000.00` with the placeholder reference and the first prompt → `fix rice_too_thick` (recipe strings copied), 3646 ms.
+
+The verification commands in the task point at `eval/frames/dev/`, which is empty. The private frames were used from `ai/footage/` instead and were not copied into `eval/` or `fixtures/`. Paid calls this batch: about 104 (`gemini-3.5-flash-lite` and `gemini-3.8-flash`), about 128K input tokens (from the runner and CLI usage counters); cost not measured.
+
+**Fixture change (step 3 criteria wording, AI-04.5 allows criteria wording, not labels):** criterion 2 is now "Only a narrow strip of bare nori, about 2 cm (a tenth of the sheet), remains along the far edge"; criterion 3 is now "Rice covers all the rest of the sheet evenly, right to the near and side edges, without bare patches". Ids, watch_fors and display strings are unchanged.
+
 ## Results (AI-07 fills this in; copy the table into docs/EVALUATION.md §4 through a `[docs]` commit)
 
 Nothing measured yet.
@@ -157,9 +197,14 @@ Nothing measured yet.
 - Call `ghostchef_ai.fake.reset()` between tests: the fake check/watch sequences use per-step counters.
 - Fake sequences: `check_frame` → frame under 5000 bytes is `unsure`; otherwise odd calls per step are `fix` with the step's first watch-for, even calls `pass`. `watch_frame` → per step, calls 1–3 `ok`, 4–6 `warn`, repeating. Steps without watch-fors always `pass` / `ok`.
 - Fixture: `ai/fixtures/sushi_recipe.json` (6 steps, `RecipeDraft`) and `ai/fixtures/images/step-1.jpg` … `step-6.jpg` (720×1280). The demo mistake is step 3, `rice_too_thick`.
-- Real (non-fake) calls raise `AIUnavailable("… not implemented yet …")` until AI-04/05/06.
-- Backend: keep `GHOSTCHEF_AI_FAKE=1`. The OpenAI stand-in is for `ai/` prompt work only and is not wired into `check_frame` / `watch_frame` yet (that is AI-04).
+- **`check_frame` and `watch_frame` are real from AI-04** (fake mode off + `GEMINI_API_KEY`). `extract_recipe` still raises `AIUnavailable("… not implemented yet …")` until AI-06. BE-03 can switch `GHOSTCHEF_AI_FAKE` off once the AI-04 commit is pushed.
+- Behaviour the backend sees (AI-04): `check_frame` retries once on `AIInvalidOutput` inside its `timeout_s`; `watch_frame` never retries. A step with no `watch_fors` makes no watch call and returns `ok` with `model: "none"`. An `unsure` never carries a `mistake_id`. The first call in a fresh process takes ~2 s (client + TLS setup), later ones ~0.9 s: keep one long-lived process. Model switch without code changes: `GHOSTCHEF_MODEL_CHECK`.
+- Fixture step 3: success criteria 2 and 3 were reworded in AI-04 (ids and strings unchanged); re-seed if the database copies criteria.
+- The OpenAI stand-in still works for check/watch through the same code path (`GHOSTCHEF_PROVIDER=openai`) but is not used.
 
 ## Needs from other tracks
+
+- **Team decision at the next sync (R-02, from AI-04):** the check model. `gemini-3.5-flash-lite` meets the 2 s target but still passes some clearly unfinished frames; `gemini-3.8-flash` judged the dev material better but took 2–7 s with one timeout. The default stays on lite until decided.
+- **Labelled frames (AI-03, team decision "no cooking"):** AI-04.3's "mistake frame → `warn` with the right id" and AI-04.5's confusion tables cannot be done without at least a few labelled dev frames, including mistakes. A non-cooking option is listed under "Footage and evaluation set".
 
 - **Contract wording (docs owner, no rush):** API-CONTRACT §7 says the package reads only `GEMINI_API_KEY` and the four `GHOSTCHEF_MODEL_*` variables, but the package also reads `GHOSTCHEF_AI_FAKE`, `GHOSTCHEF_AI_FAKE_DELAY` and `GHOSTCHEF_FIXTURE_DIR` (all specified by AI-01 and referenced by the backend tasks). Suggest listing them in §7 as an additive change. Nothing is blocked.

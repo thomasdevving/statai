@@ -52,8 +52,8 @@
       "clip_end_s": 76.5,
       "success_criteria": [
         "Rice layer is thin enough to see nori through it in places",
-        "A strip of bare nori about 2 cm wide remains along the far edge",
-        "Rice covers the rest of the sheet evenly, without bare patches"
+        "Only a narrow strip of bare nori, about 2 cm (a tenth of the sheet), remains along the far edge",
+        "Rice covers all the rest of the sheet evenly, right to the near and side edges, without bare patches"
       ],
       "watch_fors": [
         {

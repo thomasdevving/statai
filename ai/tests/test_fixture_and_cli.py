@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 
+import pytest
 from conftest import AI_DIR
 from PIL import Image
 
@@ -34,9 +35,9 @@ def test_placeholder_images():
             assert im.format == "JPEG" and im.size == (720, 1280)
 
 
-def _cli(*args, fake="1"):
+def _cli(*args, fake="1", **extra_env):
     env = {**os.environ, "GHOSTCHEF_AI_FAKE": fake, "GHOSTCHEF_AI_FAKE_DELAY": "0",
-           "PYTHONIOENCODING": "utf-8"}
+           "PYTHONIOENCODING": "utf-8", **extra_env}
     return subprocess.run([sys.executable, "-m", "ghostchef_ai", *args], cwd=AI_DIR, env=env,
                           capture_output=True, text=True, encoding="utf-8")
 
@@ -57,8 +58,19 @@ def test_cli_models_and_live_config():
     assert r.returncode == 0 and "[CONTEXT]" in json.loads(r.stdout)["system_instruction"]
 
 
-def test_cli_real_mode_reports_not_implemented():
-    r = _cli("check", "--step", "3", "--frame", "fixtures/images/step-3.jpg", fake="0")
-    assert r.returncode != 0
-    assert "not implemented yet" in r.stderr
+@pytest.mark.parametrize("cmd", ["check", "watch"])
+def test_cli_real_mode_without_key_is_a_clear_error(cmd):
+    # An empty GEMINI_API_KEY is not overridden by ai/.env, so this never reaches the network.
+    r = _cli(cmd, "--step", "3", "--frame", "fixtures/images/step-3.jpg", fake="0",
+             GEMINI_API_KEY="", GHOSTCHEF_PROVIDER="gemini")
+    assert r.returncode == 2
+    assert "GEMINI_API_KEY is not set" in r.stderr
     assert "Traceback" not in r.stderr
+
+
+def test_cli_watch_step_without_watch_fors_needs_no_key():
+    r = _cli("watch", "--step", "2", "--frame", "fixtures/images/step-2.jpg", fake="0",
+             GEMINI_API_KEY="", GHOSTCHEF_PROVIDER="gemini")
+    assert r.returncode == 0, r.stderr
+    out = json.loads(r.stdout)
+    assert out["status"] == "ok" and out["model"] == "none"
