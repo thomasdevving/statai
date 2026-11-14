@@ -9,7 +9,7 @@
 | 01 | Foundation and simulator | PARTIAL | 2026-11-14 | 01.1–01.5 pass against BE-01 in **fake mode** (memory store, `ai_mode: fake`). 01.6 first real loop not run: needs the backend on real Gemini (BE-03.1). Webcam path built but not yet tried by a person with a real camera. Details below. |
 | 02 | Review page | NOT STARTED | | |
 | 03 | Demo monitor | PARTIAL | 2026-11-14 | WEB-03.1–03.5 implemented; 23 web tests pass; local fake-AI/memory browser verification below. WEB-03.6 needs a real iOS session; three-metre readability and physical wake-lock behaviour need a human. |
-| 04 | User evidence and pitch pack | NOT STARTED | | |
+| 04 | User evidence and pitch pack | BLOCKED (finalization) | 2026-11-14 · sources checked at `4f146ff` | User scope: WEB-04 final using AI-07 results and IOS-06 device facts; no demo work. AI-07 results are absent and IOS-06 has no hardware validation. Details below. |
 | 05 | Demo ops and submission | PARTIAL | 2026-11-14 | 05.4 run sheet drafted (`pitch/run-sheet.md`, unknowns marked ⟨fill⟩, not yet used by a teammate). 05.6 secret scan and image check done (below); README and LICENSE not touched (need owners' agreement and Q-08d). Submission text drafted in `pitch/submission-draft.md`. 05.1, 05.2, 05.3, 05.5, 05.7, 05.8 need a human. |
 
 Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (defined in docs/PLAN.md §8).
@@ -42,7 +42,7 @@ Not verified: webcam capture with a real camera and a person; speech output by e
 
 User-requested Meta-inspired visual treatment implemented within `web/`: glass panels, white text and Manrope. The final hero copy is “Cook from the chef’s point of view.” A generated blue titanium material is confined to the hero; shared page backgrounds and tool cards keep their earlier styling.
 
-The final transparent PNG is an image-tool cutout of the user-identified floating-glasses photo, flipped horizontally toward the left-hand headline. The original crossed open temples are retained, with readable Ray-Ban lettering on the viewer-left lens. The final user-requested correction removes the band and shifts the larger glasses left toward the hero centre, retaining cool blue-silver reflections. The recipe preview follows the sandwich fixture’s step 4, “Add fillings,” with a clearer tilt and restrained skew. A trial quality rerender did not increase resolution and reduced lens clarity, so the clearer existing cutout was retained. A generated sandwich-filling thumbnail appears in a glowing illustrative card with a restrained tilt and skew. The glasses and card are now one fixed SVG composition, so the lettering scales uniformly with the product instead of being stretched by a responsive projection. The glasses are slightly smaller. No person, product blending or duplicate frame layer is used. The simulator's actual lens renderer retains its black display background and status colours.
+The final transparent PNG is an image-tool cutout of the user-identified floating-glasses photo, flipped horizontally toward the left-hand headline. The original crossed open temples are retained, with readable Ray-Ban lettering on the viewer-left lens. The final user-requested correction removes the band and shifts the larger glasses left toward the hero centre, retaining cool blue-silver reflections. The recipe preview follows the sandwich fixture’s step 4, “Add fillings,” with a clearer tilt and restrained skew. An earlier quality rerender was rejected for reducing lens clarity. The subsequent resolution correction uses a tightly framed 1774×887 transparent render, with roughly 1.7 times as many pixels across the product as the earlier padded cutout. It is mapped into the same fixed hero composition; vector card lettering remains proportional. A generated sandwich-filling thumbnail appears in a glowing illustrative card with a restrained tilt and skew. The glasses and card are now one fixed SVG composition, so the lettering scales uniformly with the product instead of being stretched by a responsive projection. The glasses are slightly smaller. No person, product blending or duplicate frame layer is used. The simulator's actual lens renderer retains its black display background and status colours.
 
 Observed in shared Chromium during the visual refresh: desktop home and simulator render; simulator links navigate; settings opens and closes; a narrow viewport stacks the hero and cards and keeps the simulator header and camera controls within the screen. Review remains labelled Coming soon; Monitor is linked after WEB-03 implementation. Backend availability is reported by the existing shared status strip. The earlier projected card was checked at desktop and narrow phone-sized widths; the replacement fixed composition was also observed in desktop Chromium. The dynamic projection and resize observer have been removed. The static server responds HTTP 200 at localhost:5173 in the cloud workspace. No cooking-session or real-camera verification was performed for this visual-only change.
 
@@ -69,6 +69,17 @@ The local backend ran on port 8100 with `GHOSTCHEF_AI_FAKE=1`, `STORAGE=memory`,
 - Homepage Monitor card now opens the monitor. Simulator recipe buttons wrap the longer sandwich title.
 
 Pending: actual iOS/glasses session (WEB-03.6), observed end-to-end delay on hardware, comparison with the iPhone lens preview, readability from three metres, Safari, and real camera use. Batch remains PARTIAL until those acceptance checks are run.
+
+## WEB-04 finalization dependencies (2026-11-14)
+
+Scope confirmed by the web owner: finalize WEB-04 using AI-07 numbers and IOS-06 device facts. Pitch slot: **3 minutes** (user-confirmed; not independently checked with organizers). The user confirmed that no external user sessions or instructor conversation have happened. **Not yet tested with users. No instructor conversation happened.** Any pilot remains a proposed pilot.
+
+Checked the latest GitHub `main` at `4f146ff`:
+
+- `ai/STATUS.md` → AI-07 is PARTIAL; “Results” says **“Nothing measured yet.”** There are no committed runs under `ai/eval/results/`. Held-out verdict counts, false approvals, ablation results and watcher evaluation cannot be inserted into a final pitch. Earlier development latency measurements are not AI-07 accuracy results.
+- `ios/STATUS.md` → IOS-06 is **“PARTIAL (code + logic tests only; no glasses, no Xcode build)”**. Glasses model/firmware are blank and the end-to-end glasses run table is empty. MockDeviceKit results from IOS-02 cannot be presented as IOS-06 hardware facts. Audio through the glasses is not implemented per the IOS-06 row.
+
+WEB-04 is blocked on those final inputs. No demo, recording, fabricated metrics or hardware claims were created. The existing pitch drafts are not marked final. Once the owning tracks publish the results and device run, copy their dated conditions and limits into the evidence sheet and claims audit before signing off the pitch.
 
 ## Submission
 
@@ -135,4 +146,5 @@ Backup recording: none yet.
 
 ## Needs from other tracks
 
+- WEB-04 final: AI owner to publish AI-07 measured results (set sizes, verdict/false-approval counts, ablation and watcher results, model IDs, date and conditions); iOS owner to publish IOS-06 real-device model/firmware, what actually ran and its limitations. Finalization is blocked until these exist.
 - WEB-03.6: iOS owner to run one real session while the monitor is attached; compare the reconstructed lens to the phone preview and record observed delay/mismatches. A human should also check the monitor from three metres away.
