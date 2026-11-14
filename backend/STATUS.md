@@ -57,6 +57,7 @@ The demo key is shared privately, never written here.
 | 2026-11-14 | same deployment, **after re-seeding Supabase with the sandwich fixture** (`scripts/seed.py --replace --publish`), `--fast`, without `--allow-live-errors` | exit 0. Recipe "Ham and cheese sandwich", 6 steps, published; step 4 carries `filling_piled_center`. `/live-token` 200 | 983 / 1021 (n=2) | 724 / 810 (n=6) |
 
 | 2026-11-14 | `http://localhost:8040` (fake, memory), BE-06 code, `--fast` | exit 0, every status as expected; `/health` reports `"ffmpeg":true` | 750 / 751 (n=2) | 301 / 301 (n=6) |
+| 2026-11-14 | Supabase production project, re-seed only (no smoke): `STORAGE=supabase scripts/seed.py --publish --replace` after AI `cf93919` (fixture step 2: spread both slices) | exit 0. Recipe "Ham and cheese sandwich", 6 steps, published. Step 2 row read back from Supabase matches the fixture ("Spread" / "Thin layer, right to every edge"), ref image present. Old seed sessions and frames deleted by `--replace` | — | — |
 Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not Gemini.
 
 ## Accounts (who holds them; no secrets here)
