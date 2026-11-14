@@ -10,7 +10,7 @@
 | 02 | Supabase schema, storage, seed | DONE (fake) | 2026-11-14 | `STORAGE=supabase` works: migration applied, `SupabaseStore`, `scripts/seed.py`, smoke exit 0 against Supabase. AI still fake. See BE-02 notes. |
 | 03 | Check and watch, production-grade | DONE | 2026-11-14 | Real Gemini through `/check` and `/watch` (AI-04 `429b19a`). JPEG validation + downscale, ref-image cache, budgets, `/watch` in-flight guard, background frame/event persistence, latest-frame route, JSON call logs. Real-photo verdicts were checked by reading them only: no labelled mistake frame exists yet (AI-03). See BE-03 notes. |
 | 04 | Deploy to Railway + emergency mode | DONE | 2026-11-14 / `b72ce2d` | Production runs on Railway with `gemini` + `supabase`; smoke against production passed. Emergency laptop mode is **NOT REHEARSED** on a hotspot. Automatic deploys are off (owner). See BE-04 notes. |
-| 05 | Live token, monitor, session summary | PARTIAL | 2026-11-14 / `ab84dc8` | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) but **no real token yet**: AI-05 is not on `main`, so with real AI it returns 503. Deployed to production (`c151ee6`), production smoke exit 0 (with `--allow-live-errors`). See BE-05 notes. |
+| 05 | Live token, monitor, session summary | PARTIAL | 2026-11-14 / `ab84dc8` | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) and, since AI-05 reached `main` (`96e105e`), mints a **real token locally** (2026-11-14: 200, `gemini-3.8-live`, `v1beta`, `locked: true`). Production still runs the pre-AI-05 code and returns 503 until it is redeployed. Deployed to production (`c151ee6`), production smoke exit 0 (with `--allow-live-errors`). See BE-05 notes. |
 | 06 | Ingestion pipeline with ffmpeg | NOT STARTED | | |
 | 07 | Hardening and end-to-end | NOT STARTED | | |
 
@@ -35,7 +35,7 @@ The demo key is shared privately, never written here.
 | Recipes and steps (§2) | yes | yes | Supabase mode: signed upload URL + `resumable_endpoint` (`https://trfaijfrgfyrjvhocqif.storage.supabase.co/storage/v1/upload/resumable`); a simple `PUT` to it was run and worked (TUS not tested). `/process` in Supabase mode marks the recipe `failed` until BE-06 downloads the video. Memory mode: upload via `PUT /local-upload` (`resumable_endpoint: null`). `/process` uses fixture images as reference stills (no ffmpeg until BE-06); a changed `timestamp_s` is stored but not re-extracted. Publishing an already-published recipe returns 200 |
 | `/check`, `/watch` (§3) | yes | yes | BE-03 complete: 413/415/422 validation, downscaling, 504 budget, `/watch` one in flight per session → 429. Guard-level 401/413 and framework-level 422s carry `request_id: null` (the body is not parsed yet at that point) |
 | Sessions, events, monitor (§4) | yes | yes | BE-05: `active=true` = unfinished **and** started in the last 3 h. `session_end` is idempotent (a repeat returns the first event id). `steps_passed_first_try` ignores `check_unsure`. The monitor's last frame, result and latency live in process memory and are lost on restart. Session, title and steps are cached for 3 s |
-| `/live-token` (§5) | yes | yes (fake) | Unpublished recipe → `409 recipe_not_ready`. One token per `session_id` every 3 s → `429 quota_exhausted` (retryable); a failed mint does not hold the window. The config is cached per recipe + content hash; the token is never cached. Real token: **blocked on AI-05** (503) |
+| `/live-token` (§5) | yes | yes (fake) | Unpublished recipe → `409 recipe_not_ready`. One token per `session_id` every 3 s → `429 quota_exhausted` (retryable); a failed mint does not hold the window. The config is cached per recipe + content hash; the token is never cached. Real token: works locally with AI-05 (`96e105e`); production not yet redeployed |
 
 ## Last smoke run
 
@@ -243,6 +243,7 @@ Run in this session and seen:
   - The log line `ghostchef.live` carries `recipe_id`, `model`, `locked` and `expires_at` only. The uvicorn log of the local run was checked: it does not contain the token string.
   - Fake mode returns the fake token (`locked: false`, model `fake`).
   - **With real AI** (`GHOSTCHEF_AI_FAKE=0`, local server on `:8001`): `503 model_unavailable`, "mint_live_token is not implemented yet". AI-05 is still NOT STARTED on `main`. So **no real `model` / `locked` value has been observed**, and the BE-05.1 real-AI acceptance is open.
+  - **Re-checked 2026-11-14 after AI-05 (`96e105e`) reached `main`:** in-process `TestClient` on this laptop, `GHOSTCHEF_AI_FAKE=0`, memory store, seeded recipe: `GET /live-token` → **200**, `model: gemini-3.8-live`, `api_version: v1beta`, `locked: true`, 30 min expiry (one real mint; token not logged). BE-05.1 real-AI acceptance met **locally**; production not redeployed yet.
 - **BE-05.2 monitor:**
   - Tests cover the empty session, a step change (including an unknown `to_idx` falling back to step 1), an `ok` watch (in `last_result`, not in `events`), a `warn`, a check, the last 30 events newest first, and the state after a restart.
   - Session, recipe title and steps are cached for 3 s per session. A warm call makes exactly one store query (`list_events`); a test asserts this.
@@ -287,7 +288,7 @@ To finish BE-05 (owner):
 ## Needs from other tracks
 
 - **AI (D-19):** push the sandwich fixture and real reference stills to `ai/fixtures/` (same path). The backend then re-seeds production; tests already follow whatever the fixture contains.
-- **AI (AI-05), still open after BE-05:** the backend handler is ready and only waits on `mint_live_token`. With `GHOSTCHEF_AI_FAKE=0`, `GET /live-token` returns `503 model_unavailable` ("mint_live_token is not implemented yet"). The fake switch is process-wide, so a backend running real check/watch has no working Live token until AI-05 lands. This affects anyone demoing voice against a real-AI backend.
+- ~~**AI (AI-05):** `mint_live_token` missing~~ Resolved: AI-05 is on `main` (`96e105e`) and a real token was minted through the backend locally on 2026-11-14. Remaining backend step: redeploy production and run the smoke without `--allow-live-errors`.
 - **AI (AI-03):** a few labelled dev frames, including at least one mistake, so that `/check` → `fix` with the right `mistake_id` can be shown end to end. BE-03 used two Commons photos without mistakes.
 - **Docs (§9, additive, low priority):** proposal to add an optional `errors: {code: count}` to the `/sessions/{id}/monitor` response (BE-05 can expose the per-session counts BE-03 now collects). The backend owner must agree first.
 - **iOS (IOS-01.2):** emergency mode serves plain `http://<lan-ip>:8000`. The app needs local-network permission and an App Transport Security exception for HTTP to reach it (see README → "Emergency mode").
