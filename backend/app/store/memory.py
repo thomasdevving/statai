@@ -17,10 +17,11 @@ from typing import Any
 from urllib.parse import quote
 
 from app.request_ctx import request_base_url
-from app.store.base import Event, Recipe, Session, SignedUpload, Step, utcnow
+from app.store.base import BlobTooLarge, Event, Recipe, Session, SignedUpload, Step, utcnow
 from app.store.paths import BadPath, check_blob_path, check_prefix
 
 UPLOAD_TTL = timedelta(hours=2)
+_CHUNK = 1024 * 1024
 
 
 class MemoryStore:
@@ -170,6 +171,34 @@ class MemoryStore:
             return target.read_bytes() if target.is_file() else None
 
         return await asyncio.to_thread(_read)
+
+    async def download_to_file(self, bucket: str, path: str, dest: Path, max_bytes: int) -> bool:
+        source = self.blob_file(bucket, path)
+
+        def _copy() -> bool:
+            try:
+                size = source.stat().st_size
+            except (FileNotFoundError, NotADirectoryError):
+                return False
+            if size > max_bytes:
+                raise BlobTooLarge
+            written = 0
+            try:
+                with source.open("rb") as src, dest.open("wb") as out:
+                    while chunk := src.read(_CHUNK):
+                        written += len(chunk)
+                        if written > max_bytes:
+                            raise BlobTooLarge
+                        out.write(chunk)
+            except FileNotFoundError:
+                dest.unlink(missing_ok=True)
+                return False
+            except BaseException:
+                dest.unlink(missing_ok=True)
+                raise
+            return True
+
+        return await asyncio.to_thread(_copy)
 
     async def delete_blob(self, bucket: str, path: str) -> None:
         target = self.blob_file(bucket, path)

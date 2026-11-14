@@ -9,11 +9,16 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, Literal, Protocol, TypedDict
 
 RecipeStatus = Literal["uploading", "processing", "review", "published", "failed"]
 RECIPE_STATUSES: tuple[str, ...] = ("uploading", "processing", "review", "published", "failed")
 BUCKETS: tuple[str, ...] = ("videos", "media", "frames")
+
+
+class BlobTooLarge(Exception):
+    """download_to_file: the object is larger than max_bytes."""
 
 
 def utcnow() -> datetime:
@@ -122,6 +127,12 @@ class Store(Protocol):
     # blobs
     async def put_blob(self, bucket: str, path: str, data: bytes, content_type: str) -> None: ...
     async def get_blob(self, bucket: str, path: str) -> bytes | None: ...
+    async def download_to_file(self, bucket: str, path: str, dest: Path, max_bytes: int) -> bool:
+        """Streams the object into dest in chunks. False when it does not exist; raises
+        BlobTooLarge as soon as more than max_bytes would be written. A partial dest is deleted
+        on any error."""
+        ...
+
     async def delete_blob(self, bucket: str, path: str) -> None: ...
     async def delete_prefix(self, bucket: str, prefix: str) -> None: ...
     async def blob_exists(self, bucket: str, path: str) -> bool: ...

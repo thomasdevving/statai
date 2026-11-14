@@ -436,7 +436,7 @@ def test_summary_through_api(client, auth):
 def test_monitor_404_right_after_recipe_delete(client, auth):
     sid = _session(client, auth)
     _monitor(client, auth, sid)  # cached
-    assert client.delete(f"/recipes/{SEED_RECIPE_ID}", headers=auth).status_code == 204
+    assert client.delete(f"/recipes/{SEED_RECIPE_ID}?force=true", headers=auth).status_code == 204
     assert client.get(f"/sessions/{sid}/monitor", headers=auth).status_code == 404
     assert not any(k.startswith(SEED_RECIPE_ID) for k in live._config_cache)
 

@@ -10,7 +10,7 @@ import pytest
 
 from app.seed import SEED_RECIPE_ID
 
-from .conftest import KEY, requires_ai
+from .conftest import KEY, requires_ai, requires_ffmpeg
 from .helpers import tiny_mp4
 
 
@@ -71,7 +71,8 @@ def test_patch_step_rejects_non_finite_timestamp(client, auth):
 
 
 @requires_ai
-async def test_concurrent_process_starts_one_job(app):
+@requires_ffmpeg
+async def test_concurrent_process_starts_one_job(app, testsrc_bytes):
     from app.jobs import ingest
 
     transport = httpx.ASGITransport(app=app)
@@ -81,7 +82,7 @@ async def test_concurrent_process_starts_one_job(app):
             created = (
                 await c.post("/recipes", headers=h, json={"title": "Sandwich", "consent": True})
             ).json()
-            up = await c.put(created["upload_url"].replace("http://t", ""), content=tiny_mp4())
+            up = await c.put(created["upload_url"].replace("http://t", ""), content=testsrc_bytes)
             assert up.status_code == 200
             rid = created["recipe_id"]
             results = await asyncio.gather(

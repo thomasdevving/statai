@@ -8,6 +8,7 @@ from app import metrics
 from app.deps import get_store
 from app.errors import ApiError
 from app.jobs import ingest
+from app.media import videocache
 from app.routers import live
 from app.routers import sessions as monitor_cache
 from app.schemas import (
@@ -19,6 +20,7 @@ from app.schemas import (
     RecipeListItem,
     RecipePatch,
 )
+from app.seed import SEED_RECIPE_ID
 from app.store.base import RECIPE_STATUSES, Recipe, Store, utcnow
 from app.store.ops import purge_recipe
 from app.views import expire_stale_upload, load_recipe, recipe_detail
@@ -69,7 +71,12 @@ async def process_recipe(recipe_id: str, store: StoreDep) -> ProcessStarted:
             raise ApiError(409, "recipe_not_ready", f"recipe is {recipe.status}, not uploading")
         if not recipe.video_path or not await store.blob_exists("videos", recipe.video_path):
             raise ApiError(409, "upload_missing", "no video at the upload path yet")
-        await store.update_recipe(recipe.id, status="processing", error=None)
+        ingest.reserve(recipe.id)
+        try:
+            await store.update_recipe(recipe.id, status="processing", error=None)
+        except BaseException:
+            ingest.release(recipe.id)
+            raise
         ingest.start(store, recipe.id)
     finally:
         _claimed.discard(recipe.id)
@@ -133,11 +140,20 @@ async def publish_recipe(recipe_id: str, store: StoreDep) -> RecipeDetail:
 
 
 @router.delete("/recipes/{recipe_id}", status_code=204)
-async def delete_recipe(recipe_id: str, store: StoreDep) -> Response:
+async def delete_recipe(
+    recipe_id: str, store: StoreDep, force: Annotated[bool, Query()] = False
+) -> Response:
     recipe = await load_recipe(store, recipe_id)
+    if recipe.id == SEED_RECIPE_ID and not force:
+        raise ApiError(
+            409,
+            "recipe_not_ready",
+            "the demo recipe is protected; add ?force=true to delete it",
+        )
     sessions = await purge_recipe(store, recipe.id) or []
     for s in sessions:
         metrics.drop(s.id)
         monitor_cache.evict(s.id)
+    videocache.evict(recipe.id)
     live.evict_recipe(recipe.id, [s.id for s in sessions])
     return Response(status_code=204)

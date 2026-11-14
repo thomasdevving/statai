@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from app.config import get_settings
 from app.errors import ApiError, not_found
@@ -20,9 +20,10 @@ def parse_uuid(value: str, name: str) -> str:
         raise ApiError(422, "validation_error", f"{name} must be a UUID") from None
 
 
-async def expire_stale_upload(store: Store, recipe: Recipe) -> Recipe:
+async def expire_stale_upload(store: Store, recipe: Recipe, now: datetime | None = None) -> Recipe:
     """API-CONTRACT §2: a recipe left in `uploading` for more than 2 h becomes `failed`."""
-    if recipe.status == "uploading" and utcnow() - recipe.created_at > UPLOAD_NEVER_COMPLETED:
+    now = now or utcnow()
+    if recipe.status == "uploading" and now - recipe.created_at > UPLOAD_NEVER_COMPLETED:
         updated = await store.update_recipe(
             recipe.id, status="failed", error="upload never completed"
         )

@@ -19,10 +19,67 @@
        "application/json": {
         "schema": {
          "additionalProperties": {
-          "type": "string"
+          "anyOf": [
+           {
+            "type": "string"
+           },
+           {
+            "type": "boolean"
+           }
+          ]
          },
          "type": "object",
          "title": "Response Health Health Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/sessions/{session_id}/latest-frame.jpg": {
+   "get": {
+    "tags": [
+     "sessions"
+    ],
+    "summary": "Latest Frame",
+    "operationId": "latest_frame_sessions__session_id__latest_frame_jpg_get",
+    "parameters": [
+     {
+      "name": "session_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "title": "Session Id"
+      }
+     },
+     {
+      "name": "t",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": "",
+       "title": "T"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
         }
        }
       }
@@ -350,6 +407,16 @@
       }
      },
      {
+      "name": "force",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Force"
+      }
+     },
+     {
       "name": "x-demo-key",
       "in": "header",
       "required": false,
@@ -535,7 +602,6 @@
      }
     ],
     "requestBody": {
-     "required": true,
      "content": {
       "multipart/form-data": {
        "schema": {
@@ -594,7 +660,6 @@
      }
     ],
     "requestBody": {
-     "required": true,
      "content": {
       "multipart/form-data": {
        "schema": {
@@ -1025,16 +1090,37 @@
    "Body_check_check_post": {
     "properties": {
      "frame": {
-      "type": "string",
-      "contentMediaType": "application/octet-stream",
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Frame"
      },
      "step_id": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Step Id"
      },
      "request_id": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Request Id"
      },
      "session_id": {
@@ -1061,26 +1147,42 @@
      }
     },
     "type": "object",
-    "required": [
-     "frame",
-     "step_id",
-     "request_id"
-    ],
     "title": "Body_check_check_post"
    },
    "Body_watch_watch_post": {
     "properties": {
      "frame": {
-      "type": "string",
-      "contentMediaType": "application/octet-stream",
+      "anyOf": [
+       {
+        "type": "string",
+        "contentMediaType": "application/octet-stream"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Frame"
      },
      "step_id": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Step Id"
      },
      "request_id": {
-      "type": "string",
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
       "title": "Request Id"
      },
      "session_id": {
@@ -1107,11 +1209,6 @@
      }
     },
     "type": "object",
-    "required": [
-     "frame",
-     "step_id",
-     "request_id"
-    ],
     "title": "Body_watch_watch_post"
    },
    "CheckOut": {

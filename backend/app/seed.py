@@ -25,6 +25,11 @@ def ref_image_path(recipe_id: str, idx: int) -> str:
     return f"{recipe_id}/steps/{idx}/ref.jpg"
 
 
+def clip_path(recipe_id: str, idx: int) -> str:
+    """Path inside the "media" bucket (API-CONTRACT §6)."""
+    return f"{recipe_id}/steps/{idx}/clip.mp4"
+
+
 def step_from_spec(recipe_id: str, spec: dict[str, Any], step_id: str | None = None) -> Step:
     """Build a Step record from a StepSpec dump (model_dump(mode="json"))."""
     kwargs: dict[str, Any] = {

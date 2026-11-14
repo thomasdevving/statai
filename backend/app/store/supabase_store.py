@@ -17,6 +17,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import fields as dc_fields
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, TypeVar
 from urllib.parse import urlparse
 
@@ -27,7 +28,7 @@ from storage3.utils import StorageException
 from supabase import Client, ClientOptions, create_client  # ClientOptions = SyncClientOptions
 
 from app.errors import ApiError
-from app.store.base import Event, Recipe, Session, SignedUpload, Step, utcnow
+from app.store.base import BlobTooLarge, Event, Recipe, Session, SignedUpload, Step, utcnow
 from app.store.paths import check_blob_path, check_prefix
 
 log = logging.getLogger("ghostchef.store.supabase")
@@ -40,6 +41,9 @@ UPLOAD_TTL = timedelta(hours=2)
 _LIST_PAGE = 1000  # Storage list() page size
 _REMOVE_CHUNK = 1000  # Storage remove() accepts up to 1000 paths per call
 _URL_CACHE_MAX = 4096
+_DOWNLOAD_URL_TTL_S = 600
+_DOWNLOAD_CHUNK = 1024 * 1024
+_DOWNLOAD_TIMEOUT = httpx.Timeout(60.0, connect=10.0)  # read timeout is per chunk
 _FK_VIOLATION = "23503"
 _SECRETISH = re.compile(r"(token|signature|apikey|authorization)=[^&\s'\"]+", re.IGNORECASE)
 
@@ -473,6 +477,41 @@ class SupabaseStore:
                 raise
 
         return await self._run("get_blob", q)
+
+    async def download_to_file(self, bucket: str, path: str, dest: Path, max_bytes: int) -> bool:
+        check_blob_path(bucket, path)
+
+        def q() -> bool:
+            try:
+                # Not signed_url(): a cached URL may have little life left for a long download.
+                url = self._bucket(bucket).create_signed_url(path, _DOWNLOAD_URL_TTL_S)["signedURL"]
+            except StorageApiError as exc:
+                if _not_found(exc):
+                    return False
+                raise
+            if not url:
+                raise OSError("empty signed URL")
+            try:
+                with self._http.stream("GET", url, timeout=_DOWNLOAD_TIMEOUT) as resp:
+                    if resp.status_code == 404:
+                        return False
+                    resp.raise_for_status()
+                    declared = resp.headers.get("content-length")
+                    if declared and declared.isdigit() and int(declared) > max_bytes:
+                        raise BlobTooLarge
+                    written = 0
+                    with dest.open("wb") as out:
+                        for chunk in resp.iter_bytes(_DOWNLOAD_CHUNK):
+                            written += len(chunk)
+                            if written > max_bytes:
+                                raise BlobTooLarge
+                            out.write(chunk)
+            except BaseException:
+                dest.unlink(missing_ok=True)
+                raise
+            return True
+
+        return await self._run("download_to_file", q)
 
     async def delete_blob(self, bucket: str, path: str) -> None:
         check_blob_path(bucket, path)

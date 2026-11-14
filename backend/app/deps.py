@@ -36,7 +36,11 @@ def reset_store() -> None:
     global _store
     _store = None
     # In-process caches built from the old store's data.
+    from app.jobs import ingest
+    from app.media import videocache
     from app.routers import live, sessions
 
+    ingest.reset()
+    videocache.clear()
     live.reset()
     sessions.reset()

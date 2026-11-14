@@ -338,7 +338,7 @@ def test_ref_cache_invalidated_by_step_patch_and_recipe_delete(client, auth, mon
 
     post_frame(client, auth, "check", big_jpeg())
     assert len(refcache._cache) == 1
-    assert client.delete(f"/recipes/{SEED_RECIPE_ID}", headers=auth).status_code == 204
+    assert client.delete(f"/recipes/{SEED_RECIPE_ID}?force=true", headers=auth).status_code == 204
     assert len(refcache._cache) == 0
     assert refs[0] is not None and refs[0] == refs[1]
 

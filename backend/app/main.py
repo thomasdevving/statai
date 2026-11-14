@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from collections.abc import AsyncIterator
@@ -18,9 +19,11 @@ from app.errors import install_error_handlers
 from app.guard import GuardMiddleware
 from app.jobs import ingest
 from app.logs import setup_logging
+from app.media import videocache
 from app.request_ctx import request_base_url
 from app.routers import frames, health, latest_frame, live, local, recipes, sessions, steps
 from app.seed import seed_fixture
+from app.store.base import Store
 
 log = logging.getLogger("ghostchef")
 
@@ -46,6 +49,14 @@ def check_deploy_settings() -> None:
             )
 
 
+async def _startup_sweep(store: Store) -> None:
+    """Housekeeping in the background: a slow Storage/DB must never delay boot."""
+    try:
+        await ingest.startup_sweep(store)
+    except Exception:  # noqa: BLE001
+        log.exception("startup sweep failed")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     check_deploy_settings()
@@ -53,8 +64,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     store = get_store()
     if settings.storage == "memory":
         await seed_fixture(store)
+    sweep = asyncio.create_task(_startup_sweep(store), name="startup-sweep")
     yield
+    sweep.cancel()
+    await asyncio.gather(sweep, return_exceptions=True)
     await ingest.cancel_all()
+    videocache.clear()
 
 
 def create_app() -> FastAPI:

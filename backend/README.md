@@ -59,12 +59,21 @@ backend/
       supabase_store.py   SupabaseStore                               (BE-02)
     media/
       images.py      JPEG validation and downscaling                   (BE-03)
-      ffmpeg.py      probe, still, clip                                (BE-06)
-    jobs/ingest.py   background ingestion job                          (BE-06)
+      ffmpeg.py      probe, still, clip (asyncio subprocess)           (BE-06)
+      videocache.py  10-minute local copy of a source video for re-picks (BE-06)
+    jobs/ingest.py   ingestion job: download, probe, Gemini, stills, clips (BE-06)
   migrations/001_init.sql                                              (BE-02)
   scripts/seed.py  scripts/smoke.py
   tests/
 ```
+
+### Ingestion (BE-06)
+
+`POST /recipes/{id}/process` starts one background job (one at a time; the others wait as `processing`): download `videos/<id>/source.mp4` in chunks (`video larger than <N> MB` past `MAX_VIDEO_MB`), `ffprobe` it (`not a readable MP4`), call `extract_recipe`, clamp timestamps and clip windows into the video's duration, then ffmpeg cuts a 1280-px JPEG still (`media/<id>/steps/<idx>/ref.jpg`) and an optional 720-px clip of at most 6 s (`clip.mp4`) per step. Stills and clips are never upscaled. A failed still leaves the step without a reference image (publish answers `409` until the chef re-picks the frame); a failed clip is skipped. On startup, `processing` recipes older than 15 minutes become `failed` and `uploading` ones older than 2 hours become `failed` (also checked on every `GET /recipes`).
+
+`PATCH /steps/{id}` with a changed `timestamp_s` re-extracts the still from the source video (cached on local disk for 10 minutes, at most 2 videos), allowed in `review` and `published`. A recipe with no source video (the seeded demo) just stores the value. `timestamp_s` beyond the video's end is `422`. `DELETE /recipes/{id}` on the seeded demo recipe is `409` unless `?force=true`.
+
+`/health` gains `"ffmpeg": true|false`. Tests that need ffmpeg generate a `testsrc` video and are skipped when it is not installed.
 
 ## Configuration
 
@@ -80,7 +89,7 @@ Every variable is read in `app/config.py` and listed in `.env.example`.
 | `GEMINI_API_KEY` | — | Required when fake is off (read by `ghostchef_ai`) |
 | `CHECK_BUDGET_S` / `WATCH_BUDGET_S` | `8` / `3.5` | Model time budgets from the contract |
 | `SIGNED_URL_TTL_S` | `7200` | Signed URL lifetime |
-| `MAX_VIDEO_MB` | `500` | Video size limit, enforced by the ingestion job (and the memory-mode upload route); the `videos` bucket carries the same limit |
+| `MAX_VIDEO_MB` | `500` | Video size limit, enforced by the ingestion job while it downloads the video in chunks (and by the memory-mode upload route); the `videos` bucket carries the same limit |
 | `CORS_ORIGINS` | `*` | Comma-separated origins; restrict in production |
 | `WEB_DIR` | `../web` | Static web app, mounted at `/app/` when the directory exists |
 | `PUBLIC_BASE_URL` | derived from the request | Used to build local file URLs in memory mode |

@@ -7,7 +7,7 @@ import pytest
 
 from app.seed import SEED_RECIPE_ID
 
-from .conftest import requires_ai
+from .conftest import requires_ai, requires_ffmpeg
 from .helpers import tiny_mp4
 
 pytestmark = requires_ai
@@ -151,7 +151,8 @@ def test_create_recipe_missing_consent(client, auth):
     assert r.status_code == 422
 
 
-def test_upload_process_review_publish_flow(client, auth):
+@requires_ffmpeg
+def test_upload_process_review_publish_flow(client, auth, testsrc_bytes):
     created = _create(client, auth).json()
     rid = created["recipe_id"]
 
@@ -163,7 +164,7 @@ def test_upload_process_review_publish_flow(client, auth):
     assert client.put(bad, content=tiny_mp4()).status_code == 403
 
     up = client.put(
-        created["upload_url"], content=tiny_mp4(), headers={"Content-Type": "video/mp4"}
+        created["upload_url"], content=testsrc_bytes, headers={"Content-Type": "video/mp4"}
     )
     assert up.status_code == 200
 
@@ -298,13 +299,13 @@ def test_delete_recipe_cascades(client, auth):
     frame_url = monitor["last_frame_url"]
     assert client.get(frame_url).status_code == 200
 
-    r = client.delete(f"/recipes/{SEED_RECIPE_ID}", headers=auth)
+    r = client.delete(f"/recipes/{SEED_RECIPE_ID}?force=true", headers=auth)
     assert r.status_code == 204
     assert client.get(f"/recipes/{SEED_RECIPE_ID}", headers=auth).status_code == 404
     assert client.get(f"/sessions/{sess['session_id']}", headers=auth).status_code == 404
     assert client.get(img_url).status_code == 404
     assert client.get(frame_url).status_code == 404
-    assert client.delete(f"/recipes/{SEED_RECIPE_ID}", headers=auth).status_code == 404
+    assert client.delete(f"/recipes/{SEED_RECIPE_ID}?force=true", headers=auth).status_code == 404
 
 
 def test_stale_upload_becomes_failed(client, auth):
