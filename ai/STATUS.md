@@ -7,8 +7,8 @@
 | # | Batch | Status | Date / commit | Notes |
 |---|---|---|---|---|
 | 01 | Package skeleton, fake mode, fixture | DONE (fake) | 2026-11-14 · `273fadb` | Fake mode only: no Gemini call exists yet. 38 tests pass, ruff clean, all verification commands run (Windows, Python 3.13). Fixture recipe and the six reference images are **placeholders**, not chef footage. Model IDs in `config.py` are unverified placeholders until AI-02. |
-| 02 | Gemini access and model selection | PARTIAL | 2026-11-14 · `e21276f` + not yet committed | **Gemini key working.** Done: client wrapper with minimal-thinking handling; model listing; image, two-image, video, Live audio, Live function call and locked ephemeral token all **PASS** on at least one model (details below); Gemini models pinned; local provider switched to Gemini. **Still open (human, AI Studio):** 02.5 rate limits and the account's data-use setting. `check` is pinned provisionally to the lite model; AI-04 decides with real frames. The OpenAI stand-in is no longer used. |
-| 03 | Chef footage and evaluation set | PARTIAL | 2026-11-14 · not yet committed | **Tooling done, physical work not started.** Done: `scripts/extract_frames.py` (03.3), `scripts/check_cases.py` (validates `eval/cases.csv`, prints split × label counts, `--scaffold` adds unlabelled rows), `scripts/side_by_side.py` (for 03.6), `eval/` layout, empty `eval/cases.csv`, `eval/README.md` template; 18 new tests; 74 pass. ffmpeg 9.0.2 installed on the owner's laptop (winget `Gyan.FFmpeg`); extraction verified on a generated 6 s test video (frame names, 720×1280 size, `--at`), **not yet on real footage**. **Not done (human):** 03.1 chef take, 03.2 mistake clips, 03.4 labelling, 03.5 real stills + fixture v1, 03.6 the "can a person tell?" check. |
+| 02 | Gemini access and model selection | DONE | 2026-11-14 · `19091c3` + not yet committed | On the **event key** (project "Hack Junction 2026-7638", Tier 3, paid): image, two-image, video, Live audio, Live function call and fully locked ephemeral token all **PASS**; limits read in AI Studio; models pinned. Earlier tests ran on a different key (see account facts). `check` stays provisionally on the lite model; AI-04 decides with real frames. The account's data-use wording was not found on the pages read. The OpenAI stand-in is no longer used. |
+| 03 | Chef footage and evaluation set | PARTIAL | 2026-11-14 · `3491963` | **Tooling done, physical work not started.** Done: `scripts/extract_frames.py` (03.3), `scripts/check_cases.py` (validates `eval/cases.csv`, prints split × label counts, `--scaffold` adds unlabelled rows), `scripts/side_by_side.py` (for 03.6), `eval/` layout, empty `eval/cases.csv`, `eval/README.md` template; 18 new tests; 74 pass. ffmpeg 9.0.2 installed on the owner's laptop (winget `Gyan.FFmpeg`); extraction verified on a generated 6 s test video (frame names, 720×1280 size, `--at`), **not yet on real footage**. **Not done (human):** 03.1 chef take, 03.2 mistake clips, 03.4 labelling, 03.5 real stills + fixture v1, 03.6 the "can a person tell?" check. |
 | 04 | Check and watch | NOT STARTED | | |
 | 05 | Live voice config and token | NOT STARTED | | |
 | 06 | Recipe extraction from video | NOT STARTED | | |
@@ -20,16 +20,19 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 
 | Fact | Value | How verified |
 |---|---|---|
-| Key source (event credits / own project) | Key received 2026-11-14 after the team's request to the organisers; in the owner's untracked `ai/.env` | Key accepted by `models.list` |
-| Project tier | — not read | Owner to check in AI Studio |
-| Data-use / retention setting of this account | — not read | Owner to check in AI Studio |
+| Key source (event credits / own project) | Event key "Workshop API key" (`…SarI`), project "Hack Junction 2026-7638" (`junction26hel-7638`), now in the owner's untracked `ai/.env`. The first round of tests on 2026-11-14 ran on a different key from an unknown project; everything in the "event key re-check" table below ran on the event key | AI Studio API keys page; last-4 check done locally, key never printed |
+| Project tier | **Tier 3**, key marked **paid**, billing account `…7F15` | AI Studio API keys page |
+| Data-use / retention setting of this account | Not stated on the pages read. AI Studio labels the event key "paid"; check the terms for paid use before quoting any policy | AI Studio API keys page |
 | Model for `video` (extract_recipe) | `gemini-3.5-flash` | Video test PASS (below) |
 | Model for `check` | `gemini-3.5-flash-lite` (**provisional**) | Image tests PASS; revisit `gemini-3.8-flash` in AI-04 when not overloaded |
 | Model for `watch` | `gemini-3.5-flash-lite` | Image tests PASS, ~0.9 s |
 | Model for `live` | `gemini-3.8-live` | Live audio + function call + locked token PASS |
-| Rate limits for the watch model (RPM / TPM / RPD) | — not read | Owner to check in AI Studio |
-| Rate limits for the check model | — not read | |
-| Rate limits for the Live model (concurrent sessions) | — not read | |
+| Rate limits for the watch model (RPM / TPM / RPD) | Event project, Gemini 3.5 Flash Lite: 30K / 30M / unlimited | AI Studio rate-limit page, 2026-11-14 |
+| Rate limits for the check model | Same model as watch (30K / 30M / unlimited); Gemini 3.8 Flash 20K / 20M / unlimited if AI-04 switches | |
+| Rate limits for the video model | Gemini 3.5 Flash: **not listed** on the page; the page shows 3 Flash, 3.6 Flash, 3.8 Flash (each 20K / 20M / unlimited) | |
+| Rate limits for the Live model | Gemini 3.8 Live: RPM unlimited, TPM 10M, RPD unlimited (no concurrent-session figure shown) | |
+
+All the limits above are for the **event project**. The page showed 0 usage on every model over 28 days, which fits our tests having run on the other key. The watcher's ~24 requests a minute per session is far below 30K RPM.
 
 `models.list` on 2026-11-14 showed 28 models, including `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`, `gemini-3.8-flash`, `gemini-4-argon`, `gemini-4-carbon`, `gemini-4-hydrogen`. **No Live model appears in the list**, but `gemini-3.8-live` and `gemini-3.1-flash-live-preview` both connect.
 
@@ -56,6 +59,16 @@ Image tests used the placeholder `step-3.jpg` at low media resolution: "correct"
 | Ephemeral token, model + modalities + **system instruction + tools locked** | `gemini-3.8-live` | PASS: minted (`auth_tokens/…`), a session opened with only the token (API version `v1beta`), audio returned, first audio 407 ms |
 
 Total paid generate calls: 70 image calls across both runs plus 5 video calls and a few Live turns; token counts are in the script output, cost not measured.
+
+### Event key re-check, 2026-11-14 (the key now in use)
+
+| Test | Model | Result |
+|---|---|---|
+| image + JSON, 5 repeats | `gemini-3.5-flash-lite` | 5/5, p50 827 ms, max 2356 ms; two images 2/2; 512 px frame 633 ms |
+| image + JSON, 5 repeats | `gemini-3.8-flash` | 2/5: reachable (no 503s now), p50 2361 ms, but thinking level LOW still overruns a 60-token answer; needs a larger output limit if AI-04 tries it for `check` |
+| Video with timestamps | `gemini-3.5-flash` | PASS: 0 s and 10 s, correct; upload 4.9 s, generate 2.1 s |
+| Live text → audio + function call | `gemini-3.8-live` | PASS: first audio 446 ms, `audio/pcm;rate=24000`, `ping` tool call |
+| Ephemeral token, fully locked | `gemini-3.8-live` | PASS: first audio 515 ms |
 
 ### Findings that change how we call Gemini
 
