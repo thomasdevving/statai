@@ -116,7 +116,6 @@ async def _handle(
         request.state.request_id = rid
         ctx["request_id"] = rid
         sid = parse_uuid(session_id, "session_id") if session_id else None
-        request.state.session_id = sid
         ctx["session_id"] = sid
         step_uuid = parse_uuid(_required(step_id, "step_id"), "step_id")
 
@@ -126,15 +125,18 @@ async def _handle(
             _watch_inflight.add(sid)
             claimed = sid
 
+        step = await load_step(store, step_uuid)
+        ctx["step_idx"] = step.idx
+        session = await load_session(store, sid) if sid else None
+        if session is not None:
+            metrics.for_session(session.id)  # a real session: errors are now counted for it
+            request.state.session_id = session.id
+
         raw = await _read_frame(frame)
         if endpoint == "check":
             data = await images.prepare_check_frame(raw)
         else:
             data = await images.prepare_watch_frame(raw)
-
-        step = await load_step(store, step_uuid)
-        ctx["step_idx"] = step.idx
-        session = await load_session(store, sid) if sid else None
         if session is not None:
             metrics.set_latest_frame(session.id, data, utcnow(), endpoint)
 

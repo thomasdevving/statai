@@ -118,6 +118,28 @@ def test_huge_canvas_rejected():
     assert getattr(exc.value, "status", None) == 413
 
 
+def test_metadata_or_trailing_bytes_force_reencode():
+    plain = jpeg(320, 240)
+    assert images.downscale_jpeg_sync(plain, 512) is plain
+    out = images.downscale_jpeg_sync(plain + b"hidden trailer", 512)
+    assert out != plain + b"hidden trailer" and out.endswith(b"\xff\xd9")
+    buf = io.BytesIO()
+    Image.new("RGB", (320, 240)).save(buf, "JPEG", comment=b"gps 60.1,24.9")
+    commented = buf.getvalue()
+    out = images.downscale_jpeg_sync(commented, 512)
+    assert b"gps" not in out
+
+
+def test_unknown_session_ids_do_not_grow_metrics(client, auth):
+    import uuid
+
+    for _ in range(5):
+        r = post_frame(client, auth, "check", png(), session_id=str(uuid.uuid4()))
+        assert r.status_code == 404
+    assert metrics._sessions == {}
+    assert metrics.errors_total["not_found"] == 5
+
+
 def test_downscale_untouched_when_within_limit():
     data = jpeg(1280, 720)
     assert images.downscale_jpeg_sync(data, 1280) is data

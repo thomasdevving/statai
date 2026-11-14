@@ -66,9 +66,12 @@ def record(
 
 
 def record_error(session_id: str | None, code: str) -> None:
+    """Per-session counts only for sessions already tracked: a client-supplied id never creates
+    an entry (no unbounded growth from made-up session ids)."""
     errors_total[code] += 1
-    if session_id:
-        for_session(session_id).errors[code] += 1
+    m = _sessions.get(session_id) if session_id else None
+    if m is not None:
+        m.errors[code] += 1
 
 
 def latency(session_id: str) -> dict[str, int | None]:

@@ -123,7 +123,7 @@ Not verified / known limits:
 ## BE-03 notes (2026-11-14)
 
 Run in this session and seen:
-- **Verification:** `ruff check .` is clean. `pytest -q` gives 106 passed, 3 skipped (fake AI, memory store, no network). 35 of the passing tests are new, in `tests/test_be03_check_watch.py`.
+- **Verification:** `ruff check .` is clean. `pytest -q` gives 108 passed, 3 skipped (fake AI, memory store, no network). 37 of the passing tests are new, in `tests/test_be03_check_watch.py`.
 - **Real Gemini (BE-03.1):** `GHOSTCHEF_AI_FAKE=0`, `GET /health` → `ai_mode: gemini`. Models reported: `gemini-3.5-flash-lite` for both check and watch. The server ran on `127.0.0.1:8000` with the memory store. `.env` still says `GHOSTCHEF_AI_FAKE=1`; the real runs set the variable on the command line.
 - **Frames used.** The AI owner has no dev frames: AI-03 is not filmed, and AI-04's private stock clip is not on this laptop. Two real photos from Wikimedia Commons were used instead. They are kept outside the repo and never committed.
   - **A:** "Roll sushi making.jpg", CC BY-SA 2.0. Hands rolling a maki with a bamboo mat, side view.
@@ -152,7 +152,7 @@ Design:
 - **`app/media/images.py`:**
   - Each frame is opened and decoded once, in a thread.
   - Limits: check 1.5 MB / 1280 px; watch 1.5 MB hard, 200 KB soft (over the soft limit: downscaled with a warning) / 512 px; 16 MP pixel cap → 413. Not a JPEG or not decodable → 415. MPO (camera JPEG with depth data) is accepted.
-  - Frames are re-encoded at quality 80 when the upright image is over the long edge, or when the frame carries **any EXIF**. Re-encoding bakes in the orientation and drops location data. Other frames are passed through untouched.
+  - Frames are re-encoded at quality 80 when the upright image is over the long edge, or when the frame carries **any EXIF**. Re-encoding bakes in the orientation and drops all metadata (EXIF, XMP, comments, ICC). Only a plain single-frame JPEG with no metadata and nothing after its end marker is passed through untouched.
   - The guard's frame body cap dropped from 8 MB to 2 MB.
 - **`app/refcache.py`:**
   - LRU of 64 entries keyed by `(step_id, ref_image_path)`, with a 5 min TTL. The TTL covers `scripts/seed.py --replace` run from another process.
@@ -166,7 +166,7 @@ Design:
   - Decision: the latest frame is updated as soon as the frame is validated, so the monitor also shows frames whose AI call failed.
   - Every check frame and warn-only watch frames go to the `frames` bucket, with the event recorded in a background task after the response. If storage fails, the event is kept without `frame_path`.
   - No event, stored frame or monitor result when the AI call fails or the client has disconnected.
-- **Metrics:** ring buffers of 500 latencies per session; error counts by code per session and process-wide (`metrics.errors_total`).
+- **Metrics:** ring buffers of 500 latencies per session; error counts by code process-wide (`metrics.errors_total`) and per session, but only for sessions that exist (a made-up `session_id` never creates an entry).
 - **Logs (`app/logs.py`):**
   - The `ghostchef` loggers write JSON lines.
   - `ghostchef.calls` writes one line per call: endpoint, session_id, step_idx, request_id, verdict/status, mistake_id, confidence, latency_ms, model, http_status, error code.

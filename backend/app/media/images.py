@@ -59,12 +59,27 @@ def _check_size(data: bytes, max_bytes: int) -> None:
         raise ApiError(413, "payload_too_large", f"frame is larger than {max_bytes / MB:.1f} MB")
 
 
+_METADATA_KEYS = ("exif", "xmp", "comment", "photoshop", "adobe", "mp")
+
+
+def _is_clean(data: bytes, img: Image.Image, exif: Image.Exif | None) -> bool:
+    """True for a plain single-frame JPEG with no metadata and nothing after the end marker:
+    only then may the original bytes be passed on and stored unchanged."""
+    return (
+        img.format == "JPEG"
+        and getattr(img, "n_frames", 1) == 1
+        and not exif
+        and not any(k in img.info for k in _METADATA_KEYS)
+        and data.endswith(b"\xff\xd9")
+    )
+
+
 def _prepare_sync(data: bytes, max_bytes: int, long_edge: int, force: bool) -> bytes:
     """Validates (size, JPEG, fully decodable) and returns the bytes to send to the model.
 
-    The original bytes come back untouched when the upright image fits `long_edge`, carries no
-    EXIF and `force` is off. Otherwise the frame is re-encoded at `long_edge` (quality 80) with
-    EXIF orientation applied first and all EXIF (including location) dropped.
+    The original bytes come back untouched when the upright image fits `long_edge`, is a plain
+    JPEG with no metadata (`_is_clean`) and `force` is off. Otherwise the frame is re-encoded
+    at `long_edge` (quality 80) with EXIF orientation applied first and all metadata dropped.
     """
     _check_size(data, max_bytes)
     img = _open_jpeg(data)
@@ -75,7 +90,7 @@ def _prepare_sync(data: bytes, max_bytes: int, long_edge: int, force: bool) -> b
     w, h = img.size
     if exif and exif.get(_ORIENTATION) in _SWAPS_AXES:
         w, h = h, w
-    if max(w, h) <= long_edge and not exif and not force:
+    if max(w, h) <= long_edge and not force and _is_clean(data, img, exif):
         try:
             img.load()  # decode fully: catches truncated or corrupt data
         except (OSError, ValueError, SyntaxError, Image.DecompressionBombError):
@@ -92,6 +107,8 @@ def _prepare_sync(data: bytes, max_bytes: int, long_edge: int, force: bool) -> b
         upright.thumbnail((long_edge, long_edge), Image.Resampling.LANCZOS)
     if upright.mode != "RGB":
         upright = upright.convert("RGB")
+    # Pillow re-writes comment / XMP / ICC from .info on save: start from nothing.
+    upright.info = {}
     out = io.BytesIO()
     upright.save(out, "JPEG", quality=JPEG_QUALITY, optimize=True)  # no EXIF written
     return out.getvalue()
