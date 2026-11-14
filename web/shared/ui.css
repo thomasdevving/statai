@@ -1,5 +1,4 @@
-/* Echo — shared page styling for the web tools (simulator, review, monitor).
-   Palette pinned by the team: sky, blue, mist, ink + amber/green status. */
+/* Echo — atmospheric blue gradients and translucent glass surfaces. */
 
 :root {
   --echo-sky: #0082fb;
@@ -14,13 +13,13 @@
   --echo-red: #d13438;        /* fake mode, errors */
 
   /* Surfaces, tinted from ink rather than neutral grey */
-  --bg: var(--echo-ink);
-  --surface: #23353f;
-  --surface-2: #2b404b;
-  --line: #3a525e;
-  --text: var(--echo-mist);
-  --text-dim: #b4c4ce;        /* 7.3:1 on --bg */
-  --text-faint: #8fa4b0;      /* 4.9:1 on --bg */
+  --bg: #06162c;
+  --surface: rgba(180, 213, 255, 0.07);
+  --surface-2: rgba(190, 222, 255, 0.12);
+  --line: rgba(205, 229, 255, 0.20);
+  --text: #ffffff;
+  --text-dim: #ccdaef;
+  --text-faint: #adc4df;
 
   --radius-lg: 28px;
   --radius: 18px;
@@ -36,7 +35,7 @@
   --space-7: 48px;
   --space-8: 72px;
 
-  --font: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -60,7 +59,13 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 90% 96%, rgba(15, 113, 153, 0.54), transparent 52%),
+    radial-gradient(ellipse at 58% 40%, rgba(13, 76, 158, 0.53), transparent 60%),
+    radial-gradient(ellipse at 25% 2%, rgba(16, 52, 118, 0.36), transparent 52%),
+    linear-gradient(125deg, #040f1d 3%, #071d3e 57%, #052538 100%);
+  background-attachment: fixed;
   color: var(--text);
   font-family: var(--font);
   font-size: 17px;
@@ -140,16 +145,18 @@ img {
   align-items: center;
   gap: var(--space-3);
   text-decoration: none;
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.05em;
 }
 
 .brand-mark {
-  width: 10px;
-  height: 30px;
-  border-radius: 5px;
-  background: var(--echo-sky);
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: 5px solid #d7efff;
+  border-right-color: #55aaff;
+  box-shadow: 0 0 18px #55aaff30;
 }
 
 .brand-page {
@@ -317,9 +324,11 @@ kbd {
 .settings-dialog {
   width: min(520px, calc(100vw - 32px));
   padding: 0;
-  border: 0;
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: rgba(12, 35, 67, 0.92);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
   color: var(--text);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
@@ -374,7 +383,8 @@ kbd {
 .status-strip[data-state="fake"],
 .status-strip[data-state="down"],
 .status-strip[data-state="unauthorized"] {
-  background: var(--echo-red);
+  background: rgba(102, 29, 51, 0.78);
+  border-top-color: rgba(255, 129, 149, 0.45);
 }
 
 .status-strip[data-state="checking"] {
@@ -427,4 +437,23 @@ kbd {
   .topnav a {
     padding: var(--space-2);
   }
+}
+
+/* Shared glass chrome, also used by the simulator. */
+.brand-period { margin-left: -10px; color: #8dcaff; }
+.topnav a { display: inline-flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 500; }
+.topnav a .icon { width: 15px; height: 15px; }
+.topnav .btn-icon { width: 40px; min-height: 40px; }
+.btn { border: 1px solid transparent; }
+.btn:not(.btn-light):not(.btn-primary):not(.btn-ghost) { border-color: var(--line); }
+.btn-primary { background: linear-gradient(135deg, #238bff, #0662d9); box-shadow: 0 4px 24px #007bff25; }
+.btn-light { background: #f4f8ff; box-shadow: 0 4px 25px #7cc4ff16; }
+.btn-light:hover { box-shadow: 0 4px 28px #7cc4ff40; }
+.input { background: #071a32; border-width: 1px; }
+.status-strip { border-top: 1px solid var(--line); background: #0c385b99; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 11px; gap: 8px 20px; padding-block: 10px; }
+.status-strip .status-flag { font-weight: 600; letter-spacing: .05em; }
+.status-strip .status-action { border-width: 1px; min-height: 30px; font-size: 11px; }
+@media (prefers-reduced-transparency: reduce) {
+  .tool, .panel { background: #102c4b; }
+  .settings-dialog { background: #0c2343; }
 }

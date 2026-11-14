@@ -43,7 +43,9 @@ The comparison is like with like: the chef's reference and the learner's frame a
 ## Brand Commitments
 
 - Working name **Echo** (see Open above).
-- The user pinned the palette: `#0082FB`, `#0064E0`, `#F1F5F8`, `#1C2B33`, plus amber and green status colours for fix and pass. Typeface in the existing Monitor C mockup is Figtree.
+- Visual direction updated by the user on 2026-11-14: blue titanium metallic material for the hero only; the rest of the page retains its navy/cobalt/cyan background, translucent glass cards and white Manrope typography. Amber and green remain lens status colours.
+- Hero copy: “Cook from the chef’s point of view,” describing step-by-step, hands-free cooking guidance.
+- Hero product: a transparent cutout edited from the user-supplied floating Meta Display glasses photo, flipped horizontally toward the headline. The readable Ray-Ban lens mark is placed back on the viewer-left lens. The original crossed open temples are preserved. The band is removed and the glasses are centered; cool blue-silver frame reflections match the hero lighting. The glowing illustrative recipe card sits inside the receding lens, tilted and foreshortened to match the product. The product image uses normal rendering without blend effects.
 - Our own mark only. Meta's logo and name are not used as our branding.
 
 ## Evidence on Hand

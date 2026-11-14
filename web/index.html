@@ -3,137 +3,79 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Echo · web tools</title>
+<meta name="description" content="Follow the chef’s point of view with Echo: step-by-step cooking guidance through smart glasses.">
+<meta name="theme-color" content="#06162c">
+<title>Echo · Cook from the chef’s point of view</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="shared/ui.css">
-<style>
-  .home {
-    width: min(1120px, 100%);
-    margin: 0 auto;
-    padding: clamp(24px, 6vw, 72px) clamp(16px, 4vw, 56px) var(--space-8);
-    display: grid;
-    gap: clamp(32px, 5vw, 56px);
-  }
-  .home h1 {
-    font-size: clamp(44px, 7vw, 84px);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 0.98;
-    max-width: 14ch;
-  }
-  .home h1 span { color: var(--echo-sky-text); }
-  .home .lede {
-    max-width: 58ch;
-    color: var(--text-dim);
-    font-size: 19px;
-  }
-  .tools {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: var(--space-3);
-  }
-  .tool {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: var(--space-5);
-    min-height: 112px;
-    padding: var(--space-5) var(--space-6);
-    border-radius: var(--radius-lg);
-    background: var(--surface);
-    color: var(--text);
-    text-decoration: none;
-    transition: background-color 180ms var(--ease-out), transform 180ms var(--ease-out);
-  }
-  a.tool:hover { background: var(--surface-2); }
-  a.tool:hover .tool-go { transform: translateX(4px); background: var(--echo-blue); color: #fff; }
-  .tool-swatch {
-    width: 14px;
-    align-self: stretch;
-    border-radius: 7px;
-  }
-  .tool h2 { font-size: clamp(26px, 3vw, 34px); font-weight: 800; letter-spacing: -0.015em; }
-  .tool p { color: var(--text-dim); margin-top: var(--space-1); max-width: 60ch; }
-  .tool-go {
-    display: grid;
-    place-items: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    transition: transform 180ms var(--ease-out), background-color 180ms var(--ease-out);
-  }
-  .tool[aria-disabled="true"] { opacity: 0.62; }
-  .tool-later {
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--pill);
-    border: 2px solid var(--line);
-    color: var(--text-dim);
-    font-size: 14px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-  @media (max-width: 640px) {
-    .tool { grid-template-columns: auto 1fr; padding: var(--space-5); }
-    .tool-go, .tool-later { grid-column: 2; justify-self: start; }
-  }
-</style>
+<link rel="stylesheet" href="home.css">
 </head>
-<body>
+<body class="home-page">
 <header class="topbar">
-  <a class="brand" href="./"><span class="brand-mark"></span>Echo</a>
-  <button class="btn btn-icon btn-ghost" type="button" data-open-settings aria-label="Settings"></button>
+  <a class="brand" href="./" aria-label="Echo home"><span class="brand-mark" aria-hidden="true"></span>echo<span class="brand-period">.</span></a>
+  <nav class="topnav" aria-label="Main">
+    <a href="#tools">Explore the tools</a>
+    <a href="sim/">Simulator <span data-icon="arrowRight"></span></a>
+    <button class="btn btn-icon btn-ghost" type="button" data-open-settings aria-label="Settings"></button>
+  </nav>
 </header>
-
 <main class="home">
-  <div>
-    <h1>The glasses see the board. <span>So can everyone else.</span></h1>
-    <p class="lede" style="margin-top: var(--space-5)">Web tools for Echo: run the cook-along loop without the glasses, review what the chef recorded, and show the room what the wearer sees.</p>
-  </div>
-
-  <ul class="tools">
-    <li>
-      <a class="tool" href="sim/">
-        <span class="tool-swatch" style="background: var(--echo-sky)"></span>
-        <div>
-          <h2>Simulator</h2>
-          <p>The full cook-along loop from a laptop webcam or uploaded photos: step cards, checks, the proactive watcher, spoken results.</p>
-        </div>
-        <span class="tool-go" data-icon="arrowRight"></span>
-      </a>
-    </li>
-    <li>
-      <div class="tool" aria-disabled="true">
-        <span class="tool-swatch" style="background: var(--echo-mist)"></span>
-        <div>
-          <h2>Review</h2>
-          <p>Review, edit and publish a recipe the iOS app recorded in Chef mode.</p>
-        </div>
-        <span class="tool-later">Not built yet · WEB-02</span>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="eyebrow-orbit" aria-hidden="true"></span>HANDS-FREE COOKING WITH ECHO</p>
+      <h1 id="hero-title">Cook from<br>the chef’s<br><span>point of view.</span></h1>
+      <p class="lede">Follow the chef’s method through smart glasses, with step-by-step guidance and hands-free help as you cook.</p>
+      <div class="hero-actions">
+        <a class="btn btn-light hero-cta" href="sim/">Open simulator <span data-icon="arrowRight"></span></a>
+        <a class="text-link" href="#tools">Explore the tools <span aria-hidden="true">↓</span></a>
       </div>
-    </li>
-    <li>
-      <div class="tool" aria-disabled="true">
-        <span class="tool-swatch" style="background: var(--echo-blue)"></span>
-        <div>
-          <h2>Monitor</h2>
-          <p>A live view of a running session, readable from across the table.</p>
+      <p class="hero-note"><span data-icon="camera"></span>No glasses? Start with your webcam or a photo.</p>
+    </div>
+    <figure class="hero-visual" aria-label="Centered floating black smart glasses angled toward the headline, with a recipe preview aligned to the lens">
+      <div class="product-stage">
+        <img class="hero-glasses" src="assets/smart-glasses.png" width="1736" height="906" alt="The supplied floating glasses photo cut out and flipped toward the headline, with cool blue-silver reflections and a readable Ray-Ban mark on the left lens" fetchpriority="high">
+        <div class="recipe-preview" aria-label="Example instruction: step 3, spread the rice in a thin, even layer">
+          <img src="assets/rice-step.webp" width="64" height="76" alt="Sushi rice spread over nori on a bamboo mat">
+          <div><span class="recipe-kicker">STEP 03 · MAKI ROLL</span><strong>Spread the rice</strong><p>A thin, even layer.<br>Leave a little room to roll.</p></div>
         </div>
-        <span class="tool-later">Not built yet · WEB-03</span>
       </div>
-    </li>
-  </ul>
+      <figcaption><span class="caption-line" aria-hidden="true"></span>The next step. Right in your lens.<span class="preview-label">ILLUSTRATIVE PREVIEW</span></figcaption>
+    </figure>
+  </section>
+  <section class="tool-section" id="tools" aria-labelledby="tools-title">
+    <div class="section-heading">
+      <div><p class="eyebrow">BEYOND THE LENS</p><h2 id="tools-title">One kitchen. Every perspective.</h2></div>
+      <p>For the cook, the chef,<br>and everyone following along.</p>
+    </div>
+    <ul class="tools">
+      <li><a class="tool tool-available" href="sim/">
+        <div class="tool-top"><span class="tool-icon" data-icon="camera"></span><span class="tool-badge"><span aria-hidden="true"></span>Ready to explore</span></div>
+        <div class="tool-copy"><h3>Simulator</h3><p>A kitchen, wherever you are. Try the cook-along with your webcam or a photo, one step at a time.</p></div>
+        <div class="tool-bottom"><span>Try the experience</span><span class="tool-go" data-icon="arrowRight"></span></div>
+      </a></li>
+      <li><div class="tool" aria-disabled="true">
+        <div class="tool-top"><span class="tool-icon" data-icon="upload"></span><span class="tool-badge tool-badge-later">Coming soon</span></div>
+        <div class="tool-copy"><h3>Review</h3><p>Your recipe, your finishing touches. Review and refine what you recorded before sharing it.</p></div>
+        <div class="tool-bottom"><span>Made for the chef</span><span class="tool-number">02</span></div>
+      </div></li>
+      <li><div class="tool" aria-disabled="true">
+        <div class="tool-top"><span class="tool-icon" data-icon="eye"></span><span class="tool-badge tool-badge-later">Coming soon</span></div>
+        <div class="tool-copy"><h3>Monitor</h3><p>A seat at the table for everyone. Follow the cook’s point of view, from the first step to the last.</p></div>
+        <div class="tool-bottom"><span>See the bigger picture</span><span class="tool-number">03</span></div>
+      </div></li>
+    </ul>
+  </section>
+  <div class="home-signoff"><span>echo.</span><p>A little closer to the craft.</p><span>Built at Junction 2026</span></div>
 </main>
-
 <script type="module">
   import { mountChrome } from "./shared/chrome.js";
+  import { mountHero } from "./hero.js";
   import { icon } from "./shared/icons.js";
-  document.querySelector("[data-open-settings]").innerHTML = icon("gear", { size: 22 });
-  document.querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = icon(el.dataset.icon, { size: 24 })));
+  document.querySelector("[data-open-settings]").innerHTML = icon("gear", { size: 21 });
+  document.querySelectorAll("[data-icon]").forEach((el) => (el.innerHTML = icon(el.dataset.icon, { size: 22 })));
+  mountHero();
   mountChrome();
 </script>
 </body>

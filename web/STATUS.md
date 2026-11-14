@@ -38,6 +38,14 @@ Run against `backend/` at commit 14a8623 on `localhost:8000`, `STORAGE=memory`, 
 
 Not verified: webcam capture with a real camera and a person; speech output by ear; Safari; the deployed HTTPS URL.
 
+## Visual refresh (2026-11-14)
+
+User-requested Meta-inspired visual treatment implemented within `web/`: glass panels, white text and Manrope. The final hero copy is “Cook from the chef’s point of view.” A generated blue titanium material is confined to the hero; shared page backgrounds and tool cards keep their earlier styling.
+
+The final transparent PNG is an image-tool cutout of the user-identified floating-glasses photo, flipped horizontally toward the left-hand headline. The original crossed open temples are retained, with readable Ray-Ban lettering on the viewer-left lens. The final user-requested correction removes the band and centers the larger glasses, retaining cool blue-silver reflections. The generated sushi-rice thumbnail appears in a glowing illustrative card projected to four points on the flat lens plane, with nearly parallel edges rather than an exaggerated taper to the rim; a resize observer keeps it aligned. No person, product blending or duplicate frame layer is used. The simulator's actual lens renderer retains its black display background and status colours.
+
+Observed in shared Chromium during the visual refresh: desktop home and simulator render; simulator links navigate; settings opens and closes; a narrow viewport stacks the hero and cards and keeps the simulator header and camera controls within the screen. Review and Monitor remain labelled Coming soon. Backend is not running in this environment: the existing API unreachable state remains visible. The final projected card was checked at desktop and narrow phone-sized widths. A numerical check confirms that the projective matrix maps all four card corners to the intended lens quadrilateral, including an affine rectangle case. The static server responds HTTP 200 at localhost:5173 in the cloud workspace. No cooking-session or real-camera verification was performed for this visual-only change.
+
 ## Submission
 
 | Item | State | When / by whom | Link or note |
