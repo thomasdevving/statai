@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | 01 | Package skeleton, fake mode, fixture | DONE (fake) | 2026-11-14 · `273fadb` | Fake mode only: no Gemini call exists yet. 38 tests pass, ruff clean, all verification commands run (Windows, Python 3.13). Fixture recipe and the six reference images are **placeholders**, not chef footage. Model IDs in `config.py` are unverified placeholders until AI-02. |
 | 02 | Gemini access and model selection | DONE | 2026-11-14 · `19091c3` + not yet committed | On the **event key** (project "Hack Junction 2026-7638", Tier 3, paid): image, two-image, video, Live audio, Live function call and fully locked ephemeral token all **PASS**; limits read in AI Studio; models pinned. Earlier tests ran on a different key (see account facts). `check` stays provisionally on the lite model; AI-04 decides with real frames. The account's data-use wording was not found on the pages read. The OpenAI stand-in is no longer used. |
-| 03 | Chef footage and evaluation set | PARTIAL | 2026-11-14 · `3491963` | **Tooling done, physical work not started.** Done: `scripts/extract_frames.py` (03.3), `scripts/check_cases.py` (validates `eval/cases.csv`, prints split × label counts, `--scaffold` adds unlabelled rows), `scripts/side_by_side.py` (for 03.6), `eval/` layout, empty `eval/cases.csv`, `eval/README.md` template; 18 new tests; 74 pass. ffmpeg 9.0.2 installed on the owner's laptop (winget `Gyan.FFmpeg`); extraction verified on a generated 6 s test video (frame names, 720×1280 size, `--at`), **not yet on real footage**. **Not done (human):** 03.1 chef take, 03.2 mistake clips, 03.4 labelling, 03.5 real stills + fixture v1, 03.6 the "can a person tell?" check. |
+| 03 | Chef footage and evaluation set | PARTIAL — team decided not to cook; see "Footage and evaluation set" | 2026-11-14 · `3491963` | **Tooling done, physical work not started.** Done: `scripts/extract_frames.py` (03.3), `scripts/check_cases.py` (validates `eval/cases.csv`, prints split × label counts, `--scaffold` adds unlabelled rows), `scripts/side_by_side.py` (for 03.6), `eval/` layout, empty `eval/cases.csv`, `eval/README.md` template; 18 new tests; 74 pass. ffmpeg 9.0.2 installed on the owner's laptop (winget `Gyan.FFmpeg`); extraction verified on a generated 6 s test video (frame names, 720×1280 size, `--at`), **not yet on real footage**. **Not done (human):** 03.1 chef take, 03.2 mistake clips, 03.4 labelling, 03.5 real stills + fixture v1, 03.6 the "can a person tell?" check. |
 | 04 | Check and watch | NOT STARTED | | |
 | 05 | Live voice config and token | NOT STARTED | | |
 | 06 | Recipe extraction from video | NOT STARTED | | |
@@ -132,10 +132,20 @@ Run cost: 24 calls, 35,189 input tokens, 382 output tokens. The dollar charge wa
 
 | Item | Value |
 |---|---|
-| Chef video location (outside git) | — |
+| Chef video location (outside git) | — none filmed. **Team decision 2026-11-14: no cooking.** |
 | Recorded with (glasses model / phone) | — |
 | Who appears; consent given? | — |
-| Dev cases / held-out cases | — / — |
+| Dev cases / held-out cases | 0 / 0 labelled |
+
+**Interim development material (not the evaluation set).** With no footage of our own, one third-party stock clip is used **privately** for AI-04 prompt work:
+
+- Mixkit clip 46009, "Sushi rice being flattened while making sushi" (`https://mixkit.co/free-stock-video/sushi-rice-being-flattened-while-making-sushi-46009/`), free 720p version, downloaded 2026-11-14 from `assets.mixkit.co`. Licence shown on the page: **"720p Version for Personal Use only", "Mixkit Restricted License"**; the commercial version is a paid Envato licence. The owner chose private development use only.
+- Stored in `ai/footage/mixkit/` (gitignored): the clip, 9 frames every 2.5 s (`frames/`), `contact-sheet.jpg`. **Never commit these, never use them in the fixture the backend serves, in the demo, or in the deck.**
+- What it shows: 21.6 s, 1280×720 landscape, 25 fps, true top-down over a bamboo mat. The camera is **opposite the chef** (hands enter from the top of the frame), so it is not first-person; rotated 180° it approximates the wearer's view. Every frame is **mid-step**: rice heaped on half the nori while being spread, bare nori on the other half. No finished state, no deliberate mistakes.
+- Useful for: checking the prompts treat work in progress as **not** a mistake (watch → `ok`), and that partly covered views give `unsure`. Not useful for: false-approval or detection numbers. Nothing measured on it may be reported as accuracy.
+- Not labelled: labels must be set by a person (AI-03.4).
+
+**What AI-03 still cannot do without real footage:** a labelled dev/held-out set with mistakes, real reference stills for the fixture, the "can a person tell?" check, and every number in EVALUATION.md §4. Options that avoid cooking (a team decision, not made here): ready-made rice and assembly only; non-food props; or a non-food task. Until one is chosen, AI-07's evaluation has no data.
 
 ## Results (AI-07 fills this in; copy the table into docs/EVALUATION.md §4 through a `[docs]` commit)
 
