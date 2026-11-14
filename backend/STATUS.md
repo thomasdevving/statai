@@ -9,7 +9,7 @@
 | 01 | Skeleton and full API on memory + fake AI | DONE (fake) | 2026-11-14 | Every §2–§5 endpoint on the memory store + fake AI (AI-01 `815f2a2`). See below. |
 | 02 | Supabase schema, storage, seed | DONE (fake) | 2026-11-14 | `STORAGE=supabase` works: migration applied, `SupabaseStore`, `scripts/seed.py`, smoke exit 0 against Supabase. AI still fake. See BE-02 notes. |
 | 03 | Check and watch, production-grade | DONE | 2026-11-14 | Real Gemini through `/check` and `/watch` (AI-04 `429b19a`). JPEG validation + downscale, ref-image cache, budgets, `/watch` in-flight guard, background frame/event persistence, latest-frame route, JSON call logs. Real-photo verdicts were checked by reading them only: no labelled mistake frame exists yet (AI-03). See BE-03 notes. |
-| 04 | Deploy to Railway + emergency mode | PARTIAL | 2026-11-14 | Files done and verified locally: Dockerfile (built + run here), `railway.json`, README deploy and emergency sections, `scripts/emergency.sh`/`.ps1`. **Not yet done (human):** the Railway deploy (BE-04.3) and the hotspot rehearsal (BE-04.4). See BE-04 notes. |
+| 04 | Deploy to Railway + emergency mode | DONE | 2026-11-14 / `b72ce2d` | Production runs on Railway with `gemini` + `supabase`; smoke against production passed. Emergency laptop mode is **NOT REHEARSED** on a hotspot. Automatic deploys are still on until the owner disables them. See BE-04 notes. |
 | 05 | Live token, monitor, session summary | NOT STARTED | | |
 | 06 | Ingestion pipeline with ffmpeg | NOT STARTED | | |
 | 07 | Hardening and end-to-end | NOT STARTED | | |
@@ -22,7 +22,7 @@ Status words: `DONE`, `DONE (fake)`, `PARTIAL`, `BLOCKED`, `NOT STARTED` (define
 |---|---|---|---|---|
 | Owner's laptop on the LAN | `http://192.168.200.152:8000` (when the owner runs it; IP may change) | `fake` | `memory` | 2026-11-14 |
 | Owner's laptop, Supabase store (local test only) | `http://localhost:8001` (started for BE-02 verification, then stopped) | `fake` | `supabase` | 2026-11-14 |
-| Production (Railway) | — | — | — | — |
+| Production (Railway) | `https://statai-production.up.railway.app` | `gemini` | `supabase` | 2026-11-14 |
 | Emergency laptop (hotspot) | `scripts/emergency.sh` prints `http://<lan-ip>:8000`. **NOT REHEARSED** on a hotspot with a phone | `gemini` | `memory` | — |
 
 The demo key is shared privately, never written here.
@@ -50,7 +50,7 @@ The demo key is shared privately, never written here.
 | 2026-11-14 | Docker image on `localhost:8010` (fake, memory), `--fast` | exit 0, every status as expected | 750 / 751 (n=2) | 300 / 301 (n=6) |
 | 2026-11-14 | Docker image on `localhost:8011` with **production config** (`STORAGE=supabase`, `GHOSTCHEF_AI_FAKE=0`), default fixture frame, `--fast` | every check/watch 200; only failure `/live-token` 503 (AI-05, see Needs) | 1562 / 1969 (n=2) | 1000 / 1426 (n=6) |
 | 2026-11-14 | `scripts/emergency.sh` on this laptop, reached via its LAN address `http://192.168.1.244:8020` from the same laptop (gemini, memory), `--fast` | every check/watch 200; `/live-token` 503 as above | 1662 / 1748 (n=2) | 932 / 1065 (n=6) |
-| — | Production (Railway) | **not run: not deployed yet** | | |
+| 2026-11-14 | `https://statai-production.up.railway.app` (**gemini, supabase**), default fixture frame `ai/fixtures/images/step-3.jpg`, `--watch-n 10` | every check/watch 200; only failure `/live-token` 503 (AI-05, see Needs) | 1217 / 1238 (n=2) | 712 / 868 (n=10) |
 
 Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not Gemini.
 
@@ -59,7 +59,7 @@ Fake-mode latencies: they measure `GHOSTCHEF_AI_FAKE_DELAY` (0.3 s default), not
 | Service | Project name | Owner | Region / plan |
 |---|---|---|---|
 | Supabase | Echo (`trfaijfrgfyrjvhocqif`) | Stelios | eu-north-1, created 2026-11-14; `migrations/001_init.sql` applied 2026-11-14 |
-| Railway | — (not created yet) | Stelios | — |
+| Railway | `gracious-miracle`, service `statai` | Stelios | EU West (`europe-west4-drams3a`), 1 replica, 2 vCPU / 1 GB limit; created 2026-11-14. A second, unused project `zestful-passion` (only failed deploys) also exists |
 
 ## Recovery tests (BE-07)
 
@@ -194,7 +194,19 @@ Run in this session and seen:
   - **Caveat:** Railway's docs (read 2026-11-14) mark config-as-code as deprecated: it works for legacy services and only until 2026-12-01. The README therefore also has every setting entered in the dashboard, plus `RAILWAY_DOCKERFILE_PATH=backend/Dockerfile`.
   - Railway's successor is IaC (`.railway/railway.ts` at the repo root), which is outside `backend/` and needs a TypeScript SDK. Not done; not needed for the hackathon.
   - Railway only reads a `.dockerignore` at the build-context root; `backend/Dockerfile.dockerignore` applies to local BuildKit builds. Railway builds from git (no `.env`, `.venv` or `.data` there), and the Dockerfile copies only named backend paths, so nothing secret can reach the image either way.
-- **BE-04.3 Deploy: NOT DONE.** Needs the owner to create the Railway project, set the variables and deploy. No production URL exists yet.
+- **BE-04.3 Deploy (2026-11-14), done through the Railway MCP:**
+  - **What broke.** The first deploys crashed at startup with `SupabaseException: Invalid URL`: the `SUPABASE_URL` value had been entered wrongly in the dashboard. The values are redacted, so the exact typo is not known.
+  - **The fix.** All variables were re-set from the owner's working `backend/.env`. The Dockerfile path, restart policy (on failure, 10 retries) and sleep off were also set on the service. The next deploy went healthy.
+  - **The build** used `backend/Dockerfile`: the stack trace paths are `/srv/backend/app/...`. Railway's metadata still shows `builder: RAILPACK`, but the variable takes precedence.
+  - **Checks run against the production URL:**
+    - `curl /health` → `{"status":"ok","contract_version":"2.0","ai_mode":"gemini","storage":"supabase"}`.
+    - `/app/` → 200. That was curl only; it has not been opened on a phone yet.
+    - `/recipes` with no key → 401; with `dev-key` → 401.
+    - Smoke: see the table above. The frame was the default fixture image, not a newly taken photo.
+  - **The demo key** was generated in this session and is in `backend/.env` and the Railway variables. The owner shares it privately.
+  - **Still open:**
+    - Automatic deploys from `main` are still on. The owner must click "Disable" (Settings → Source); the MCP has no switch for it.
+    - Delete the unused `zestful-passion` project, if the owner agrees.
 - **BE-04.4 Emergency mode.** `scripts/emergency.sh` ran on this laptop: memory store, real Gemini, fixture seeded at startup, LAN address printed (container bridges filtered out). Smoke through the LAN address passed (table above). With no `GEMINI_API_KEY` anywhere it refuses to start (exit 1). `emergency.ps1` was written but **not run** (no Windows machine here).
   - Emergency laptop: **NOT REHEARSED**. No phone, no hotspot, and the app was not pointed at it.
 - **BE-04.5 Decision: manual production deploys.** Automatic deploys on `main` are to be switched off. Four tracks push to `main`, and a broken push from any of them would break everyone's phone testing and the demo. Release = `pytest -q` + local smoke on the commit, then Railway → Cmd/Ctrl+K → "Deploy Latest Commit", then `/health` + smoke against production (README → "Keeping production current").
