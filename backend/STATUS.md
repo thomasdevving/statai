@@ -10,7 +10,7 @@
 | 02 | Supabase schema, storage, seed | DONE (fake) | 2026-11-14 | `STORAGE=supabase` works: migration applied, `SupabaseStore`, `scripts/seed.py`, smoke exit 0 against Supabase. AI still fake. See BE-02 notes. |
 | 03 | Check and watch, production-grade | DONE | 2026-11-14 | Real Gemini through `/check` and `/watch` (AI-04 `429b19a`). JPEG validation + downscale, ref-image cache, budgets, `/watch` in-flight guard, background frame/event persistence, latest-frame route, JSON call logs. Real-photo verdicts were checked by reading them only: no labelled mistake frame exists yet (AI-03). See BE-03 notes. |
 | 04 | Deploy to Railway + emergency mode | DONE | 2026-11-14 / `b72ce2d` | Production runs on Railway with `gemini` + `supabase`; smoke against production passed. Emergency laptop mode is **NOT REHEARSED** on a hotspot. Automatic deploys are still on until the owner disables them. See BE-04 notes. |
-| 05 | Live token, monitor, session summary | PARTIAL | 2026-11-14 / not committed | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) but **no real token yet**: AI-05 is not on `main`, so with real AI it returns 503. Not deployed: the code is uncommitted and production deploys are manual. See BE-05 notes. |
+| 05 | Live token, monitor, session summary | PARTIAL | 2026-11-14 / `ab84dc8` | Monitor, sessions list, summary, smoke: done and tested (fake, memory). `/live-token` handler is real (409, config cache, 3 s guard, safe logging) but **no real token yet**: AI-05 is not on `main`, so with real AI it returns 503. Pushed, not deployed yet (production deploys are manual). See BE-05 notes. |
 | 06 | Ingestion pipeline with ffmpeg | NOT STARTED | | |
 | 07 | Hardening and end-to-end | NOT STARTED | | |
 
@@ -265,7 +265,7 @@ Run in this session and seen:
 
 Not done / not verified:
 - **BE-05.5 not done.**
-  - Nothing has been committed, pushed or deployed. Production still runs the BE-04 code.
+  - Committed and pushed as `ab84dc8`, but not deployed. Production still runs the BE-04 code.
   - The smoke against production was therefore **not run** for BE-05.
   - The iOS and web owners have **not** been told yet.
 - `STORAGE=supabase` was not run in this batch. The store code is unchanged; only router logic changed.
